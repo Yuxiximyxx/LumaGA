@@ -51,6 +51,7 @@ import com.bugenzhao.mnga.ui.screens.user.displayString
 import com.bugenzhao.mnga.util.DateFormatters
 import com.bugenzhao.mnga.util.L
 import java.util.Date
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
 
 /**
  * Short message conversation list, ported from `ShortMessageListView`:
@@ -74,6 +75,7 @@ fun ShortMessageListScreen(
     }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = { Text(L.str(context, "Short Messages")) },

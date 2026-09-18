@@ -97,7 +97,7 @@ fun <Item : Any> PagedList(
             else -> LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = contentPadding,
+                contentPadding = contentPadding.withNavigationBarsBottom(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (header != null) {

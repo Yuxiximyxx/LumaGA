@@ -77,6 +77,8 @@ import com.bugenzhao.mnga.ui.screens.topiclist.TopicRow
 import com.bugenzhao.mnga.util.Haptics
 import com.bugenzhao.mnga.util.L
 import kotlinx.coroutines.launch
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 /** The default folder forced first, mirroring `sortedFolders`. */
 private fun List<FavoriteTopicFolder>.sortedFolders(): List<FavoriteTopicFolder> =
@@ -141,6 +143,7 @@ fun FavoritesScreen(navigator: Navigator, initialFolderId: String? = null) {
     }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = {
@@ -479,7 +482,7 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
             else -> LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp).withNavigationBarsBottom(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(visibleItems, key = { _, topic -> topic.id }) { _, topic ->

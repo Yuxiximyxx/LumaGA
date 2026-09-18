@@ -39,6 +39,8 @@ import com.bugenzhao.mnga.ui.components.RowChevron
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.util.Constants
 import com.bugenzhao.mnga.util.L
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 /**
  * About page: app icon, version, and the update check. Links point at the
@@ -56,6 +58,7 @@ fun AboutScreen(navigator: Navigator? = null) {
     BackHandler(enabled = navigator != null && navigator.size > 1) { navigator?.pop() }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = { Text(L.str(context, "About")) },
@@ -70,7 +73,7 @@ fun AboutScreen(navigator: Navigator? = null) {
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp).withNavigationBarsBottom(),
         ) {
             item(key = "header") {
                 Column(

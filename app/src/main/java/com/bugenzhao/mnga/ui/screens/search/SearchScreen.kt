@@ -87,6 +87,8 @@ import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.util.L
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.navigationBarsPadding
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
 
 /** The two search scopes, one per tab, each with its own history list. */
 private enum class SearchTab(val titleKey: String, val history: SearchHistoryScope) {
@@ -253,6 +255,7 @@ fun SearchScreen(
     // Data sources are rebuilt whenever the committed text or an option
     // changes, like `SearchModel`'s `commitedText -> dataSource` mapping.
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = {
@@ -333,9 +336,11 @@ fun SearchScreen(
                                 text = query
                                 commit(query)
                             },
-                            modifier = Modifier.padding(
-                                top = if (tab == SearchTab.TOPICS) 0.dp else 14.dp,
-                            ),
+                            modifier = Modifier
+                                .navigationBarsPadding()
+                                .padding(
+                                    top = if (tab == SearchTab.TOPICS) 0.dp else 14.dp,
+                                ),
                         )
                     }
                 }

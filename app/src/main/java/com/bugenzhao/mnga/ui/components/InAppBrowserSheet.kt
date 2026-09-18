@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
 
 /**
  * In-app browser sheet, the Android stand-in for the iOS `SafariView`.
@@ -40,6 +41,7 @@ fun InAppBrowserSheet(uri: Uri, onDismiss: () -> Unit) {
     }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = { Text(uri.host ?: "", maxLines = 1) },

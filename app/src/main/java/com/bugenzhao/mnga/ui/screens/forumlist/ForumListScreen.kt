@@ -90,6 +90,8 @@ import com.bugenzhao.mnga.util.Haptics
 import com.bugenzhao.mnga.util.L
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 private const val CollapsedCategoriesKey = "collapsedCategories"
 private const val FavoritesSectionID = "LumaGA-Favorites"
@@ -188,6 +190,7 @@ fun ForumListScreen(
     }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -303,7 +306,7 @@ fun ForumListScreen(
                 columns = GridCells.Fixed(3),
                 state = gridState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp).withNavigationBarsBottom(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {

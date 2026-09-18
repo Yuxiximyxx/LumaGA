@@ -55,6 +55,8 @@ import com.bugenzhao.mnga.util.fmtL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 /** What a pending clear confirmation refers to. */
 private sealed interface PendingClear {
@@ -138,6 +140,7 @@ fun CacheScreen(navigator: Navigator? = null) {
     BackHandler(enabled = navigator != null && navigator.size > 1) { navigator?.pop() }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = { Text(L.str(context, "Cache Management")) },
@@ -152,7 +155,7 @@ fun CacheScreen(navigator: Navigator? = null) {
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp).withNavigationBarsBottom(),
         ) {
             item(key = "image") {
                 SectionCard(header = L.str(context, "Image")) {

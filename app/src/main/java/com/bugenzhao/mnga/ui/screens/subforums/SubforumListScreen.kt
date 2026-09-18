@@ -68,6 +68,8 @@ import com.bugenzhao.mnga.ui.screens.forumlist.ForumRow
 import com.bugenzhao.mnga.util.Haptics
 import com.bugenzhao.mnga.util.L
 import kotlinx.coroutines.launch
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 private const val SubforumTipSeenKey = "subforumTipSeen"
 
@@ -146,6 +148,7 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
     }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = {
@@ -165,7 +168,7 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp).withNavigationBarsBottom(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (!tipSeen) {

@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.util.L
+import androidx.compose.foundation.layout.navigationBarsPadding
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
 
 /** 金属货币色（不随主题切换，保持金属质感）。 */
 private val Gold = Color(0xFFC9A227)
@@ -71,6 +73,7 @@ fun ClockInScreen(navigator: Navigator? = null) {
     BackHandler(enabled = navigator != null && navigator.size > 1) { navigator?.pop() }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = { Text(L.str(context, "Clock In")) },
@@ -86,6 +89,7 @@ fun ClockInScreen(navigator: Navigator? = null) {
             Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .navigationBarsPadding()
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

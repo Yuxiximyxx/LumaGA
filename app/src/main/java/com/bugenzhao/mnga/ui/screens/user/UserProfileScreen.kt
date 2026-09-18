@@ -72,6 +72,8 @@ import com.bugenzhao.mnga.util.L
 import com.bugenzhao.mnga.util.URLs
 import java.net.URLEncoder
 import kotlinx.coroutines.launch
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 private enum class ProfileTab(val labelKey: String) {
     TOPICS("Topics"),
@@ -170,6 +172,7 @@ fun UserProfileScreen(
         else displayName.ifEmpty { L.str(context, "User Profile") }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = {
@@ -246,7 +249,7 @@ fun UserProfileScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(16.dp).withNavigationBarsBottom(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item(key = "header") {

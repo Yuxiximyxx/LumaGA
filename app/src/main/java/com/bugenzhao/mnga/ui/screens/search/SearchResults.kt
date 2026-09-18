@@ -62,6 +62,7 @@ import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.util.L
 import com.bugenzhao.mnga.util.errorLocalized
 import kotlinx.coroutines.CoroutineScope
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 /**
  * Shared search plumbing: the two `AsyncRequest` data sources (`forumSearch`,
@@ -163,7 +164,7 @@ internal fun ForumResultsList(
                 LazyColumn(
                     state = lstate,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp).withNavigationBarsBottom(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     item(key = "header") { SectionHeader(L.str(context, "Search Results")) }
@@ -218,7 +219,7 @@ internal fun TopicResultsList(
                 LazyColumn(
                     state = lstate,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp).withNavigationBarsBottom(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     item(key = "header") { SectionHeader(L.str(context, "Search Results")) }

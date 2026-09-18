@@ -57,6 +57,8 @@ import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.util.Haptics
 import com.bugenzhao.mnga.util.L
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 /**
  * Block word editor, ported from `Views/BlockWordListView.swift`: keyword rows
@@ -89,6 +91,7 @@ fun BlockWordsScreen(navigator: Navigator? = null) {
     BackHandler(enabled = navigator != null && navigator.size > 1) { navigator?.pop() }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = { Text(L.str(context, "Block Contents")) },
@@ -133,7 +136,7 @@ fun BlockWordsScreen(navigator: Navigator? = null) {
         } else {
             LazyColumn(
                 Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp).withNavigationBarsBottom(),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 if (newWord != null) {

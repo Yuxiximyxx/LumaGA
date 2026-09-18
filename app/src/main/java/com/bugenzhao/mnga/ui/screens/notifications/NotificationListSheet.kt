@@ -69,6 +69,8 @@ import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 /**
  * Icon per notification type, mirroring `Notification.TypeEnum.icon`.
@@ -156,6 +158,7 @@ fun NotificationListSheet(
 
     // 页面形式（与设置页一致的 AppBar），不再是底部弹窗。
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = {
@@ -223,7 +226,7 @@ fun NotificationListSheet(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(16.dp).withNavigationBarsBottom(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         itemsIndexed(state.items, key = { _, n -> n.id }) { _, noti ->

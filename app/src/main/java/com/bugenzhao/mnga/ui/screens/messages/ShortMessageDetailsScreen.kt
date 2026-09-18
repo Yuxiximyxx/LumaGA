@@ -57,6 +57,8 @@ import com.bugenzhao.mnga.ui.screens.user.checkPlusFeature
 import com.bugenzhao.mnga.util.DateFormatters
 import com.bugenzhao.mnga.util.L
 import java.util.Date
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 /**
  * One short message conversation, ported from `ShortMessageDetailsView`:
@@ -87,6 +89,7 @@ fun ShortMessageDetailsScreen(
         ShortMessage.newBuilder().setId(id).build()
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = {
@@ -150,7 +153,7 @@ fun ShortMessageDetailsScreen(
                 else -> LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(16.dp).withNavigationBarsBottom(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     val participants = dataSource.latestResponse?.usersList.orEmpty()

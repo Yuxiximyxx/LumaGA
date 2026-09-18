@@ -63,6 +63,8 @@ import com.bugenzhao.mnga.ui.screens.topiclist.TopicRow
 import com.bugenzhao.mnga.ui.screens.topiclist.topicSubjectFull
 import com.bugenzhao.mnga.util.L
 import kotlinx.coroutines.launch
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 
 /**
@@ -124,6 +126,7 @@ fun HistoryScreen(navigator: Navigator) {
     } ?: displayTopics
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = {
@@ -223,7 +226,7 @@ fun HistoryScreen(navigator: Navigator) {
                     else -> LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp).withNavigationBarsBottom(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         itemsIndexed(filteredTopics, key = { _, topic -> topic.id }) { _, topic ->

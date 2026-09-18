@@ -87,6 +87,8 @@ import com.bugenzhao.mnga.ui.nav.TopicListMode
 import com.bugenzhao.mnga.util.Haptics
 import com.bugenzhao.mnga.util.L
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.navigationBarsPadding
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
 
 private const val IdleAutoRefreshMillis = 60L * 60 * 1000 // 1 hour
 
@@ -262,6 +264,7 @@ fun TopicListScreen(
     }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = {
@@ -403,6 +406,7 @@ fun TopicListScreen(
                     onClick = {
                         if (!state.isLoading && !state.isRefreshing) triggerRefresh()
                     },
+                    modifier = Modifier.navigationBarsPadding(),
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ) {

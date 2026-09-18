@@ -68,6 +68,8 @@ import com.bugenzhao.mnga.ui.screens.misc.CheckForUpdatesRow
 import com.bugenzhao.mnga.ui.screens.misc.UpdateFlowDialogs
 import com.bugenzhao.mnga.util.L
 import kotlinx.coroutines.launch
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 /** Which picker dialog is currently presented. */
 private enum class PickerKind {
@@ -161,6 +163,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
     val dateTimeStrategy = DateTimeStrategy.fromRaw(dateTimeStrategyRaw)
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         topBar = {
             TopAppBar(
                 title = { Text(L.str(context, "Settings")) },
@@ -179,7 +182,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
             Modifier.fillMaxSize().padding(padding),
             state = listState,
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp).withNavigationBarsBottom(),
         ) {
             // region General
             item(key = "general") {

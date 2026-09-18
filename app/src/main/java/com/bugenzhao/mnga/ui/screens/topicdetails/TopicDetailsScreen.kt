@@ -133,6 +133,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
 
 /**
  * Topic details reading screen, ported from `Shared/Views/TopicDetailsView.swift`.
@@ -507,6 +509,7 @@ fun TopicDetailsScreen(
         if (forceLocalMode || onlyPostId != null) null else { post -> locatePostInCurrentTopic(post) }
 
     Scaffold(
+        contentWindowInsets = ImmersiveScaffoldContentWindowInsets,
         // 正文用亮色背景（与 AppBar 默认色一致，滚动后 AppBar 变暗区分）。
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
@@ -871,7 +874,7 @@ fun TopicDetailsScreen(
                         // 跟手平移发生在 graphicsLayer：绘制/命中随平移变化，
                         // 手势判定仍用原始坐标。
                         .graphicsLayer { translationX = contentOffset },
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp).withNavigationBarsBottom(),
                 ) {
                     // 自动加载上一页时，顶部居中显示加载提示。
                     if (isLoadingPrev) {
@@ -1787,7 +1790,7 @@ private fun ReplyChainOverlay(
                     }
                 }
                 LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(16.dp).withNavigationBarsBottom(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     itemsIndexed(chain, key = { _, id -> "${id.tid}_${id.pid}" }) { _, id ->
