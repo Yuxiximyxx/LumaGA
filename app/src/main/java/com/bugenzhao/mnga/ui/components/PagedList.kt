@@ -23,7 +23,7 @@ import com.bugenzhao.mnga.model.PagingDataSource
 
 /**
  * Standard paged list scaffolding: pull-to-refresh, initial loading spinner,
- * empty/error placeholders, footer and last-3-items prefetch.
+ * empty/error placeholders, footer and near-end prefetch.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,12 +58,13 @@ fun <Item : Any> PagedList(
         if (scrollToTopSignal > 0) listState.scrollToItem(0)
     }
 
-    // Prefetch when approaching the end.
+    // Prefetch a bit earlier so the next page is ready before the user hits
+    // the footer — reduces scroll stalls without loading the whole list.
     LaunchedEffect(listState, state.items.size) {
         snapshotFlow {
             val info = listState.layoutInfo
             val last = info.visibleItemsInfo.lastOrNull()?.index ?: 0
-            last >= state.items.size - 3
+            last >= state.items.size - 5
         }.collect { nearEnd ->
             if (nearEnd && state.items.isNotEmpty()) {
                 dataSource.loadMoreIfNeeded(state.items.size - 1)

@@ -163,6 +163,13 @@ class PreferencesStorage(private val prefs: SharedPreferences) {
     val clockInEnabled = boolPref("clockInEnabled", false)
     val autoClockInOnLaunch = boolPref("autoClockInOnLaunch", false)
 
+    // 实验室功能：Android 可预测性返回（系统手势进度动画）。
+    // API 34+ 默认开启；更低版本无系统预测动画，默认关。
+    val predictiveBackEnabled = boolPref(
+        "predictiveBackEnabled",
+        android.os.Build.VERSION.SDK_INT >= 34,
+    )
+
     val defaultTopicListOrderRaw = intPref("defaultTopicListOrder", 0)
     val themeColorRaw = intPref("themeColorNew", 0)
     val colorSchemeRaw = intPref("colorScheme", 0)

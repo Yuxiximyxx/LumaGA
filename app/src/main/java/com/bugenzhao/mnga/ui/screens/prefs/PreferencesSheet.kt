@@ -116,6 +116,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
     val compactTopicList by prefs.topicListRowStyle.flow.collectAsState()
     val clockInEnabled by prefs.clockInEnabled.flow.collectAsState()
     val autoClockInOnLaunch by prefs.autoClockInOnLaunch.flow.collectAsState()
+    val predictiveBackEnabled by prefs.predictiveBackEnabled.flow.collectAsState()
 
     val defaultOrderRaw by prefs.defaultTopicListOrderRaw.flow.collectAsState()
     val hideBlocked by prefs.topicListHideBlocked.flow.collectAsState()
@@ -377,7 +378,10 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
 
             // region Laboratory
             item(key = "laboratory") {
-                Section(header = L.str(context, "Laboratory")) {
+                Section(
+                    header = L.str(context, "Laboratory"),
+                    footer = L.str(context, "Predictive Back Explained"),
+                ) {
                     SwitchRow(
                         title = L.str(context, "Enable Clock In"),
                         checked = clockInEnabled,
@@ -387,6 +391,11 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
                         title = L.str(context, "Auto Clock In on Launch"),
                         checked = autoClockInOnLaunch,
                         onChange = { prefs.autoClockInOnLaunch.value = it },
+                    )
+                    SwitchRow(
+                        title = L.str(context, "Predictive Back Gesture"),
+                        checked = predictiveBackEnabled,
+                        onChange = { prefs.predictiveBackEnabled.value = it },
                     )
                 }
             }

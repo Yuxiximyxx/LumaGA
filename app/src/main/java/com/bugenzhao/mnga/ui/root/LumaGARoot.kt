@@ -158,14 +158,16 @@ private fun NavigationHost(
         // composed and kicked off first loads — that contention showed up as
         // obvious enter jank. Fade keeps directional context via the stack
         // and finishes before heavy screen work typically lands.
+        // Pop fades stay lightweight so Android Predictive Back can seek them
+        // during the gesture without extra transform work.
         enterTransition = {
             fadeIn(tween(NAV_ENTER_TRANSITION_MS.toInt()))
         },
-        exitTransition = { fadeOut(tween(120)) },
+        exitTransition = { fadeOut(tween(100)) },
         popEnterTransition = {
             fadeIn(tween(NAV_ENTER_TRANSITION_MS.toInt()))
         },
-        popExitTransition = { fadeOut(tween(120)) },
+        popExitTransition = { fadeOut(tween(100)) },
     ) {
         composable(RouteCodec.ROUTE_FORUM_LIST) {
             RouteDispatcher(navigator, Route.ForumList, editor)

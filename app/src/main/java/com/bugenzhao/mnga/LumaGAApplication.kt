@@ -6,6 +6,8 @@ import android.content.SharedPreferences
 import coil.Coil
 import coil.ImageLoader
 import coil.decode.GifDecoder
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
 import com.tencent.bugly.crashreport.CrashReport
 import com.bugenzhao.mnga.model.CurrentUserModel
 import com.bugenzhao.mnga.model.NotificationModel
@@ -57,9 +59,22 @@ class LumaGAApplication : Application() {
 
         // Global Coil image loader with GIF support (coil-gif). Without the
         // decoder, animated GIFs fail to render in posts and the viewer.
+        // Memory/disk caps keep scroll-heavy topic screens from ballooning RSS
+        // while still retaining enough cache for smooth image reuse.
         Coil.setImageLoader(
             ImageLoader.Builder(this)
                 .components { add(GifDecoder.Factory()) }
+                .memoryCache {
+                    MemoryCache.Builder(this@LumaGAApplication)
+                        .maxSizePercent(0.18)
+                        .build()
+                }
+                .diskCache {
+                    DiskCache.Builder()
+                        .directory(cacheDir.resolve("image_cache"))
+                        .maxSizeBytes(64L * 1024 * 1024)
+                        .build()
+                }
                 .build()
         )
 

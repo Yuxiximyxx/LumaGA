@@ -7,8 +7,9 @@ import kotlinx.coroutines.yield
  * Duration of [com.bugenzhao.mnga.ui.root.NavigationHost] enter fade.
  * First-page loads should wait this out so network/parse/recompositions
  * do not contend with the push animation for main-thread / GPU time.
+ * Kept short so predictive-back seek + enter do not stack heavy work.
  */
-const val NAV_ENTER_TRANSITION_MS = 180L
+const val NAV_ENTER_TRANSITION_MS = 160L
 
 /**
  * Yield a frame, then wait for the NavHost enter transition to finish.

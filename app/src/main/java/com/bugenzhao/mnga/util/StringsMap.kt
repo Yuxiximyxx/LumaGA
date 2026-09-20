@@ -214,6 +214,8 @@ object StringsMap {
         "Laboratory" to "laboratory",
         "Enable Clock In" to "enable_clock_in",
         "Auto Clock In on Launch" to "auto_clock_in_on_launch",
+        "Predictive Back Gesture" to "predictive_back_gesture",
+        "Predictive Back Explained" to "predictive_back_explained",
         "General" to "general",
         "Topic List" to "topic_list",
         "Topic Details" to "topic_details",

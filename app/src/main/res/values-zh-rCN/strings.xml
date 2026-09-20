@@ -210,6 +210,8 @@
     <string name="laboratory">实验室功能</string>
     <string name="enable_clock_in">启用签到</string>
     <string name="auto_clock_in_on_launch">启动自动签到</string>
+    <string name="predictive_back_gesture">可预测性返回</string>
+    <string name="predictive_back_explained">返回手势显示进度并动画过渡到上一页（Android 14+）。关闭则使用经典即时返回。</string>
     <string name="general">通用</string>
     <string name="topic_list">话题列表</string>
     <string name="topic_details">帖子详情</string>

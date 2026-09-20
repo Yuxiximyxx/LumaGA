@@ -210,6 +210,8 @@
     <string name="laboratory">Laboratory</string>
     <string name="enable_clock_in">Enable Clock In</string>
     <string name="auto_clock_in_on_launch">Auto Clock In on Launch</string>
+    <string name="predictive_back_gesture">Predictive Back Gesture</string>
+    <string name="predictive_back_explained">Shows system back-gesture progress and animates the previous screen in (Android 14+). Turn off for classic instant back.</string>
     <string name="general">General</string>
     <string name="topic_list">Topic List</string>
     <string name="topic_details">Topic Details</string>
