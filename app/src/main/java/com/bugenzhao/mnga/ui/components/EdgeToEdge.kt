@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
@@ -44,7 +43,6 @@ val ImmersiveScaffoldContentWindowInsets: WindowInsets
 
 /** Bottom inset of the system navigation bars, as [Dp]. */
 @Composable
-@ReadOnlyComposable
 fun navigationBarsBottom(): Dp {
     val density = LocalDensity.current
     return with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }

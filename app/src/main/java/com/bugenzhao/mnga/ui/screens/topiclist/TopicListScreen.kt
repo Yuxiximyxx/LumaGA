@@ -89,6 +89,7 @@ import com.bugenzhao.mnga.util.L
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.navigationBarsPadding
 import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.nav.awaitEnterTransitionSettled
 
 private const val IdleAutoRefreshMillis = 60L * 60 * 1000 // 1 hour
 
@@ -164,6 +165,8 @@ fun TopicListScreen(
     // Load on first entry only: after a pop-back the ViewModel still holds the
     // data, so notLoaded is false and nothing is refetched.
     LaunchedEffect(dataSource) {
+        if (!dataSource.notLoaded) return@LaunchedEffect
+        awaitEnterTransitionSettled()
         if (dataSource.notLoaded) dataSource.initialLoad()
     }
 

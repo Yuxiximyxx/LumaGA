@@ -59,6 +59,7 @@ import com.bugenzhao.mnga.util.L
 import java.util.Date
 import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
 import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
+import com.bugenzhao.mnga.ui.nav.awaitEnterTransitionSettled
 
 /**
  * One short message conversation, ported from `ShortMessageDetailsView`:
@@ -82,6 +83,8 @@ fun ShortMessageDetailsScreen(
     val dataSource = detailsVM.dataSource
 
     LaunchedEffect(dataSource) {
+        if (!dataSource.notLoaded) return@LaunchedEffect
+        awaitEnterTransitionSettled()
         if (dataSource.notLoaded) dataSource.initialLoad()
     }
 

@@ -65,6 +65,7 @@ import com.bugenzhao.mnga.util.L
 import kotlinx.coroutines.launch
 import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
 import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
+import com.bugenzhao.mnga.ui.nav.awaitEnterTransitionSettled
 
 
 /**
@@ -85,6 +86,8 @@ fun HistoryScreen(navigator: Navigator) {
     val dataSource = historyVM.dataSource
     val state by dataSource.state.collectAsState()
     LaunchedEffect(dataSource) {
+        if (!dataSource.notLoaded) return@LaunchedEffect
+        awaitEnterTransitionSettled()
         if (dataSource.notLoaded) dataSource.initialLoad()
     }
 

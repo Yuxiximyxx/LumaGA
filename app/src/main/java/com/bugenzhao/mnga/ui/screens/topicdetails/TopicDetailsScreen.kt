@@ -135,6 +135,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
 import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
+import com.bugenzhao.mnga.ui.nav.awaitEnterTransitionSettled
 
 /**
  * Topic details reading screen, ported from `Shared/Views/TopicDetailsView.swift`.
@@ -304,7 +305,10 @@ fun TopicDetailsScreen(
     }
 
     // Initial load.
-    LaunchedEffect(Unit) { dataSource.initialLoad() }
+    LaunchedEffect(Unit) {
+        awaitEnterTransitionSettled()
+        dataSource.initialLoad()
+    }
 
     // XML parse error: optionally auto-open in the browser.
     LaunchedEffect(state.latestError) {

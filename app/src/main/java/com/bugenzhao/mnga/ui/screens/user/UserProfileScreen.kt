@@ -74,6 +74,7 @@ import java.net.URLEncoder
 import kotlinx.coroutines.launch
 import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
 import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
+import com.bugenzhao.mnga.ui.nav.awaitEnterTransitionSettled
 
 private enum class ProfileTab(val labelKey: String) {
     TOPICS("Topics"),
@@ -141,12 +142,14 @@ fun UserProfileScreen(
     val postDataSource = profileVM.postDataSource(resolvedUser.id)
 
     LaunchedEffect(topicDataSource) {
+        if (!topicDataSource.notLoaded) return@LaunchedEffect
+        awaitEnterTransitionSettled()
         if (topicDataSource.notLoaded) topicDataSource.initialLoad()
     }
     LaunchedEffect(postDataSource, tab.value) {
-        if (tab.value == ProfileTab.POSTS && postDataSource.notLoaded) {
-            postDataSource.initialLoad()
-        }
+        if (tab.value != ProfileTab.POSTS || !postDataSource.notLoaded) return@LaunchedEffect
+        awaitEnterTransitionSettled()
+        if (postDataSource.notLoaded) postDataSource.initialLoad()
     }
 
     fun reloadUser() {

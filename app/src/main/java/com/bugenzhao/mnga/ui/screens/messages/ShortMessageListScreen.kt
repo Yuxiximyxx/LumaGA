@@ -52,6 +52,7 @@ import com.bugenzhao.mnga.util.DateFormatters
 import com.bugenzhao.mnga.util.L
 import java.util.Date
 import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
+import com.bugenzhao.mnga.ui.nav.awaitEnterTransitionSettled
 
 /**
  * Short message conversation list, ported from `ShortMessageListView`:
@@ -71,6 +72,8 @@ fun ShortMessageListScreen(
     val dataSource = listVM.dataSource
 
     LaunchedEffect(dataSource) {
+        if (!dataSource.notLoaded) return@LaunchedEffect
+        awaitEnterTransitionSettled()
         if (dataSource.notLoaded) dataSource.initialLoad()
     }
 

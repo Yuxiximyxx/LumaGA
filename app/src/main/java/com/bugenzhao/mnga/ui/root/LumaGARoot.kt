@@ -4,8 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import com.bugenzhao.mnga.ui.nav.NAV_ENTER_TRANSITION_MS
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -69,7 +68,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         val editor = remember { com.bugenzhao.mnga.ui.editor.EditorController(appScope) }
 
         // Opaque theme background under the navigation stack: during the
-        // push/pop fade+slide transitions both pages are partially transparent,
+        // push/pop fade transitions both pages are partially transparent,
         // and without a solid layer beneath them the (always light) window
         // background flashes white in dark mode.
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -154,12 +153,19 @@ private fun NavigationHost(
         navController = navigator.navController,
         startDestination = RouteCodec.ROUTE_FORUM_LIST,
         modifier = Modifier.fillMaxSize(),
-        // Forward (push): the new page slides in from the right while the old
-        // one exits to the left. Backward (pop): mirrored.
-        enterTransition = { slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280)) },
-        exitTransition = { slideOutHorizontally(tween(280)) { -it / 4 } + fadeOut(tween(280)) },
-        popEnterTransition = { slideInHorizontally(tween(280)) { -it / 3 } + fadeIn(tween(280)) },
-        popExitTransition = { slideOutHorizontally(tween(280)) { it / 4 } + fadeOut(tween(280)) },
+        // Fade-only, short duration. The previous slide+fade (280ms) ran a
+        // full-screen transform+alpha on both pages while the destination
+        // composed and kicked off first loads — that contention showed up as
+        // obvious enter jank. Fade keeps directional context via the stack
+        // and finishes before heavy screen work typically lands.
+        enterTransition = {
+            fadeIn(tween(NAV_ENTER_TRANSITION_MS.toInt()))
+        },
+        exitTransition = { fadeOut(tween(120)) },
+        popEnterTransition = {
+            fadeIn(tween(NAV_ENTER_TRANSITION_MS.toInt()))
+        },
+        popExitTransition = { fadeOut(tween(120)) },
     ) {
         composable(RouteCodec.ROUTE_FORUM_LIST) {
             RouteDispatcher(navigator, Route.ForumList, editor)

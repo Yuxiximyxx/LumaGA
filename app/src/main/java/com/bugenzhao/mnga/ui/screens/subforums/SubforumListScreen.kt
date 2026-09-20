@@ -70,6 +70,7 @@ import com.bugenzhao.mnga.util.L
 import kotlinx.coroutines.launch
 import com.bugenzhao.mnga.ui.components.ImmersiveScaffoldContentWindowInsets
 import com.bugenzhao.mnga.ui.components.withNavigationBarsBottom
+import com.bugenzhao.mnga.ui.nav.awaitEnterTransitionSettled
 
 private const val SubforumTipSeenKey = "subforumTipSeen"
 
@@ -94,6 +95,8 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
     val dataSource = subforumListVM.dataSource
     val state by dataSource.state.collectAsState()
     LaunchedEffect(dataSource) {
+        if (!dataSource.notLoaded) return@LaunchedEffect
+        awaitEnterTransitionSettled()
         if (dataSource.notLoaded) dataSource.initialLoad()
     }
 
