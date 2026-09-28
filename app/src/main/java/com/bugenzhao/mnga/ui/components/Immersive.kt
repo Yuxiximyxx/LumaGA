@@ -3,7 +3,6 @@ package com.bugenzhao.mnga.ui.components
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateBottomPadding
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.MaterialTheme
@@ -12,8 +11,6 @@ import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 
 /**
  * Scaffold variant for edge-to-edge immersive layout.
@@ -44,23 +41,12 @@ fun ImmersiveScaffold(
 
 /**
  * Bottom padding equal to the navigation bar height. Add to a scrollable's
- * `contentPadding` (e.g. `contentPadding.plusBottom(immersiveBottomPadding())`)
- * when the screen uses [ImmersiveScaffold] so trailing content isn't
- * permanently hidden behind the bar.
+ * `contentPadding` (e.g. `contentPadding + immersiveBottomPadding()`) when
+ * the screen uses [ImmersiveScaffold] so trailing content isn't permanently
+ * hidden behind the bar.
+ *
+ * Note: uses the built-in `PaddingValues.plus` operator.
  */
-fun immersiveBottomPadding(): Dp =
-    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-
-/**
- * Return a [PaddingValues] that delegates to this one with [padding] added
- * to the bottom.
- */
-fun PaddingValues.plusBottom(padding: Dp): PaddingValues = object : PaddingValues {
-    override fun calculateLeftPadding(layoutDirection: LayoutDirection): Dp =
-        this@plusBottom.calculateLeftPadding(layoutDirection)
-    override fun calculateTopPadding(): Dp = this@plusBottom.calculateTopPadding()
-    override fun calculateRightPadding(layoutDirection: LayoutDirection): Dp =
-        this@plusBottom.calculateRightPadding(layoutDirection)
-    override fun calculateBottomPadding(): Dp =
-        this@plusBottom.calculateBottomPadding() + padding
-}
+@Composable
+fun immersiveBottomPadding(): PaddingValues =
+    WindowInsets.navigationBars.asPaddingValues()
