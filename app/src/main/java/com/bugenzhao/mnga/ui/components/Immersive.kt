@@ -51,3 +51,19 @@ fun ImmersiveScaffold(
 @Composable
 fun immersiveBottomPadding(): PaddingValues =
     WindowInsets.navigationBars.asPaddingValues()
+
+/**
+ * Combine two [PaddingValues] by summing each side.
+ */
+@Composable
+operator fun PaddingValues.plus(other: PaddingValues): PaddingValues {
+    val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+    return PaddingValues(
+        start = calculateStartPadding(layoutDirection) +
+                other.calculateStartPadding(layoutDirection),
+        top = calculateTopPadding() + other.calculateTopPadding(),
+        end = calculateEndPadding(layoutDirection) +
+                other.calculateEndPadding(layoutDirection),
+        bottom = calculateBottomPadding() + other.calculateBottomPadding(),
+    )
+}
