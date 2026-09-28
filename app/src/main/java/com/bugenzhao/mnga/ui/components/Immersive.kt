@@ -12,8 +12,8 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 
 /**
  * Scaffold variant for edge-to-edge immersive layout.
@@ -50,20 +50,19 @@ fun ImmersiveScaffold(
  * when the screen uses [ImmersiveScaffold] so trailing content isn't
  * permanently hidden behind the bar.
  */
-@Composable
 fun immersiveBottomPadding(): Dp =
     WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
 /**
- * Return a copy of this [PaddingValues] with [padding] added to the bottom.
+ * Return a [PaddingValues] that delegates to this one with [padding] added
+ * to the bottom.
  */
-@Composable
-fun PaddingValues.plusBottom(padding: Dp): PaddingValues {
-    val layoutDirection = LocalLayoutDirection.current
-    return PaddingValues(
-        start = calculateStartPadding(layoutDirection),
-        top = calculateTopPadding(),
-        end = calculateEndPadding(layoutDirection),
-        bottom = calculateBottomPadding() + padding,
-    )
+fun PaddingValues.plusBottom(padding: Dp): PaddingValues = object : PaddingValues {
+    override fun calculateLeftPadding(layoutDirection: LayoutDirection): Dp =
+        this@plusBottom.calculateLeftPadding(layoutDirection)
+    override fun calculateTopPadding(): Dp = this@plusBottom.calculateTopPadding()
+    override fun calculateRightPadding(layoutDirection: LayoutDirection): Dp =
+        this@plusBottom.calculateRightPadding(layoutDirection)
+    override fun calculateBottomPadding(): Dp =
+        this@plusBottom.calculateBottomPadding() + padding
 }
