@@ -1,12 +1,16 @@
 package com.bugenzhao.mnga.ui.theme
 
+import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import com.bugenzhao.mnga.storage.ColorSchemeMode
 import com.bugenzhao.mnga.storage.ThemeColor
 
@@ -117,6 +121,16 @@ fun LumaGATheme(
         ColorSchemeMode.CLASSIC -> false
     }
     val accent = Color(if (dark) themeColor.darkColor else themeColor.lightColor)
+    
+    // Sync system bar icon colors with theme (for transparent nav bar)
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        val controller = WindowCompat.getInsetsController(window, view)
+        controller.isAppearanceLightStatusBars = !dark
+        controller.isAppearanceLightNavigationBars = !dark
+    }
+    
     MaterialTheme(
         colorScheme = when (colorSchemeMode) {
             ColorSchemeMode.CLASSIC -> classicScheme(accent)

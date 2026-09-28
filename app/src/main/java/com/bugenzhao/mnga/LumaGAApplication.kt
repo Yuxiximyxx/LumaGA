@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import coil.Coil
 import coil.ImageLoader
 import coil.decode.GifDecoder
+import coil.memory.MemoryCache
 import com.tencent.bugly.crashreport.CrashReport
 import com.bugenzhao.mnga.model.CurrentUserModel
 import com.bugenzhao.mnga.model.NotificationModel
@@ -57,9 +58,15 @@ class LumaGAApplication : Application() {
 
         // Global Coil image loader with GIF support (coil-gif). Without the
         // decoder, animated GIFs fail to render in posts and the viewer.
+        // Memory cache capped at 15% (default is 25%) to reduce runtime RAM.
         Coil.setImageLoader(
             ImageLoader.Builder(this)
                 .components { add(GifDecoder.Factory()) }
+                .memoryCache {
+                    MemoryCache.Builder(this)
+                        .maxSizePercent(0.15)
+                        .build()
+                }
                 .build()
         )
 

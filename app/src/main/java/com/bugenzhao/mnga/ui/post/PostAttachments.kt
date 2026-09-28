@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -101,6 +102,7 @@ fun ContentImageView(
     }
 
     val maxWidth = LocalConfiguration.current.screenWidthDp.dp
+    val maxWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
     val dark = isSystemInDarkTheme()
     val dim = dark && App.prefs.postRowDimImagesInDarkMode.flow.collectAsState().value
     val filter =
@@ -109,14 +111,13 @@ fun ContentImageView(
         } else null
 
     Column(modifier) {
-        // Load at the original resolution: while the placeholder box is only
-        // 48dp tall, Coil would otherwise downsample to that tiny size and the
-        // image would look blurry once it expands to its real aspect ratio.
+        // Decode at display width (not ORIGINAL) to reduce memory usage.
+        // Height is Undefined so aspect ratio is preserved.
         val painter = coil.compose.rememberAsyncImagePainter(
             model =
                 coil.request.ImageRequest.Builder(context)
                     .data(url)
-                    .size(coil.size.Size.ORIGINAL)
+                    .size(coil.size.Size(maxWidthPx, coil.size.Dimension.Undefined))
                     .build()
         )
         // Reading the painter state subscribes to load progress so the box
