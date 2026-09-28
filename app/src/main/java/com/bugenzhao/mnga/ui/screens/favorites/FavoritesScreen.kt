@@ -30,7 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
+import androidx.compose.material3.Scaffold
 import com.bugenzhao.mnga.ui.components.immersiveBottomPadding
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -139,7 +139,7 @@ fun FavoritesScreen(navigator: Navigator, initialFolderId: String? = null) {
         }
     }
 
-    ImmersiveScaffold(
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = {
