@@ -8,9 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -181,10 +178,6 @@ fun ClockInScreen(navigator: Navigator? = null) {
                 }
             }
             Spacer(Modifier.height(24.dp))
-            // 导航栏占位：沉浸式下内容延伸到导航条下方，底部留出导航栏高度。
-            Spacer(
-                Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars),
-            )
         }
     }
 }
