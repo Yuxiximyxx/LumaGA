@@ -151,7 +151,7 @@ fun CacheScreen(navigator: Navigator? = null) {
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp).plusBottom(immersiveBottomPadding()),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         ) {
             item(key = "image") {
                 SectionCard(header = L.str(context, "Image")) {

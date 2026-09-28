@@ -478,7 +478,7 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
             else -> LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp).plusBottom(immersiveBottomPadding()),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(visibleItems, key = { _, topic -> topic.id }) { _, topic ->

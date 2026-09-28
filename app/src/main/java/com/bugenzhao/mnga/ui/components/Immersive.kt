@@ -46,7 +46,7 @@ fun ImmersiveScaffold(
 
 /**
  * Bottom padding equal to the navigation bar height. Add to a scrollable's
- * `contentPadding` (e.g. `contentPadding.plusBottom(immersiveBottomPadding())`)
+ * `contentPadding` (e.g. `contentPadding`)
  * when the screen uses [ImmersiveScaffold] so trailing content isn't
  * permanently hidden behind the bar.
  */
