@@ -57,22 +57,7 @@ jobs:
           EOF
 
       - name: Build
-        run: ./gradlew assembleRelease --stacktrace 2>&1 | tee build.log; exit ${PIPESTATUS[0]}
-
-      - name: Upload build log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
-
-      - name: Show error summary
-        if: failure()
-        run: |
-          echo "## Build Error" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          grep -A 30 "^e: \|FAILED\|error:" build.log | head -50 >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+        run: ./gradlew assembleRelease --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
