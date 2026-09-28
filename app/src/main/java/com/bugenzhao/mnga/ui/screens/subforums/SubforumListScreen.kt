@@ -164,7 +164,7 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp) + immersiveBottomPadding(),
+                contentPadding = PaddingValues(16.dp).plusBottom(immersiveBottomPadding()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (!tipSeen) {

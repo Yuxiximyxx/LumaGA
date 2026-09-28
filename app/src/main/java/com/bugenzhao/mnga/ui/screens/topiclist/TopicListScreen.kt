@@ -453,7 +453,7 @@ fun TopicListScreen(
                     top = 8.dp,
                     end = 16.dp,
                     bottom = if (showRefreshButton) 72.dp else 8.dp,
-                ) + immersiveBottomPadding(),
+                .plusBottom(immersiveBottomPadding()),
                 scrollToTopSignal = refreshScrollEpoch,
                 itemContent = { _, topic ->
                     TopicListItem(

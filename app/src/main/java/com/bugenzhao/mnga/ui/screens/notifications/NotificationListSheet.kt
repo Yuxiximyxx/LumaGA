@@ -224,7 +224,7 @@ fun NotificationListSheet(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp) + immersiveBottomPadding(),
+                        contentPadding = PaddingValues(16.dp).plusBottom(immersiveBottomPadding()),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         itemsIndexed(state.items, key = { _, n -> n.id }) { _, noti ->

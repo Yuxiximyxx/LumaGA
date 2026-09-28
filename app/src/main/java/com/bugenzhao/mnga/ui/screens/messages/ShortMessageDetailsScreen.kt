@@ -150,7 +150,7 @@ fun ShortMessageDetailsScreen(
                 else -> LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp) + immersiveBottomPadding(),
+                    contentPadding = PaddingValues(16.dp).plusBottom(immersiveBottomPadding()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     val participants = dataSource.latestResponse?.usersList.orEmpty()

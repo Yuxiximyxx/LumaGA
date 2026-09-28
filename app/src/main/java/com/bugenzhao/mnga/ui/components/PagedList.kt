@@ -34,7 +34,7 @@ fun <Item : Any> PagedList(
     showInitialLoading: Boolean = true,
     emptyPlaceholder: String = "No Results",
     header: (@Composable () -> Unit)? = null,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp) + immersiveBottomPadding(),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp).plusBottom(immersiveBottomPadding()),
     /** True when this list was freshly entered (not a return from a pushed
      * screen). The saveable scroll position is restored from the route
      * registry even after a fresh push, so it is explicitly reset to the top

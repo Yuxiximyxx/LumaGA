@@ -165,7 +165,7 @@ internal fun ForumResultsList(
                 LazyColumn(
                     state = lstate,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp) + immersiveBottomPadding(),
+                    contentPadding = PaddingValues(vertical = 8.dp).plusBottom(immersiveBottomPadding()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     item(key = "header") { SectionHeader(L.str(context, "Search Results")) }
@@ -220,7 +220,7 @@ internal fun TopicResultsList(
                 LazyColumn(
                     state = lstate,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp) + immersiveBottomPadding(),
+                    contentPadding = PaddingValues(vertical = 8.dp).plusBottom(immersiveBottomPadding()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     item(key = "header") { SectionHeader(L.str(context, "Search Results")) }

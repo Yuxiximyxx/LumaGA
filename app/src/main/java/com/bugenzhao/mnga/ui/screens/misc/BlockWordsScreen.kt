@@ -132,7 +132,7 @@ fun BlockWordsScreen(navigator: Navigator? = null) {
         } else {
             LazyColumn(
                 Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) + immersiveBottomPadding(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp).plusBottom(immersiveBottomPadding()),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 if (newWord != null) {

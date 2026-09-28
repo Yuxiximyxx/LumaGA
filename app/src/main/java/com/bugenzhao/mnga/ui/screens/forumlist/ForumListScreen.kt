@@ -304,7 +304,7 @@ fun ForumListScreen(
                 columns = GridCells.Fixed(3),
                 state = gridState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp) + immersiveBottomPadding(),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp).plusBottom(immersiveBottomPadding()),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {

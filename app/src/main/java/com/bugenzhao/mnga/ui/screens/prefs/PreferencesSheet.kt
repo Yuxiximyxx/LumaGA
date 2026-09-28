@@ -180,7 +180,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
             Modifier.fillMaxSize().padding(padding),
             state = listState,
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp) + immersiveBottomPadding(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp).plusBottom(immersiveBottomPadding()),
         ) {
             // region General
             item(key = "general") {

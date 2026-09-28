@@ -872,7 +872,7 @@ fun TopicDetailsScreen(
                         // 跟手平移发生在 graphicsLayer：绘制/命中随平移变化，
                         // 手势判定仍用原始坐标。
                         .graphicsLayer { translationX = contentOffset },
-                    contentPadding = PaddingValues(vertical = 8.dp) + immersiveBottomPadding(),
+                    contentPadding = PaddingValues(vertical = 8.dp).plusBottom(immersiveBottomPadding()),
                 ) {
                     // 自动加载上一页时，顶部居中显示加载提示。
                     if (isLoadingPrev) {
@@ -1788,7 +1788,7 @@ private fun ReplyChainOverlay(
                     }
                 }
                 LazyColumn(
-                    contentPadding = PaddingValues(16.dp) + immersiveBottomPadding(),
+                    contentPadding = PaddingValues(16.dp).plusBottom(immersiveBottomPadding()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     itemsIndexed(chain, key = { _, id -> "${id.tid}_${id.pid}" }) { _, id ->

@@ -12,6 +12,8 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Dp
 
 /**
  * Scaffold variant for edge-to-edge immersive layout.
@@ -44,26 +46,24 @@ fun ImmersiveScaffold(
 
 /**
  * Bottom padding equal to the navigation bar height. Add to a scrollable's
- * `contentPadding` (e.g. `contentPadding + immersiveBottomPadding()`) when
- * the screen uses [ImmersiveScaffold] so trailing content isn't permanently
- * hidden behind the bar.
+ * `contentPadding` (e.g. `contentPadding.plusBottom(immersiveBottomPadding())`)
+ * when the screen uses [ImmersiveScaffold] so trailing content isn't
+ * permanently hidden behind the bar.
  */
 @Composable
-fun immersiveBottomPadding(): PaddingValues =
-    WindowInsets.navigationBars.asPaddingValues()
+fun immersiveBottomPadding(): Dp =
+    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
 /**
- * Combine two [PaddingValues] by summing each side.
+ * Return a copy of this [PaddingValues] with [padding] added to the bottom.
  */
 @Composable
-operator fun PaddingValues.plus(other: PaddingValues): PaddingValues {
-    val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+fun PaddingValues.plusBottom(padding: Dp): PaddingValues {
+    val layoutDirection = LocalLayoutDirection.current
     return PaddingValues(
-        start = calculateStartPadding(layoutDirection) +
-                other.calculateStartPadding(layoutDirection),
-        top = calculateTopPadding() + other.calculateTopPadding(),
-        end = calculateEndPadding(layoutDirection) +
-                other.calculateEndPadding(layoutDirection),
-        bottom = calculateBottomPadding() + other.calculateBottomPadding(),
+        start = calculateStartPadding(layoutDirection),
+        top = calculateTopPadding(),
+        end = calculateEndPadding(layoutDirection),
+        bottom = calculateBottomPadding() + padding,
     )
 }

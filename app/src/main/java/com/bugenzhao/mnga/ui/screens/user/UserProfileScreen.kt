@@ -245,7 +245,7 @@ fun UserProfileScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp) + immersiveBottomPadding(),
+                contentPadding = PaddingValues(16.dp).plusBottom(immersiveBottomPadding()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item(key = "header") {
