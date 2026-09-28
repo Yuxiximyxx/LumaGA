@@ -2,10 +2,8 @@ package com.bugenzhao.mnga.ui.components
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.runtime.Composable
@@ -20,33 +18,32 @@ import androidx.compose.ui.graphics.Color
  * navigation bar; this variant excludes the navigation bar from the content
  * insets so scrollable content slides *under* the transparent navigation bar.
  *
- * Screens using this must add [immersiveBottomPadding] to their scrollable's
- * `contentPadding` so the last item can still scroll fully above the bar.
+ * Note: containerColor defaults to [Color.Unspecified], in which case
+ * Scaffold's own default is used. This avoids @Composable calls in default
+ * parameter values.
  */
 @Composable
 fun ImmersiveScaffold(
     modifier: Modifier = Modifier,
     topBar: @Composable () -> Unit = {},
-    containerColor: Color = MaterialTheme.colorScheme.background,
+    containerColor: Color = Color.Unspecified,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
-        modifier = modifier,
-        topBar = topBar,
-        containerColor = containerColor,
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
-        content = content,
-    )
+    val insets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars)
+    if (containerColor == Color.Unspecified) {
+        Scaffold(
+            modifier = modifier,
+            topBar = topBar,
+            contentWindowInsets = insets,
+            content = content,
+        )
+    } else {
+        Scaffold(
+            modifier = modifier,
+            topBar = topBar,
+            containerColor = containerColor,
+            contentWindowInsets = insets,
+            content = content,
+        )
+    }
 }
-
-/**
- * Bottom padding equal to the navigation bar height. Add to a scrollable's
- * `contentPadding` (e.g. `contentPadding + immersiveBottomPadding()`) when
- * the screen uses [ImmersiveScaffold] so trailing content isn't permanently
- * hidden behind the bar.
- *
- * Note: uses the built-in `PaddingValues.plus` operator.
- */
-@Composable
-fun immersiveBottomPadding(): PaddingValues =
-    WindowInsets.navigationBars.asPaddingValues()
