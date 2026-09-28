@@ -50,7 +50,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -506,7 +506,7 @@ fun TopicDetailsScreen(
     val childLocateFloor: ((Post) -> Unit)? =
         if (forceLocalMode || onlyPostId != null) null else { post -> locatePostInCurrentTopic(post) }
 
-    Scaffold(
+    ImmersiveScaffold(
         // 正文用亮色背景（与 AppBar 默认色一致，滚动后 AppBar 变暗区分）。
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {

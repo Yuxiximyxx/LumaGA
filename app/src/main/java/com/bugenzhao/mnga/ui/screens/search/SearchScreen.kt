@@ -44,7 +44,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -250,7 +250,7 @@ fun SearchScreen(
 
     // Data sources are rebuilt whenever the committed text or an option
     // changes, like `SearchModel`'s `commitedText -> dataSource` mapping.
-    Scaffold(
+    ImmersiveScaffold(
         topBar = {
             TopAppBar(
                 title = {

@@ -36,7 +36,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -259,7 +259,7 @@ fun TopicListScreen(
         TopicListMode.NORMAL -> parentForumName
     }
 
-    Scaffold(
+    ImmersiveScaffold(
         topBar = {
             TopAppBar(
                 title = {

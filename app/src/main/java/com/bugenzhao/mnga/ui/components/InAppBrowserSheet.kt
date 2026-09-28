@@ -9,7 +9,7 @@ import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,7 +39,7 @@ fun InAppBrowserSheet(uri: Uri, onDismiss: () -> Unit) {
         onDispose { webView.stopLoading(); webView.destroy() }
     }
 
-    Scaffold(
+    ImmersiveScaffold(
         topBar = {
             TopAppBar(
                 title = { Text(uri.host ?: "", maxLines = 1) },
