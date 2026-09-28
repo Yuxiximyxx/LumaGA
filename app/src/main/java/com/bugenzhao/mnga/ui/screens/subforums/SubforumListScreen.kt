@@ -163,7 +163,7 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (!tipSeen) {
