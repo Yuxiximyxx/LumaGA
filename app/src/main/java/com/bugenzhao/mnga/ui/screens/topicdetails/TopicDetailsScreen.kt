@@ -50,7 +50,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
+import com.bugenzhao.mnga.ui.components.immersiveBottomPadding
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -506,7 +507,7 @@ fun TopicDetailsScreen(
     val childLocateFloor: ((Post) -> Unit)? =
         if (forceLocalMode || onlyPostId != null) null else { post -> locatePostInCurrentTopic(post) }
 
-    Scaffold(
+    ImmersiveScaffold(
         // 正文用亮色背景（与 AppBar 默认色一致，滚动后 AppBar 变暗区分）。
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
@@ -871,7 +872,7 @@ fun TopicDetailsScreen(
                         // 跟手平移发生在 graphicsLayer：绘制/命中随平移变化，
                         // 手势判定仍用原始坐标。
                         .graphicsLayer { translationX = contentOffset },
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp) + immersiveBottomPadding(),
                 ) {
                     // 自动加载上一页时，顶部居中显示加载提示。
                     if (isLoadingPrev) {
@@ -1787,7 +1788,7 @@ private fun ReplyChainOverlay(
                     }
                 }
                 LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(16.dp) + immersiveBottomPadding(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     itemsIndexed(chain, key = { _, id -> "${id.tid}_${id.pid}" }) { _, id ->

@@ -30,7 +30,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
+import com.bugenzhao.mnga.ui.components.immersiveBottomPadding
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -160,7 +161,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
     val resumeFrom = TopicResumeFrom.fromRaw(resumeFromRaw)
     val dateTimeStrategy = DateTimeStrategy.fromRaw(dateTimeStrategyRaw)
 
-    Scaffold(
+    ImmersiveScaffold(
         topBar = {
             TopAppBar(
                 title = { Text(L.str(context, "Settings")) },
@@ -179,7 +180,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
             Modifier.fillMaxSize().padding(padding),
             state = listState,
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp) + immersiveBottomPadding(),
         ) {
             // region General
             item(key = "general") {

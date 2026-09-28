@@ -30,7 +30,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
+import com.bugenzhao.mnga.ui.components.immersiveBottomPadding
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxState
@@ -138,7 +139,7 @@ fun FavoritesScreen(navigator: Navigator, initialFolderId: String? = null) {
         }
     }
 
-    Scaffold(
+    ImmersiveScaffold(
         topBar = {
             TopAppBar(
                 title = {
@@ -477,7 +478,7 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
             else -> LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) + immersiveBottomPadding(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(visibleItems, key = { _, topic -> topic.id }) { _, topic ->

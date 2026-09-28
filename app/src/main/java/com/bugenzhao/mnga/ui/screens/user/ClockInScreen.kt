@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,7 +27,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -68,7 +71,7 @@ fun ClockInScreen(navigator: Navigator? = null) {
     }
 
 
-    Scaffold(
+    ImmersiveScaffold(
         topBar = {
             TopAppBar(
                 title = { Text(L.str(context, "Clock In")) },
@@ -178,6 +181,10 @@ fun ClockInScreen(navigator: Navigator? = null) {
                 }
             }
             Spacer(Modifier.height(24.dp))
+            // 导航栏占位：沉浸式下内容延伸到导航条下方，底部留出导航栏高度。
+            Spacer(
+                Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars),
+            )
         }
     }
 }

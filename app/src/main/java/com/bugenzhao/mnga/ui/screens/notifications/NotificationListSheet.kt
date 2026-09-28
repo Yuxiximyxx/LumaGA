@@ -34,7 +34,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
+import com.bugenzhao.mnga.ui.components.immersiveBottomPadding
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -155,7 +156,7 @@ fun NotificationListSheet(
     val unreadCount = state.items.count { isRead(it).not() }
 
     // 页面形式（与设置页一致的 AppBar），不再是底部弹窗。
-    Scaffold(
+    ImmersiveScaffold(
         topBar = {
             TopAppBar(
                 title = {
@@ -223,7 +224,7 @@ fun NotificationListSheet(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(16.dp) + immersiveBottomPadding(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         itemsIndexed(state.items, key = { _, n -> n.id }) { _, noti ->

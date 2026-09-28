@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.search
 
+import com.bugenzhao.mnga.ui.components.immersiveBottomPadding
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -163,7 +165,7 @@ internal fun ForumResultsList(
                 LazyColumn(
                     state = lstate,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp) + immersiveBottomPadding(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     item(key = "header") { SectionHeader(L.str(context, "Search Results")) }
@@ -218,7 +220,7 @@ internal fun TopicResultsList(
                 LazyColumn(
                     state = lstate,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp) + immersiveBottomPadding(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     item(key = "header") { SectionHeader(L.str(context, "Search Results")) }

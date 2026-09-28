@@ -57,9 +57,17 @@ class LumaGAApplication : Application() {
 
         // Global Coil image loader with GIF support (coil-gif). Without the
         // decoder, animated GIFs fail to render in posts and the viewer.
+        // Memory cache is capped (default is ~20% of the app memory budget)
+        // since post lists can hold many images; the disk cache remains the
+        // primary reuse layer.
         Coil.setImageLoader(
             ImageLoader.Builder(this)
                 .components { add(GifDecoder.Factory()) }
+                .memoryCache {
+                    coil.memory.MemoryCache.Builder(this)
+                        .maxSizePercent(0.15)
+                        .build()
+                }
                 .build()
         )
 

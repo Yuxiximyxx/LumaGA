@@ -6,7 +6,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import com.bugenzhao.mnga.storage.ColorSchemeMode
 import com.bugenzhao.mnga.storage.ThemeColor
 
@@ -117,6 +120,18 @@ fun LumaGATheme(
         ColorSchemeMode.CLASSIC -> false
     }
     val accent = Color(if (dark) themeColor.darkColor else themeColor.lightColor)
+    // 沉浸式下状态栏/导航栏为透明，图标颜色跟随 App 内主题（而非仅系统主题），
+    // 保证在浅色/深色/经典配色下都清晰可见。
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as android.app.Activity).window
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !dark
+                isAppearanceLightNavigationBars = !dark
+            }
+        }
+    }
     MaterialTheme(
         colorScheme = when (colorSchemeMode) {
             ColorSchemeMode.CLASSIC -> classicScheme(accent)

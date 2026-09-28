@@ -109,14 +109,22 @@ fun ContentImageView(
         } else null
 
     Column(modifier) {
-        // Load at the original resolution: while the placeholder box is only
-        // 48dp tall, Coil would otherwise downsample to that tiny size and the
-        // image would look blurry once it expands to its real aspect ratio.
+        // Bound the decode size to the display width: the image is shown at
+        // most at screen width, so decoding the full original resolution
+        // (e.g. 4000x3000 = 48MB per bitmap) wastes memory and risks OOM in
+        // long post lists. Coil scales to fit while preserving the aspect
+        // ratio, so the intrinsic size below still yields the right ratio.
+        // (Previously Size.ORIGINAL: while the placeholder box is only 48dp
+        // tall, Coil would otherwise downsample to that tiny size and the
+        // image would look blurry once it expands.)
+        val maxWidthPx = with(androidx.compose.ui.platform.LocalDensity.current) {
+            maxWidth.roundToPx().coerceAtLeast(1)
+        }
         val painter = coil.compose.rememberAsyncImagePainter(
             model =
                 coil.request.ImageRequest.Builder(context)
                     .data(url)
-                    .size(coil.size.Size.ORIGINAL)
+                    .size(maxWidthPx)
                     .build()
         )
         // Reading the painter state subscribes to load progress so the box

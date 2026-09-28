@@ -28,7 +28,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import com.bugenzhao.mnga.ui.components.ImmersiveScaffold
+import com.bugenzhao.mnga.ui.components.immersiveBottomPadding
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -143,7 +144,7 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
         }
     }
 
-    Scaffold(
+    ImmersiveScaffold(
         topBar = {
             TopAppBar(
                 title = {
@@ -163,7 +164,7 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                contentPadding = PaddingValues(16.dp) + immersiveBottomPadding(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (!tipSeen) {
