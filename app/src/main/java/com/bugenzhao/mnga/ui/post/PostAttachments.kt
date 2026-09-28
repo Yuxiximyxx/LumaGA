@@ -124,7 +124,7 @@ fun ContentImageView(
             model =
                 coil.request.ImageRequest.Builder(context)
                     .data(url)
-                    .size(coil.size.Size(maxWidthPx, coil.size.Dimension.Undefined))
+                    .size(coil.size.Size.ORIGINAL)
                     .build()
         )
         // Reading the painter state subscribes to load progress so the box

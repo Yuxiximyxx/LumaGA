@@ -63,11 +63,6 @@ class LumaGAApplication : Application() {
         Coil.setImageLoader(
             ImageLoader.Builder(this)
                 .components { add(GifDecoder.Factory()) }
-                .memoryCache {
-                    coil.memory.MemoryCache.Builder(this)
-                        .maxSizePercent(0.15)
-                        .build()
-                }
                 .build()
         )
 
