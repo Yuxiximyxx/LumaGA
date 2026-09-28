@@ -31,6 +31,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -161,6 +165,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
     val dateTimeStrategy = DateTimeStrategy.fromRaw(dateTimeStrategyRaw)
 
     Scaffold(
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
         topBar = {
             TopAppBar(
                 title = { Text(L.str(context, "Settings")) },
