@@ -1,6 +1,5 @@
 package com.bugenzhao.mnga.ui.screens.search
 
-import com.bugenzhao.mnga.ui.components.immersiveBottomPadding
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
