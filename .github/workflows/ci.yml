@@ -38,14 +38,14 @@ jobs:
       # the APK build itself needs no NDK / Rust toolchain on CI. Building it
       # from rust/ is covered by rust.yml.
       #
-      # Signing: the release keystore/passwords live in repo secrets (push
-      # builds only; PRs from forks have no secret access and stay unsigned,
-      # which is fine for a build-check).
-      - name: Inject release signing (push builds only)
-        # TEMPORARY (revert after manual signed build): push-triggered runs are not
-        # firing on this fork, so allow the keystore injection on
-        # workflow_dispatch too. Triggered only by repo write-access users,
-        # who could already read these secrets via any push run.
+      # Signing: the release keystore/passwords live in repo secrets.
+      # NOTE: push-triggered runs have never fired on this fork (only
+      # workflow_dispatch and pull_request runs appear in history), so the
+      # keystore is injected on workflow_dispatch as well. Dispatch runs can
+      # only be started by users with write access, who can already manage
+      # these secrets. PRs from forks have no secret access and stay unsigned,
+      # which is fine for a build-check.
+      - name: Inject release signing (push / manual dispatch builds)
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           KEYSTORE_B64: ${{ secrets.LUMA_KEYSTORE_BASE64 }}
