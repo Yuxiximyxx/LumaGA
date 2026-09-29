@@ -42,7 +42,11 @@ jobs:
       # builds only; PRs from forks have no secret access and stay unsigned,
       # which is fine for a build-check).
       - name: Inject release signing (push builds only)
-        if: github.event_name == 'push'
+        # TEMPORARY (revert after manual signed build): push-triggered runs are not
+        # firing on this fork, so allow the keystore injection on
+        # workflow_dispatch too. Triggered only by repo write-access users,
+        # who could already read these secrets via any push run.
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           KEYSTORE_B64: ${{ secrets.LUMA_KEYSTORE_BASE64 }}
           STORE_PASS: ${{ secrets.LUMA_STORE_PASSWORD }}
