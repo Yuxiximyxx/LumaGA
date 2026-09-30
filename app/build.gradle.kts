@@ -25,8 +25,10 @@ android {
         applicationId = "com.bugenzhao.mnga"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10117
-        versionName = "1.1.17"
+        versionCode = 10118
+        versionName = "1.1.18"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // 腾讯 Bugly 崩溃监控。AppID 通过 gradle 属性注入（本地
         // gradle.properties 或 CI secrets），未配置时监控不启用。
@@ -83,6 +85,22 @@ android {
     }
 }
 
+// Name the release APK after the app version, e.g. LumaGA_1.1.16.apk,
+// so CI artifacts and manual Releases uploads carry the version.
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        variant.outputs.forEach { output ->
+            // outputFileName lives on the impl class, not the VariantOutput
+            // interface; fail loudly if a future AGP bump moves it, instead
+            // of silently shipping app-release.apk again.
+            val impl = output as? com.android.build.api.variant.impl.VariantOutputImpl
+                ?: error("APK naming: output is not VariantOutputImpl — AGP surface changed?")
+            val versionName = output.versionName.orNull ?: android.defaultConfig.versionName
+            impl.outputFileName = "LumaGA_${versionName}.apk"
+        }
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
@@ -109,4 +127,14 @@ dependencies {
     implementation(libs.bugly.nativecrashreport)
     implementation(libs.kotlinx.coroutines.android)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // Instrumented tests (currently not run in CI; the emulator workflow was
+    // removed because software-rendered emulators couldn't finish in time).
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:core:1.6.1")
+    androidTestImplementation("androidx.test:runner:1.6.1")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+
+    // Local JVM unit tests (no Android framework needed).
+    testImplementation("junit:junit:4.13.2")
 }

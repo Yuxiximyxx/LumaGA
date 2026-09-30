@@ -270,6 +270,22 @@ fun TopicDetailsScreen(
     val first = remember(items) {
         items.minByOrNull { it.floor }?.takeIf { it.id.pid == "0" }
     }
+    val blockWords by App.blockWords.words.collectAsState()
+    fun isBlockedUserPost(post: Post): Boolean =
+        App.users.cachedUser(post.authorId)?.let { user ->
+            blockWords.contains(com.bugenzhao.mnga.storage.BlockWordsStorage.fromUser(user.name))
+        } == true
+    val visibleItems = remember(items, blockWords) {
+        items.filterNot(::isBlockedUserPost)
+    }
+    val visibleFirst = remember(first, blockWords) {
+        first?.takeUnless(::isBlockedUserPost)?.let { mainPost ->
+            mainPost.toBuilder()
+                .clearHotReplies()
+                .addAllHotReplies(mainPost.hotRepliesList.filterNot(::isBlockedUserPost))
+                .build()
+        }
+    }
     val atForum = remember(response, items) {
         val name = response?.forumName?.takeIf { it.isNotEmpty() } ?: return@remember null
         val fid = items.firstOrNull()?.fid?.takeIf { it.isNotEmpty() } ?: return@remember null
@@ -318,14 +334,38 @@ fun TopicDetailsScreen(
     }
 
     // Scroll targets from the action model.
-    val rows = remember(items, first, response, atForum, onlyPostId) {
+    val rows = remember(visibleItems, visibleFirst, response, atForum, onlyPostId) {
         buildRows(
-            items = items,
-            first = first,
+            items = visibleItems,
+            first = visibleFirst,
             showTail = shouldShowTailSection(dataSource, state, response, onlyPostId != null),
         )
     }
     val currentRows by rememberUpdatedState(rows)
+
+    // 胶囊页码指示器：当前页取屏幕顶部第一个可见楼层所在页，
+    // 总页数取数据源。items/totalPages 是普通字段，靠 state
+    // 快照触发重算（数据源每次落盘都伴随 state 发射）。
+    val indicatorCurrentPage by remember(dataSource) {
+        derivedStateOf {
+            state.items
+            state.latestResponse
+            val floor = currentRows.drop(listState.firstVisibleItemIndex)
+                .firstOrNull { it is RowSpec.Reply }
+                ?.let { (it as RowSpec.Reply).post.floor }
+            floor?.let { f ->
+                dataSource.pagedItems()
+                    .firstOrNull { (_, its) -> its.any { it.floor == f } }
+                    ?.first
+            } ?: (dataSource.firstLoadedPage ?: 1)
+        }
+    }
+    val indicatorTotalPages by remember(dataSource) {
+        derivedStateOf {
+            state.latestResponse
+            dataSource.totalPages.coerceAtLeast(1)
+        }
+    }
     LaunchedEffect(action, listState) {
         action.scrollToFloor.collect { floor ->
             if (floor != null) {
@@ -574,7 +614,8 @@ fun TopicDetailsScreen(
                                     view = view,
                                     topicId = topic.id,
                                     currentFavored = favoredOverride ?: topic.isFavored,
-                                ) { favored -> favoredOverride = favored }
+                                    onResult = { favored -> favoredOverride = favored },
+                                )
                             }
                         } else {
                             null
@@ -910,6 +951,7 @@ fun TopicDetailsScreen(
                                 row = row,
                                 index = index,
                                 isLoading = state.isLoading,
+                                first = visibleFirst,
                                 topic = topic,
                                 action = action,
                                 votes = votes,
@@ -952,6 +994,28 @@ fun TopicDetailsScreen(
                         CircularProgressIndicator()
                     }
                 }
+            }
+            // 胶囊页码指示器：长按展开横向页码列表，点击页码跳转。
+            // 单页帖子不展示；单帖视图（onlyPostId）与 mock 主题不展示；
+            // 可在设置-主题详情中关闭（底部快速翻页）。
+            val showQuickPageJump by App.prefs.topicDetailsShowQuickPageJump.flow.collectAsState()
+            if (!mock && onlyPostId == null && indicatorTotalPages >= 2 && showQuickPageJump) {
+                PageIndicatorOverlay(
+                    currentPage = indicatorCurrentPage,
+                    totalPages = indicatorTotalPages,
+                    isListScrolling = listState.isScrollInProgress,
+                    onJumpToPage = { page ->
+                        if (page != indicatorCurrentPage) {
+                            // 复用右上角菜单已有的跳转路径：目标页首楼层 + 从目标页重载。
+                            // 楼层是唯一真相来源（TopicJumpSelector）：page = (floor + 20) / 20，
+                            // 反推首楼层 floor = (page - 1) * 20。
+                            floorToJump = (page - 1) * Constants.postPerPage
+                            dataSource.loadFromPage = page
+                        }
+                    },
+                    // 点击胶囊：打开与右上角菜单相同的跳转弹窗。
+                    onTap = { showJumpSelector = true },
+                )
             }
         }
     }
@@ -1205,6 +1269,7 @@ private fun TopicDetailsRow(
     row: RowSpec,
     index: Int,
     isLoading: Boolean,
+    first: Post?,
     topic: Topic,
     action: TopicDetailsActionModel,
     votes: VotesModel,
@@ -1228,10 +1293,6 @@ private fun TopicDetailsRow(
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                 )
-                val items = dataSource.items
-                val first = remember(items) {
-                    items.minByOrNull { it.floor }?.takeIf { it.id.pid == "0" }
-                }
                 if (first != null) {
                     PostRow(
                         post = first,

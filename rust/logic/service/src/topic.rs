@@ -285,14 +285,20 @@ fn mutate_favor_response(folder_id: &str, op: FavorOp, r: &mut TopicFavorRespons
             }
         }
         FavorOp::Remove => {
-            r.folder_ids.retain(|id| id != folder_id);
+            if folder_id.is_empty() {
+                // Global unfavorite (no specific folder): clear all.
+                r.folder_ids.clear();
+            } else {
+                r.folder_ids.retain(|id| id != folder_id);
+            }
         }
     }
 
     // Only update `is_favored` if it's actually in the folder.
     // This is for compatibility with old response where we don't support multiple folders.
+    // A global unfavorite always clears the flag.
     let updated = r.folder_ids.len() != len;
-    if updated {
+    if updated || (folder_id.is_empty() && matches!(op, FavorOp::Remove)) {
         r.is_favored = !r.folder_ids.is_empty();
     }
 }
@@ -727,16 +733,36 @@ pub async fn get_topic_details(
 }
 
 pub async fn topic_favor(request: TopicFavorRequest) -> ServiceResult<TopicFavorResponse> {
-    let (act, tid_key, op) = match request.get_operation() {
-        TopicFavorRequest_Operation::ADD => ("add", "tid", FavorOp::Add),
-        TopicFavorRequest_Operation::DELETE => ("del", "tidarray", FavorOp::Remove),
+    // 注意：del 的 tid 参数比较特殊，需要同时发送两种形态做兼容：
+    // - `del=<tid>`：官方语义（tid 逗号串，可批量），见
+    //   lnga_harmony/docs/FAVORITE_DESIGN.md §2.7；
+    // - `tidarray[]=<tid>`：网页版通道 PHP 按数组解析 tidarray
+    //   （`foreach ($_POST['tidarray'] as $tid)`），标量 `tidarray=x`
+    //   会被 foreach 静默跳过——返回"操作成功"但实际没删，
+    //   表现为取消收藏后退出重进又回来。
+    // 服务端只会读取它认识的那一个，另一个被忽略；删除是幂等的。
+    let (act, op, mut params): (&str, FavorOp, Vec<(&str, &str)>) = match request.get_operation() {
+        TopicFavorRequest_Operation::ADD => (
+            "add",
+            FavorOp::Add,
+            vec![("tid", request.get_topic_id())],
+        ),
+        TopicFavorRequest_Operation::DELETE => (
+            "del",
+            FavorOp::Remove,
+            vec![
+                ("del", request.get_topic_id()),
+                ("tidarray[]", request.get_topic_id()),
+            ],
+        ),
     };
     let folder_id = request.get_folder_id();
+    params.push(("folder", folder_id));
 
     let _value = fetch_json_value(
         "nuke.php",
         vec![("__lib", "topic_favor_v2"), ("__act", act)],
-        vec![(tid_key, request.get_topic_id()), ("folder", folder_id)],
+        params,
     )
     .await?;
 

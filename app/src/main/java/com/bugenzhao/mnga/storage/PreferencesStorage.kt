@@ -156,8 +156,10 @@ class PreferencesStorage(private val prefs: SharedPreferences) {
     val postRowShowAuthorIndicator = boolPref("postRowShowAuthorIndicator", true)
     val postRowDimImagesInDarkMode = boolPref("postRowDimImagesInDarkMode", false)
     val autoOpenInBrowserWhenBanned = boolPref("autoOpenInBrowserWhenBannedNew", false)
+    val topicDetailsShowQuickPageJump = boolPref("topicDetailsShowQuickPageJump", true)
     val alwaysShareImageAsFile = boolPref("alwaysShareImageAsFile", false)
     val useClassicIcon = boolPref("useClassicIcon", false)
+    val downloadDirectoryUri = stringPref("downloadDirectoryUri", "")
 
     // 实验室功能：签到
     val clockInEnabled = boolPref("clockInEnabled", false)

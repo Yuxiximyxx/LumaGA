@@ -4,7 +4,10 @@ use chrono::Utc;
 use protos::{
     DataModel::{Topic, TopicSnapshot},
     Message,
-    Service::{TopicHistoryRequest, TopicHistoryResponse, UpdateTopicProgressRequest},
+    Service::{
+        DeleteTopicHistoryRequest, DeleteTopicHistoryResponse, TopicHistoryRequest,
+        TopicHistoryResponse, UpdateTopicProgressRequest,
+    },
 };
 use std::cmp::Reverse;
 
@@ -66,4 +69,47 @@ pub async fn get_topic_history(
         topics: snapshots.into(),
         ..Default::default()
     })
+}
+
+pub async fn delete_topic_history(
+    request: DeleteTopicHistoryRequest,
+) -> ServiceResult<DeleteTopicHistoryResponse> {
+    let key = topic_snapshot_key(request.get_topic_id());
+    let deleted = CACHE.remove_key(&key).unwrap_or(false);
+    Ok(DeleteTopicHistoryResponse {
+        deleted,
+        ..Default::default()
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::get_unique_id;
+
+    #[tokio::test]
+    async fn test_delete_topic_history() {
+        let topic_id = format!("test-delete-{}", get_unique_id());
+        insert_topic_history(Topic {
+            id: topic_id.clone(),
+            ..Default::default()
+        });
+        assert!(find_topic_history(&topic_id).is_some());
+
+        let request = DeleteTopicHistoryRequest {
+            topic_id: topic_id.clone(),
+            ..Default::default()
+        };
+        let response = delete_topic_history(request).await.unwrap();
+        assert!(response.deleted);
+        assert!(find_topic_history(&topic_id).is_none());
+
+        // Deleting a missing entry reports deleted=false and is harmless.
+        let request = DeleteTopicHistoryRequest {
+            topic_id,
+            ..Default::default()
+        };
+        let response = delete_topic_history(request).await.unwrap();
+        assert!(!response.deleted);
+    }
 }

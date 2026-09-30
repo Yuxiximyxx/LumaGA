@@ -159,10 +159,14 @@ fun PostRow(
     val dummy = post.id.tid == "dummy" && post.id.pid == "0"
 
     // Author info (local user lookup is a sync JNI call: off the main thread).
-    var user by remember(post.authorId) { mutableStateOf<User?>(null) }
+    var user by remember(post.authorId) { mutableStateOf(App.users.cachedUser(post.authorId)) }
     LaunchedEffect(post.authorId) {
-        user = withContext(Dispatchers.IO) { App.users.localUser(post.authorId) }
+        if (user == null) {
+            user = withContext(Dispatchers.IO) { App.users.localUser(post.authorId) }
+        }
     }
+    val blockWords by App.blockWords.words.collectAsState()
+    if (user?.let { blockWords.contains(BlockWordsStorage.fromUser(it.name)) } == true) return
 
     // Current vote overlay state.
     val voteMap by votes.votes.collectAsState()
@@ -296,12 +300,17 @@ fun PostRow(
             // Content (block-words overlay with tap-to-reveal).
             BlockedContent(post = post, user = user, contentActions = contentActions)
 
-            if (post.commentsList.isNotEmpty()) {
+            val visibleComments = post.commentsList.filterNot { comment ->
+                App.users.cachedUser(comment.authorId)?.let { cached ->
+                    blockWords.contains(BlockWordsStorage.fromUser(cached.name))
+                } == true
+            }
+            if (visibleComments.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row {
                     Spacer(Modifier.width(6.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        for (comment in post.commentsList) {
+                        for (comment in visibleComments) {
                             PostCommentRow(comment = comment)
                         }
                     }
@@ -526,6 +535,7 @@ private fun PostRowUserName(
     style: TextStyle,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val showAuthorIndicator = App.prefs.postRowShowAuthorIndicator.flow.collectAsState().value
     var showId by remember(post.id) { mutableStateOf(false) }
 
@@ -568,11 +578,11 @@ private fun PostRowUserName(
             )
         }
         if (isAuthor && showAuthorIndicator) {
-            Icon(
-                Icons.Filled.Person,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.primary,
+            Text(
+                L.str(context, "(OP)"),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
             )
         }
     }

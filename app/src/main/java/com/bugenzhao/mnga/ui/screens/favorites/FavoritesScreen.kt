@@ -1,6 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.favorites
 
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +38,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,21 +50,25 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.bugenzhao.mnga.logicCallAsync
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.bugenzhao.mnga.logicCallAsync
 import com.bugenzhao.mnga.model.PlusFeature
 import com.bugenzhao.mnga.model.PlusModel
+import com.bugenzhao.mnga.model.ToastModel
+import com.bugenzhao.mnga.model.appScope
 import com.bugenzhao.mnga.protos.datamodel.FavoriteTopicFolder
 import com.bugenzhao.mnga.protos.datamodel.Topic
 import com.bugenzhao.mnga.protos.service.AsyncRequest
@@ -79,11 +83,21 @@ import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.ui.screens.topiclist.TopicRow
 import com.bugenzhao.mnga.util.Haptics
 import com.bugenzhao.mnga.util.L
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** The default folder forced first, mirroring `sortedFolders`. */
 private fun List<FavoriteTopicFolder>.sortedFolders(): List<FavoriteTopicFolder> =
     sortedByDescending { it.isDefault }
+
+/**
+ * All favorite deletes share one app-lifetime queue. NGA's write endpoint is
+ * sensitive to bursts, while a composition-scoped queue is cancelled as soon
+ * as the user leaves the favorites screen and silently drops pending deletes.
+ */
+private val favoriteDeleteMutex = Mutex()
 
 /**
  * Favorite topics grouped by folder, a port of `FavoriteTopicListView`: a
@@ -401,8 +415,6 @@ private fun FolderMenu(
 @Composable
 private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator) {
     val context = LocalContext.current
-    val view = LocalView.current
-    val scope = rememberCoroutineScope()
 
     // The per-folder paged list lives in the entry-scoped ViewModel: it
     // survives pop-backs (composition is disposed, ViewModel is not), so
@@ -417,11 +429,76 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
         if (dataSource.notLoaded) dataSource.initialLoad()
     }
 
-    // Rows hidden after a successful swipe-delete.
+    val listState = rememberLazyListState()
+    // Optimistically hidden rows after swipe-delete (no refresh, no flash).
     val hiddenIds = remember(folder.id) { mutableStateListOf<String>() }
+    // Ids with a delete RPC in flight: guards against confirmValueChange
+    // firing more than once for a single swipe sending duplicate deletes.
+    val deletingIds = remember(folder.id) { mutableStateSetOf<String>() }
     val visibleItems = state.items.filter { it.id !in hiddenIds }
 
-    val listState = rememberLazyListState()
+    // Use the same global unfavorite request as the topic-details menu. The
+    // folder-specific variant can return success without actually removing
+    // the topic, so it reappears the next time the list is fetched.
+    // Optimistic: the caller hides the row immediately; the caller un-hides it
+    // only if all retries fail.
+    // No isFavored check and no refresh — the server response cache may
+    // be stale.
+    //
+    // 连续删除时 NGA 的 nuke.php 写接口可能限流/抖动导致偶发失败：
+    // 删除请求串行化发出，失败时带退避重试（最多 3 次），全部失败才
+    // 通知调用方恢复该行。
+    suspend fun requestDeleteFavorite(topicId: String): Pair<Boolean, String?> {
+        var lastError: String? = null
+        repeat(3) { attempt ->
+            if (attempt > 0) delay(1000L * attempt)
+            val result = logicCallAsync(
+                AsyncRequest.newBuilder()
+                    .setTopicFavor(
+                        TopicFavorRequest.newBuilder()
+                            .setTopicId(topicId)
+                            .setOperation(TopicFavorRequest.Operation.DELETE)
+                            .build()
+                    )
+                    .build(),
+                TopicFavorResponse.parser(),
+            )
+            if (result.isSuccess) return true to null
+            lastError = result.exceptionOrNull()?.message
+        }
+        return false to lastError
+    }
+    fun deleteFavorite(topicId: String, onSettled: (Boolean) -> Unit) {
+        // App scope deliberately outlives this composition: leaving the page
+        // must not cancel deletes that are waiting behind the mutex.
+        appScope.launch {
+            favoriteDeleteMutex.withLock {
+                val (ok, error) = requestDeleteFavorite(topicId)
+                // 调试提示：成功/失败都 Toast，失败时带上服务端错误信息。
+                if (ok) {
+                    ToastModel.showAuto(
+                        ToastModel.Message.Success(
+                            L.str(context, "Unfavorited"),
+                        ),
+                    )
+                } else {
+                    ToastModel.showAuto(
+                        ToastModel.Message.Error(
+                            L.str(context, "Unfavorite failed") +
+                                (error?.let { ": $it" } ?: ""),
+                        ),
+                    )
+                }
+                if (ok) {
+                    // The entry-scoped data source survives while this route is
+                    // covered. Remove the confirmed item there as well as from
+                    // the optimistic UI, otherwise recomposition brings it back.
+                    dataSource.removeItem(topicId)
+                }
+                onSettled(ok)
+            }
+        }
+    }
     LaunchedEffect(listState, visibleItems.size) {
         snapshotFlow {
             val info = listState.layoutInfo
@@ -430,34 +507,6 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
         }.collect { nearEnd ->
             if (nearEnd && visibleItems.isNotEmpty()) {
                 dataSource.loadMoreIfNeeded(visibleItems.size - 1)
-            }
-        }
-    }
-
-    fun deleteFavorite(topic: Topic, boxState: SwipeToDismissBoxState) {
-        scope.launch {
-            val result = logicCallAsync(
-                AsyncRequest.newBuilder()
-                    .setTopicFavor(
-                        TopicFavorRequest.newBuilder()
-                            .setFolderId(folder.id)
-                            .setTopicId(topic.id)
-                            .setOperation(TopicFavorRequest.Operation.DELETE)
-                            .build()
-                    )
-                    .build(),
-                TopicFavorResponse.parser(),
-            )
-            result.onSuccess { response ->
-                Haptics.play(view, Haptics.NotificationType.SUCCESS)
-                if (!response.isFavored) {
-                    hiddenIds.add(topic.id)
-                } else {
-                    // Still favored in another folder: snap the row back.
-                    boxState.snapTo(SwipeToDismissBoxValue.Settled)
-                }
-            }.onFailure {
-                boxState.snapTo(SwipeToDismissBoxValue.Settled)
             }
         }
     }
@@ -486,31 +535,41 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(visibleItems, key = { _, topic -> topic.id }) { _, topic ->
-                    val boxState = rememberSwipeToDismissBoxState()
-                    LaunchedEffect(boxState.currentValue) {
-                        if (boxState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-                            deleteFavorite(topic, boxState)
-                        }
-                    }
-                    SwipeToDismissBox(
-                        state = boxState,
-                        backgroundContent = {
-                            Surface(
-                                color = MaterialTheme.colorScheme.errorContainer,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxSize(),
-                            ) {
-                                Row(
-                                    Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.End,
-                                ) {
-                                    Icon(
-                                        Icons.Outlined.Delete,
-                                        contentDescription = L.str(context, "Delete"),
-                                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                                    )
+                    // Same as history: swipe left to delete, optimistic hide,
+                    // no refresh (no flash). Un-hide if the RPC fails.
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                if (deletingIds.add(topic.id)) {
+                                    hiddenIds.add(topic.id)
+                                    deleteFavorite(topic.id) {
+                                        deletingIds.remove(topic.id)
+                                        hiddenIds.remove(topic.id)
+                                    }
                                 }
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                    )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        modifier = Modifier.animateItem(),
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.errorContainer)
+                                    .padding(horizontal = 20.dp),
+                                contentAlignment = Alignment.CenterEnd,
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Delete,
+                                    contentDescription = L.str(context, "Delete"),
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                )
                             }
                         },
                         enableDismissFromStartToEnd = false,

@@ -17,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,6 +48,7 @@ import com.bugenzhao.mnga.ui.screens.subforums.SubforumListScreen
 import com.bugenzhao.mnga.ui.screens.topicdetails.TopicDetailsScreen
 import com.bugenzhao.mnga.ui.screens.topiclist.TopicListScreen
 import com.bugenzhao.mnga.ui.screens.user.UserProfileScreen
+import com.bugenzhao.mnga.ui.screens.user.BlockedUsersScreen
 import com.bugenzhao.mnga.ui.theme.LumaGATheme
 import com.bugenzhao.mnga.model.appScope
 import kotlinx.coroutines.flow.filter
@@ -87,7 +87,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         val view = androidx.compose.ui.platform.LocalView.current
         DisposableEffect(view) {
             val listener = android.view.ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
-                if (hasFocus) view.post { maybeNavigateToPasteboardLink() }
+                if (hasFocus) view.post { maybeNavigateToPasteboardLink(navigator) }
             }
             view.viewTreeObserver.addOnWindowFocusChangeListener(listener)
             onDispose {
@@ -104,7 +104,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
                     // before touching the clipboard, otherwise the read is
                     // denied on Android 12+.
                     kotlinx.coroutines.delay(350)
-                    maybeNavigateToPasteboardLink()
+                    maybeNavigateToPasteboardLink(navigator)
                 }
         }
     }
@@ -156,9 +156,25 @@ private fun NavigationHost(
         modifier = Modifier.fillMaxSize(),
         // Forward (push): the new page slides in from the right while the old
         // one exits to the left. Backward (pop): mirrored.
+        // Exception: PersonalCenter slides in from the left (drawer-style),
+        // so the page it covers must exit to the right, and vice versa on pop.
+        // The outgoing transition belongs to the *old* destination, hence the
+        // target/initial-state checks here.
         enterTransition = { slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280)) },
-        exitTransition = { slideOutHorizontally(tween(280)) { -it / 4 } + fadeOut(tween(280)) },
-        popEnterTransition = { slideInHorizontally(tween(280)) { -it / 3 } + fadeIn(tween(280)) },
+        exitTransition = {
+            if (targetState.destination.route == RouteCodec.ROUTE_PERSONAL_CENTER) {
+                slideOutHorizontally(tween(280)) { it / 4 } + fadeOut(tween(280))
+            } else {
+                slideOutHorizontally(tween(280)) { -it / 4 } + fadeOut(tween(280))
+            }
+        },
+        popEnterTransition = {
+            if (initialState.destination.route == RouteCodec.ROUTE_PERSONAL_CENTER) {
+                slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280))
+            } else {
+                slideInHorizontally(tween(280)) { -it / 3 } + fadeIn(tween(280))
+            }
+        },
         popExitTransition = { slideOutHorizontally(tween(280)) { it / 4 } + fadeOut(tween(280)) },
     ) {
         composable(RouteCodec.ROUTE_FORUM_LIST) {
@@ -216,6 +232,9 @@ private fun NavigationHost(
         composable(RouteCodec.ROUTE_BLOCK_WORDS) {
             RouteDispatcher(navigator, Route.BlockWords, editor)
         }
+        composable(RouteCodec.ROUTE_BLOCKED_USERS) {
+            RouteDispatcher(navigator, Route.BlockedUsers, editor)
+        }
         composable(RouteCodec.ROUTE_ABOUT) {
             RouteDispatcher(navigator, Route.About, editor)
         }
@@ -227,6 +246,17 @@ private fun NavigationHost(
         }
         composable(RouteCodec.ROUTE_CLOCK_IN) {
             RouteDispatcher(navigator, Route.ClockIn, editor)
+        }
+        // Personal center: slides in from the left (drawer-style page),
+        // mirroring the exit when popped.
+        composable(
+            RouteCodec.ROUTE_PERSONAL_CENTER,
+            enterTransition = { slideInHorizontally(tween(280)) { -it } + fadeIn(tween(280)) },
+            exitTransition = { slideOutHorizontally(tween(280)) { -it } + fadeOut(tween(280)) },
+            popEnterTransition = { slideInHorizontally(tween(280)) { -it } + fadeIn(tween(280)) },
+            popExitTransition = { slideOutHorizontally(tween(280)) { -it } + fadeOut(tween(280)) },
+        ) {
+            RouteDispatcher(navigator, Route.PersonalCenter, editor)
         }
     }
 }
@@ -244,7 +274,7 @@ fun RouteDispatcher(
 ) {
     when (route) {
         is Route.ForumList ->
-            ForumListScreen(navigator, onShowUserMenu = { com.bugenzhao.mnga.ui.root.showUserMenuBus.value = true })
+            ForumListScreen(navigator, onShowUserMenu = { navigator.push(Route.PersonalCenter) })
         is Route.TopicList ->
             TopicListScreen(
                 navigator,
@@ -272,8 +302,11 @@ fun RouteDispatcher(
         is Route.SubforumList -> SubforumListScreen(navigator, route.forumId)
         is Route.CacheSettings -> CacheScreen(navigator)
         is Route.BlockWords -> BlockWordsScreen(navigator)
+        is Route.BlockedUsers -> BlockedUsersScreen(navigator)
         is Route.About -> AboutScreen(navigator)
         is Route.ClockIn -> com.bugenzhao.mnga.ui.screens.user.ClockInScreen(navigator)
+        is Route.PersonalCenter ->
+            com.bugenzhao.mnga.ui.screens.user.PersonalCenterScreen(navigator)
         is Route.Settings ->
             com.bugenzhao.mnga.ui.screens.prefs.PreferencesSheet(
                 onDismiss = { navigator.pop() },
@@ -287,9 +320,6 @@ fun RouteDispatcher(
         else -> RoutePlaceholderScreen(navigator, route)
     }
 }
-
-/** Simple event bus for the user-menu trigger (forum list toolbar). */
-val showUserMenuBus = mutableStateOf(false)
 
 @Composable
 private fun RoutePlaceholderScreen(navigator: Navigator, route: Route) {
@@ -336,14 +366,6 @@ private fun GlobalSheets(
                 editor.shortMessage.editorDismissed()
             }
         }
-    }
-
-    if (showUserMenuBus.value) {
-        com.bugenzhao.mnga.ui.screens.user.UserMenuSheet(
-            navigator = navigator,
-            onDismiss = { showUserMenuBus.value = false },
-            onShowLogin = { App.authStorage.setIsSigning(true) },
-        )
     }
 
     val isSigning by App.authStorage.isSigning.collectAsState()
@@ -403,9 +425,31 @@ private fun recordJumpedPasteboardLink(link: String) {
     App.sharedPreferences.edit().putStringSet(JumpedPasteboardLinksKey, set).apply()
 }
 
-private fun maybeNavigateToPasteboardLink() {
+/**
+ * Whether this deep-link destination is already displayed as [route].
+ * Used to skip the pasteboard auto-jump when the clipboard link points at
+ * the page the user is already viewing (e.g. the "LumaGA Link" just copied
+ * from the current topic's menu) instead of pointlessly reopening it.
+ */
+private fun NavigationIdentifier.matchesRoute(route: Route): Boolean = when (this) {
+    is NavigationIdentifier.TopicID -> route is Route.TopicDetails && route.topicId == tid
+    is NavigationIdentifier.PostID -> route is Route.TopicDetails && route.postId == pid
+    is NavigationIdentifier.ForumID -> route is Route.TopicList && route.forumId == id
+    is NavigationIdentifier.UserID -> route is Route.UserProfile && route.userId == uid
+    is NavigationIdentifier.UserNameID -> route is Route.UserProfile && route.userName == name
+}
+
+private fun maybeNavigateToPasteboardLink(navigator: Navigator) {
     val link = App.schemes.pasteboardLink() ?: return
     if (link in jumpedPasteboardLinks()) return
+    // Skip the auto-jump when the clipboard link resolves to the destination
+    // already on screen. This happens right after copying the current page's
+    // own "LumaGA Link": without the check the app would dismiss and
+    // re-present the very topic the user is reading.
+    val id = runCatching { android.net.Uri.parse(link) }.getOrNull()
+        ?.let { NavigationIdentifier.parse(it) }
+    val current = navigator.current
+    if (id != null && current != null && id.matchesRoute(current)) return
     // Only record the link once a jump actually happened (an invalid
     // clipboard entry is reported by navigateToPasteboardURL and returns
     // false, leaving the link eligible for the next resume).

@@ -11,9 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Category
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DateRange
@@ -79,7 +80,6 @@ import com.bugenzhao.mnga.protos.service.HotTopicListRequest
 import com.bugenzhao.mnga.protos.service.HotTopicListResponse
 import com.bugenzhao.mnga.protos.service.TopicListRequest
 import com.bugenzhao.mnga.protos.service.TopicListResponse
-import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.storage.TopicListOrder
 import com.bugenzhao.mnga.ui.components.PagedList
 import com.bugenzhao.mnga.ui.components.SwipeToFavorBox
@@ -126,18 +126,6 @@ fun TopicListScreen(
         if (latest != order) order = latest
     }
     val orderOrDefault = order ?: TopicListOrder.fromRaw(defaultOrderRaw)
-
-    // -- Block words + forum-shortcut filtering (SS5 maybeFiltered).
-    fun maybeFiltered(topics: List<Topic>): List<Topic> {
-        var result = topics
-        if (App.prefs.topicListHideBlocked.value) {
-            result = result.filter { !App.blockWords.blocked(BlockWordsStorage.content(it)) }
-        }
-        if (!App.prefs.topicListShowForumShortcut.value) {
-            result = result.filter { !it.hasShortcutForum() }
-        }
-        return result
-    }
 
     // -- Data sources: held by the entry-scoped ViewModel so the loaded data
     // survives being covered by a pushed screen (composition is disposed,
@@ -383,6 +371,7 @@ fun TopicListScreen(
                                 onTopicSearch = {
                                     navigator.push(Route.TopicSearch(forumId = forumId))
                                 },
+                                onHistory = { navigator.push(Route.History) },
                                 onRefresh = { triggerRefresh() },
                                 signedIn = signedIn,
                                 isFavorite = isForumFavorite,
@@ -485,7 +474,8 @@ fun TopicListScreen(
                                 view = view,
                                 topicId = topic.id,
                                 currentFavored = favoredOverrides[topic.id] ?: topic.isFavored,
-                            ) { favored -> favoredOverrides[topic.id] = favored }
+                                onResult = { favored -> favoredOverrides[topic.id] = favored },
+                            )
                         },
                         onNavigateToForum = { id ->
                             navigator.push(Route.TopicList(forumId = id))
@@ -676,6 +666,7 @@ private fun TopicListMoreMenu(
     hasSubforums: Boolean,
     onSubforums: () -> Unit,
     onTopicSearch: () -> Unit,
+    onHistory: () -> Unit,
     onRefresh: () -> Unit,
     signedIn: Boolean,
     isFavorite: Boolean,
@@ -809,6 +800,14 @@ private fun TopicListMoreMenu(
                 },
             )
         }
+        DropdownMenuItem(
+            text = { Text(L.str(context, "History")) },
+            leadingIcon = { Icon(Icons.Filled.HistoryEdu, contentDescription = null) },
+            onClick = {
+                if (PlusModel.checkPlus(PlusFeature.TOPIC_HISTORY)) onHistory()
+                onDismiss()
+            },
+        )
         DropdownMenuItem(
             text = { Text(L.str(context, "Refresh")) },
             leadingIcon = { Icon(Icons.Outlined.Refresh, contentDescription = null) },

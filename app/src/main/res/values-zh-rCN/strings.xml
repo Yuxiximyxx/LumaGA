@@ -75,6 +75,17 @@
     <string name="comment">贴条</string>
     <string name="block_contents">屏蔽内容</string>
     <string name="blocked">已屏蔽</string>
+    <string name="block_management">屏蔽管理</string>
+    <string name="blocked_users">已屏蔽用户</string>
+    <string name="d_blocked_users">已屏蔽 %1$d 位用户</string>
+    <string name="topics_and_replies_from_these_users_are_hidden">这些用户的主题和回复不会显示。</string>
+    <string name="topics_and_replies_hidden">已隐藏主题和回复</string>
+    <string name="no_blocked_users">暂无已屏蔽用户</string>
+    <string name="people_you_block_will_appear_here">屏蔽用户后，他们会出现在这里。</string>
+    <string name="unblock">解除屏蔽</string>
+    <string name="unblock_all">全部解除</string>
+    <string name="unblock_all_users">解除全部用户的屏蔽？</string>
+    <string name="their_topics_and_replies_will_be_visible_again">解除后，这些用户的主题和回复会重新显示。</string>
     <string name="no_block_words">没有屏蔽词</string>
     <string name="new_word">新关键词</string>
     <string name="settings">设置</string>
@@ -117,6 +128,7 @@
     <string name="support">支持</string>
     <string name="success">完成</string>
     <string name="draft_saved">草稿已保存</string>
+    <string name="download_location">下载位置</string>
     <string name="s_s_topics">%1$s 的话题</string>
     <string name="s_s_posts">%1$s 的回复</string>
     <string name="posts">回复</string>
@@ -258,6 +270,11 @@
     <string name="topic_details_style">话题内容样式</string>
     <string name="author_info">作者信息</string>
     <string name="show_author_indicator">显示作者标识</string>
+    <string name="quick_page_jump">底部快速翻页</string>
+    <string name="unfavorited">已取消收藏</string>
+    <string name="unfavorite_failed">取消收藏失败</string>
+    <string name="op_label">（楼主）</string>
+    <string name="personal_center">个人中心</string>
     <string name="mode">模式</string>
     <string name="participants">参与者</string>
     <string name="list_style">列表样式</string>

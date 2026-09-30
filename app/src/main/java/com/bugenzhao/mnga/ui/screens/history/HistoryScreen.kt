@@ -1,6 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.history
 
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Close
@@ -29,14 +31,18 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -45,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -107,14 +114,23 @@ fun HistoryScreen(navigator: Navigator) {
                     .build(),
                 CacheResponse.parser(),
             )
-            result.onSuccess { dataSource.refresh() }
+            result.onSuccess {
+                dataSource.refresh()
+            }
         }
     }
 
+    val visibleItems = state.items
+
+    // Optimistically hidden rows after swipe-delete (no full refresh, so no
+    // pull-to-refresh flash; the row below slides up via animateItem).
+    val hiddenIds = remember { mutableStateListOf<String>() }
+
     // Snapshot display topic: dates replaced by the visit timestamp (ms -> s).
-    val displayTopics = state.items.mapNotNull { snapshot ->
+    val displayTopics = visibleItems.mapNotNull { snapshot ->
         val topic = snapshot.topicSnapshot
         if (topic.id.isEmpty()) return@mapNotNull null
+        if (topic.id in hiddenIds) return@mapNotNull null
         val visitDate = snapshot.timestamp / 1000
         topic.toBuilder()
             .setPostDate(visitDate)
@@ -230,18 +246,60 @@ fun HistoryScreen(navigator: Navigator) {
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         itemsIndexed(filteredTopics, key = { _, topic -> topic.id }) { _, topic ->
-                            TopicRow(
-                                topic = topic,
-                                dimmedSubject = false,
-                                onClick = {
-                                    navigator.push(
-                                        Route.TopicDetails(
-                                            topicId = topic.id,
-                                            fav = topic.fav.takeIf { it.isNotEmpty() },
-                                        )
-                                    )
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { value ->
+                                    if (value == SwipeToDismissBoxValue.StartToEnd ||
+                                        value == SwipeToDismissBoxValue.EndToStart
+                                    ) {
+                                        // Optimistic: hide immediately for a smooth
+                                        // slide-up; un-hide if the RPC fails.
+                                        hiddenIds.add(topic.id)
+                                        historyVM.deleteTopic(topic.id) {
+                                            hiddenIds.remove(topic.id)
+                                        }
+                                        true
+                                    } else {
+                                        false
+                                    }
                                 },
                             )
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                modifier = Modifier.animateItem(),
+                                backgroundContent = {
+                                    val alignment = when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                        else -> Alignment.CenterEnd
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.errorContainer)
+                                            .padding(horizontal = 20.dp),
+                                        contentAlignment = alignment,
+                                    ) {
+                                        Icon(
+                                            Icons.Outlined.Delete,
+                                            contentDescription = L.str(context, "Delete"),
+                                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                                        )
+                                    }
+                                },
+                            ) {
+                                TopicRow(
+                                    topic = topic,
+                                    dimmedSubject = false,
+                                    onClick = {
+                                        navigator.push(
+                                            Route.TopicDetails(
+                                                topicId = topic.id,
+                                                fav = topic.fav.takeIf { it.isNotEmpty() },
+                                            )
+                                        )
+                                    },
+                                )
+                            }
                         }
                         item(key = "footer") {
                             AdaptiveFooter(loading = state.isLoading, noMore = !dataSource.hasMore)

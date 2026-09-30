@@ -161,7 +161,12 @@ class CurrentUserModel(
             )
             result.onSuccess { response ->
                 // 服务器权威的 last_time（上次签到时间戳）→ "今日已签"判断。
-                if (response.lastTime > 0) {
+                // 统计接口有当日缓存，刚签到后偶尔仍会返回签到前的旧
+                // last_time。只接受单调递增的时间戳，避免旧响应覆盖本地
+                // 刚写入的今日时间，导致“已签到”提示重新消失。
+                val saved = com.bugenzhao.mnga.App.sharedPreferences
+                    .getLong("lastClockInTime_$uid", 0L)
+                if (response.lastTime > saved) {
                     com.bugenzhao.mnga.App.sharedPreferences.edit()
                         .putLong("lastClockInTime_$uid", response.lastTime)
                         .apply()
@@ -190,13 +195,13 @@ class CurrentUserModel(
         result.onSuccess { response ->
             // 无论是否今日首次，都同步本地"已签到"状态——逻辑层缓存判定
             // 今天是否已签（重复点击也不会重复签到），首次成功才弹提示。
+            // 注意：refreshTodayClockIn() 读取的是 lastClockInTime_{uid}
+            // （秒级时间戳；e7c43c9 改为服务器权威后），之前误写已废弃的
+            // lastClockInDate_{uid} 导致签到成功后"已签到"标识不点亮。
+            // 服务器仍是最终权威：queryClockInStats() 会用 last_time 覆盖。
             com.bugenzhao.mnga.App.sharedPreferences.edit()
-                .putString(
-                    "lastClockInDate_$uid",
-                    java.text.SimpleDateFormat(
-                        "yyyy-MM-dd", java.util.Locale.US,
-                    ).format(java.util.Date()),
-                )
+                .putLong("lastClockInTime_$uid", System.currentTimeMillis() / 1000)
+                .remove("lastClockInDate_$uid")
                 .apply()
             refreshTodayClockIn()
             // 同步签到统计（累计/连续天数、金币拆金/银/铜、N币）。
@@ -212,6 +217,13 @@ class CurrentUserModel(
                 val name = _user.value?.name?.display() ?: "???"
                 ToastModel.showAuto(ToastModel.Message.ClockIn("$name @ ${response.date}"))
             }
+        }.onFailure { e ->
+            // 调试：签到请求失败时也提示，否则"已签到"不亮的原因不可见。
+            ToastModel.showAuto(
+                ToastModel.Message.Error(
+                    "签到失败: ${e.message}",
+                ),
+            )
         }
     }
 }
