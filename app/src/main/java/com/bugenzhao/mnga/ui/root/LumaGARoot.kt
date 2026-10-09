@@ -307,6 +307,8 @@ fun RouteDispatcher(
         is Route.ClockIn -> com.bugenzhao.mnga.ui.screens.user.ClockInScreen(navigator)
         is Route.PersonalCenter ->
             com.bugenzhao.mnga.ui.screens.user.PersonalCenterScreen(navigator)
+        is Route.QrScanner ->
+            com.bugenzhao.mnga.ui.screens.misc.QrScannerScreen(navigator)
         is Route.Settings ->
             com.bugenzhao.mnga.ui.screens.prefs.PreferencesSheet(
                 onDismiss = { navigator.pop() },

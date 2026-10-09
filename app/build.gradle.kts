@@ -126,6 +126,12 @@ dependencies {
     implementation(libs.bugly.crashreport)
     implementation(libs.bugly.nativecrashreport)
     implementation(libs.kotlinx.coroutines.android)
+    // QR code scanning: CameraX + ML Kit Barcode
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.barcode.scanning)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Instrumented tests (currently not run in CI; the emulator workflow was
