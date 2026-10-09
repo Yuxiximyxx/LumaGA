@@ -8,6 +8,8 @@ import android.content.SharedPreferences
  * Remembers where the user left off reading a favorited thread, so reopening
  * it jumps straight back to that floor. Stored locally in SharedPreferences
  * (no server round-trip, works offline).
+ *
+ * v1: initial implementation.
  */
 class ReadingProgressStorage(private val prefs: SharedPreferences) {
     companion object {
