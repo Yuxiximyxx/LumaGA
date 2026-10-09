@@ -32,6 +32,7 @@ object App {
     lateinit var blockWords: BlockWordsStorage
     lateinit var favoriteForums: FavoriteForumsStorage
     lateinit var searchHistory: SearchHistoryStorage
+    lateinit var readingProgress: ReadingProgressStorage
     lateinit var users: UsersModel
     lateinit var currentUser: CurrentUserModel
     lateinit var notis: NotificationModel
@@ -80,6 +81,8 @@ class LumaGAApplication : Application() {
             FavoriteForumsStorage(this, prefs).also { FavoriteForumsStorage.shared = it }
         App.searchHistory =
             SearchHistoryStorage(prefs).also { SearchHistoryStorage.shared = it }
+        App.readingProgress =
+            ReadingProgressStorage(prefs).also { ReadingProgressStorage.shared = it }
         App.users = UsersModel().also { UsersModel.shared = it }
         App.currentUser = CurrentUserModel(appScope, App.authStorage)
         App.notis = NotificationModel(appScope).also { NotificationModel.shared = it }

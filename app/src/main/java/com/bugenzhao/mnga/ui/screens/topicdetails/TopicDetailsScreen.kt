@@ -181,15 +181,23 @@ fun TopicDetailsScreen(
     val initialPage = remember(route) {
         var page = route.startPage ?: 1
         if (onlyPostId == null && route.startPage == null && !forceLocalMode) {
-            val resumeFrom = App.prefs.resumeTopicFrom
-            val initialFloor: Int? = when (resumeFrom) {
-                TopicResumeFrom.LAST ->
-                    topic.lastViewingFloor.takeIf { topic.hasLastViewingFloor() && it >= 3 }
-                        ?.plus(1)
-                TopicResumeFrom.HIGHEST ->
-                    topic.highestViewedFloor.takeIf { topic.hasHighestViewedFloor() && it >= 3 }
-                        ?.plus(1)
-                else -> null
+            // Local reading progress for favorited topics: jump back to where
+            // the user left off. Saved on exit, no server round-trip needed.
+            // Takes precedence over the server-based resume below.
+            val savedFloor = App.readingProgress.getFloor(route.topicId)?.takeIf { it >= 1 }
+            val initialFloor: Int? = if (savedFloor != null) {
+                savedFloor
+            } else {
+                val resumeFrom = App.prefs.resumeTopicFrom
+                when (resumeFrom) {
+                    TopicResumeFrom.LAST ->
+                        topic.lastViewingFloor.takeIf { topic.hasLastViewingFloor() && it >= 3 }
+                            ?.plus(1)
+                    TopicResumeFrom.HIGHEST ->
+                        topic.highestViewedFloor.takeIf { topic.hasHighestViewedFloor() && it >= 3 }
+                            ?.plus(1)
+                    else -> null
+                }
             }
             if (initialFloor != null) {
                 floorToJump = initialFloor
@@ -497,6 +505,13 @@ fun TopicDetailsScreen(
     DisposableEffect(route) {
         onDispose {
             syncTopicProgress(topic, currentViewingFloor)
+            // Remember where the user left off for favorited topics, so
+            // reopening jumps straight back to that floor.
+            if (topic.fav.isNotEmpty()) {
+                currentViewingFloor.currentLowest?.let { floor ->
+                    App.readingProgress.setFloor(topic.id, floor)
+                }
+            }
         }
     }
 
