@@ -185,6 +185,7 @@ fun TopicDetailsScreen(
             // the user left off. Saved on exit, no server round-trip needed.
             // Takes precedence over the server-based resume below.
             val savedFloor = App.prefs.getReadingFloor(route.topicId)?.takeIf { it >= 1 }
+            android.util.Log.d("ReadingProgress", "restore: topicId=${route.topicId} savedFloor=$savedFloor")
             val initialFloor: Int? = if (savedFloor != null) {
                 savedFloor
             } else {
@@ -505,12 +506,12 @@ fun TopicDetailsScreen(
     DisposableEffect(route) {
         onDispose {
             syncTopicProgress(topic, currentViewingFloor)
-            // Remember where the user left off for favorited topics, so
-            // reopening jumps straight back to that floor.
-            if (topic.fav.isNotEmpty()) {
-                currentViewingFloor.currentLowest?.let { floor ->
-                    App.prefs.setReadingFloor(topic.id, floor)
-                }
+            // Remember where the user left off, so reopening jumps straight
+            // back to that floor. Saved for all topics (capped at 300).
+            val floor = currentViewingFloor.currentLowest
+            android.util.Log.d("ReadingProgress", "save: topicId=${topic.id} fav=${topic.fav} floor=$floor")
+            floor?.let {
+                App.prefs.setReadingFloor(topic.id, it)
             }
         }
     }
