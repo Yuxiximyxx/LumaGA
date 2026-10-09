@@ -184,7 +184,7 @@ fun TopicDetailsScreen(
             // Local reading progress for favorited topics: jump back to where
             // the user left off. Saved on exit, no server round-trip needed.
             // Takes precedence over the server-based resume below.
-            val savedFloor = App.readingProgress.getFloor(route.topicId)?.takeIf { it >= 1 }
+            val savedFloor = App.prefs.getReadingFloor(route.topicId)?.takeIf { it >= 1 }
             val initialFloor: Int? = if (savedFloor != null) {
                 savedFloor
             } else {
@@ -509,7 +509,7 @@ fun TopicDetailsScreen(
             // reopening jumps straight back to that floor.
             if (topic.fav.isNotEmpty()) {
                 currentViewingFloor.currentLowest?.let { floor ->
-                    App.readingProgress.setFloor(topic.id, floor)
+                    App.prefs.setReadingFloor(topic.id, floor)
                 }
             }
         }

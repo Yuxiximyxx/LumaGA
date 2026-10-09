@@ -243,6 +243,40 @@ class PreferencesStorage(private val prefs: SharedPreferences) {
         }
     }
 
+    // region Reading progress for favorited topics
+
+    private val readingProgressPrefix = "reading_progress_"
+    private val readingProgressIndexKey = "reading_progress_index"
+    private val readingProgressMaxEntries = 300
+
+    /** Returns the saved floor for [topicId], or null if none. */
+    fun getReadingFloor(topicId: String): Int? {
+        if (topicId.isEmpty()) return null
+        return prefs.getInt(readingProgressPrefix + topicId, -1).takeIf { it >= 0 }
+    }
+
+    /** Saves the floor the user left off at for [topicId]. */
+    fun setReadingFloor(topicId: String, floor: Int) {
+        if (topicId.isEmpty() || floor < 0) return
+        val editor = prefs.edit().putInt(readingProgressPrefix + topicId, floor)
+        val index = prefs.getString(readingProgressIndexKey, "").orEmpty()
+            .split(",")
+            .filter { it.isNotEmpty() && it != topicId }
+            .toMutableList()
+        index.add(topicId)
+        while (index.size > readingProgressMaxEntries) {
+            editor.remove(readingProgressPrefix + index.removeAt(0))
+        }
+        editor.putString(readingProgressIndexKey, index.joinToString(","))
+        editor.apply()
+    }
+
+    /** Drops the saved progress for [topicId]. */
+    fun clearReadingFloor(topicId: String) {
+        if (topicId.isEmpty()) return
+        prefs.edit().remove(readingProgressPrefix + topicId).apply()
+    }
+
     // endregion
 
     init {
