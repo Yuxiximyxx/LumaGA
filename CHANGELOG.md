@@ -4,6 +4,11 @@
 
 版本号遵循语义化版本（versionCode = 主版本 × 10000 + 次版本 × 100 + 修订号）。
 
+## [1.1.23] - 2026-10-12
+
+### 🐛 修复
+- 扫码登录报"登录态已失效"：确认请求带的 Cookie 取自 WebView，可能已过期；现在改用 App 自身登录态（AuthInfo 的 uid/token 即 ngaPassportUid/Cid）组装 Cookie，WebView Cookie 只做补充
+
 ## [1.1.22] - 2026-10-12
 
 ### 🐛 修复

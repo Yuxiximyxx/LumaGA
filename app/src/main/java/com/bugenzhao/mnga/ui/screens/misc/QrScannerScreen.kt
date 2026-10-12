@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
@@ -212,11 +213,20 @@ private fun confirmNgaLogin(
 ) {
     GlobalScope.launch(Dispatchers.IO) {
         try {
-            val cookies = CookieManager.getInstance().getCookie("https://bbs.nga.cn") ?: ""
-            if (!cookies.contains("ngaPassportUid") || !cookies.contains("ngaPassportCid")) {
+            // Auth cookies come from the app's own login state (source of truth),
+            // not the WebView cookie jar (which may be stale). AuthInfo.token
+            // is the ngaPassportCid captured at login.
+            val auth = App.authStorage.authInfo.value
+            if (auth.uid.isBlank() || auth.token.isBlank()) {
                 withContext(Dispatchers.Main) { onError(Exception("App 内还没登录，无法确认")) }
                 return@launch
             }
+            val webCookies = CookieManager.getInstance().getCookie("https://bbs.nga.cn") ?: ""
+            val cookies = mergeCookies(
+                webCookies,
+                "ngaPassportUid=${auth.uid}; ngaPassportCid=${auth.token}",
+            )
+            Log.d(TAG, "Confirming as uid=${auth.uid}")
 
             // 1. Load the confirm page to extract the loginform (action + hidden fields).
             val uiUrl = "https://bbs.nga.cn/nuke.php?__lib=login&__act=qrlogin_ui&qrkey=$qrkey"
@@ -257,6 +267,18 @@ private fun confirmNgaLogin(
             withContext(Dispatchers.Main) { onError(e) }
         }
     }
+}
+
+/** Merges Cookie headers; later headers override earlier ones by name. */
+private fun mergeCookies(vararg headers: String): String {
+    val map = LinkedHashMap<String, String>()
+    headers.forEach { h ->
+        h.split(";").forEach { part ->
+            val kv = part.trim().split("=", limit = 2)
+            if (kv.size == 2 && kv[0].isNotBlank()) map[kv[0]] = kv[1]
+        }
+    }
+    return map.entries.joinToString("; ") { "${it.key}=${it.value}" }
 }
 
 private const val UA =
