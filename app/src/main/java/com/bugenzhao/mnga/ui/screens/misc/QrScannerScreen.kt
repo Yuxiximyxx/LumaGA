@@ -194,44 +194,122 @@ private fun parseNgaQrKey(content: String): String? {
 }
 
 /**
- * Confirms the NGA web login by loading the qrlogin_ui URL with the app's
- * auth cookies. Runs off the main thread.
+ * Confirms the NGA web login.
+ *
+ * The scanned QR points at `qrlogin_ui`, which is only the confirmation
+ * *page*. The real confirmation is the page's `loginform`:
+ * POST /nuke.php?__lib=login&__act=qrlogin_allow&raw=3 with the `qrkey`
+ * field, sent with the app's auth cookies so the server knows which
+ * account is approving. The web page polling
+ * (__act=login&v2=1&qrkey&hiddenkey) then succeeds and logs in.
+ *
+ * Runs off the main thread.
  */
 private fun confirmNgaLogin(
     qrkey: String,
     onSuccess: () -> Unit,
     onError: (Exception) -> Unit,
 ) {
-    val url = "https://bbs.nga.cn/nuke.php?__lib=login&__act=qrlogin_ui&qrkey=$qrkey"
     GlobalScope.launch(Dispatchers.IO) {
         try {
             val cookies = CookieManager.getInstance().getCookie("https://bbs.nga.cn") ?: ""
-            Log.d(TAG, "Confirming login with cookies present=${cookies.isNotEmpty()}")
-            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                setRequestProperty("Cookie", cookies)
-                setRequestProperty(
-                    "User-Agent",
-                    "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36"
-                )
-                connectTimeout = 15000
-                readTimeout = 15000
+            if (!cookies.contains("ngaPassportUid") || !cookies.contains("ngaPassportCid")) {
+                withContext(Dispatchers.Main) { onError(Exception("App 内还没登录，无法确认")) }
+                return@launch
             }
-            val code = conn.responseCode
-            Log.d(TAG, "qrlogin_ui response code=$code")
-            // Read the response to ensure the request completes
-            try {
-                conn.inputStream.bufferedReader().readText()
-            } catch (_: Exception) {
+
+            // 1. Load the confirm page to extract the loginform (action + hidden fields).
+            val uiUrl = "https://bbs.nga.cn/nuke.php?__lib=login&__act=qrlogin_ui&qrkey=$qrkey"
+            val html = httpGet(uiUrl, cookies)
+            Log.d(TAG, "qrlogin_ui loaded, ${html.length} chars")
+            if (html.contains("你没有在这台设备上登录")) {
+                withContext(Dispatchers.Main) { onError(Exception("登录态已失效，请在 App 内重新登录")) }
+                return@launch
             }
-            conn.disconnect()
+
+            val action = Regex("""<form[^>]*\bid\s*=\s*['"]loginform['"][^>]*\baction\s*=\s*['"]([^'"]+)""")
+                .find(html)?.groupValues?.get(1)
+                ?: "/nuke.php?__lib=login&__act=qrlogin_allow&raw=3"
+            val fields = Regex("""<input[^>]+>""").findAll(html).mapNotNull { m ->
+                val tag = m.value
+                val name = Regex("""\bname\s*=\s*['"]([^'"]+)""")
+                    .find(tag)?.groupValues?.get(1) ?: return@mapNotNull null
+                val value = Regex("""\bvalue\s*=\s*['"]([^'"]*)""")
+                    .find(tag)?.groupValues?.get(1) ?: ""
+                name to value
+            }.toMap().toMutableMap()
+            fields["qrkey"] = qrkey
+            val postUrl = if (action.startsWith("http")) action else "https://bbs.nga.cn$action"
+            Log.d(TAG, "POST $postUrl fields=${fields.keys}")
+
+            // 2. Submit the confirmation, like the page's loginSubmit() does.
+            val resp = httpPost(postUrl, cookies, fields)
+            Log.d(TAG, "qrlogin_allow response: ${resp.take(600)}")
+
+            // 3. NGA answers via script_muti_get_var_store={data:[...]} or {error:[...]}.
+            val err = Regex("""error['"]?\s*:\s*\[\s*['"]([^'"]+)""")
+                .find(resp)?.groupValues?.get(1)
             withContext(Dispatchers.Main) {
-                if (code in 200..399) onSuccess() else onError(Exception("HTTP $code"))
+                if (err != null) onError(Exception(err)) else onSuccess()
             }
         } catch (e: Exception) {
             Log.e(TAG, "confirm failed", e)
             withContext(Dispatchers.Main) { onError(e) }
         }
+    }
+}
+
+private const val UA =
+    "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+
+/** GET with cookies; decodes GBK like NGA pages do. */
+private fun httpGet(url: String, cookies: String): String {
+    val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+        requestMethod = "GET"
+        setRequestProperty("Cookie", cookies)
+        setRequestProperty("User-Agent", UA)
+        connectTimeout = 15000
+        readTimeout = 15000
+    }
+    return try {
+        val code = conn.responseCode
+        Log.d(TAG, "GET $url -> $code")
+        val charset = conn.contentType?.let { ct ->
+            Regex("""charset=([\w-]+)""").find(ct)?.groupValues?.get(1)
+        } ?: "GBK"
+        val stream = if (code in 200..399) conn.inputStream else conn.errorStream
+        stream.bufferedReader(java.nio.charset.Charset.forName(charset)).readText()
+    } finally {
+        conn.disconnect()
+    }
+}
+
+/** POST form fields with cookies; decodes GBK like NGA pages do. */
+private fun httpPost(url: String, cookies: String, fields: Map<String, String>): String {
+    val body = fields.entries.joinToString("&") { (k, v) ->
+        "${java.net.URLEncoder.encode(k, "UTF-8")}=${java.net.URLEncoder.encode(v, "UTF-8")}"
+    }
+    val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+        requestMethod = "POST"
+        doOutput = true
+        setRequestProperty("Cookie", cookies)
+        setRequestProperty("User-Agent", UA)
+        setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+        setRequestProperty("Referer", "https://bbs.nga.cn/nuke.php?__lib=login&__act=qrlogin_ui")
+        connectTimeout = 15000
+        readTimeout = 15000
+    }
+    return try {
+        conn.outputStream.bufferedWriter(Charsets.UTF_8).use { it.write(body) }
+        val code = conn.responseCode
+        Log.d(TAG, "POST $url -> $code")
+        val charset = conn.contentType?.let { ct ->
+            Regex("""charset=([\w-]+)""").find(ct)?.groupValues?.get(1)
+        } ?: "GBK"
+        val stream = if (code in 200..399) conn.inputStream else conn.errorStream
+        stream.bufferedReader(java.nio.charset.Charset.forName(charset)).readText()
+    } finally {
+        conn.disconnect()
     }
 }
 
