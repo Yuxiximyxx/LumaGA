@@ -247,6 +247,9 @@ private fun NavigationHost(
         composable(RouteCodec.ROUTE_CLOCK_IN) {
             RouteDispatcher(navigator, Route.ClockIn, editor)
         }
+        composable(RouteCodec.ROUTE_QR_SCANNER) {
+            RouteDispatcher(navigator, Route.QrScanner, editor)
+        }
         // Personal center: slides in from the left (drawer-style page),
         // mirroring the exit when popped.
         composable(
