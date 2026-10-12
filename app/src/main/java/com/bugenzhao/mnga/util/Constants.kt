@@ -13,6 +13,7 @@ object Constants {
         const val forumFBase = "mnga://forum/f/"
         const val forumSTBase = "mnga://forum/st/"
         const val userBase = "mnga://user/"
+        const val searchBase = "mnga://search"
     }
 
     /**

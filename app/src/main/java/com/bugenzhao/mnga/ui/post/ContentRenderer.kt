@@ -92,6 +92,7 @@ interface ContentActions {
     fun navigateToForum(id: ForumId) {}
     fun navigateToUser(uid: String) {}
     fun navigateToUserName(name: String) {}
+    fun navigateToSearch(query: String) {}
     fun openURL(url: String) {}
     fun showReplyChain(from: PostId) {}
     fun viewImages(urls: List<String>, current: String) {}
@@ -249,6 +250,7 @@ internal class RenderHost(
             is NavigationIdentifier.ForumID -> actions.navigateToForum(nav.id)
             is NavigationIdentifier.UserID -> actions.navigateToUser(nav.uid)
             is NavigationIdentifier.UserNameID -> actions.navigateToUserName(nav.name)
+            is NavigationIdentifier.Search -> actions.navigateToSearch(nav.query)
             null -> actions.openURL(full)
         }
     }

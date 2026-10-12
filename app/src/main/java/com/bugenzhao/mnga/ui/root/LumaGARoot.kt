@@ -192,8 +192,9 @@ private fun NavigationHost(
             val route = remember(entry) { RouteCodec.decode(entry) }
             if (route != null) RouteDispatcher(navigator, route, editor)
         }
-        composable(RouteCodec.ROUTE_GLOBAL_SEARCH) {
-            RouteDispatcher(navigator, Route.GlobalSearch, editor)
+        composable(RouteCodec.ROUTE_GLOBAL_SEARCH, arguments = payloadArgument) { entry ->
+            val route = remember(entry) { RouteCodec.decode(entry) }
+            if (route != null) RouteDispatcher(navigator, route, editor)
         }
         composable(RouteCodec.ROUTE_TOPIC_SEARCH, arguments = payloadArgument) { entry ->
             val route = remember(entry) { RouteCodec.decode(entry) }
@@ -296,7 +297,7 @@ fun RouteDispatcher(
                 userName = route.userName,
                 user = route.user,
             )
-        is Route.GlobalSearch -> SearchScreen(navigator)
+        is Route.GlobalSearch -> SearchScreen(navigator, initialQuery = route.query)
         is Route.TopicSearch -> SearchScreen(navigator, route.forumId)
         is Route.Favorites -> FavoritesScreen(navigator)
         is Route.History -> HistoryScreen(navigator)
@@ -398,6 +399,8 @@ private fun DeepLinkDestination(navigator: Navigator) {
                 navigator.push(Route.UserProfile(userId = id.uid))
             is NavigationIdentifier.UserNameID ->
                 navigator.push(Route.UserProfile(userName = id.name))
+            is NavigationIdentifier.Search ->
+                navigator.push(Route.GlobalSearch(query = id.query.takeIf { it.isNotEmpty() }))
         }
         App.schemes.dismiss()
     }

@@ -69,7 +69,9 @@ object RouteCodec {
                 put("userB64", Base64.encodeToString(it.toByteArray(), Base64.NO_WRAP))
             }
         }
-        Route.GlobalSearch -> ROUTE_GLOBAL_SEARCH
+        is Route.GlobalSearch -> withPayload(ROUTE_GLOBAL_SEARCH) {
+            route.query?.let { put("q", it) }
+        }
         is Route.TopicSearch -> withPayload(ROUTE_TOPIC_SEARCH) {
             route.forumId?.let { putForumId("forum", it) }
         }
@@ -106,7 +108,9 @@ object RouteCodec {
             ROUTE_TOPIC_LIST -> decodePayload(args) { decodeTopicList(it) }
             ROUTE_TOPIC_DETAILS -> decodePayload(args) { decodeTopicDetails(it) }
             ROUTE_USER_PROFILE -> decodePayload(args) { decodeUserProfile(it) }
-            ROUTE_GLOBAL_SEARCH -> Route.GlobalSearch
+            ROUTE_GLOBAL_SEARCH -> decodePayload(args) {
+                Route.GlobalSearch(query = it.optStringOrNull("q"))
+            }
             ROUTE_TOPIC_SEARCH -> decodePayload(args) { decodeTopicSearch(it) }
             ROUTE_HOT_TOPICS -> Route.HotTopics
             ROUTE_FAVORITES -> Route.Favorites

@@ -258,7 +258,7 @@ fun ForumListScreen(
                             }
                         }
                     }
-                    IconButton(onClick = { navigator.push(Route.GlobalSearch) }) {
+                    IconButton(onClick = { navigator.push(Route.GlobalSearch()) }) {
                         Icon(
                             Icons.Outlined.Search,
                             contentDescription = L.str(context, "Search"),

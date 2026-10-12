@@ -115,6 +115,7 @@ private enum class SearchTab(val titleKey: String, val history: SearchHistorySco
 fun SearchScreen(
     navigator: Navigator,
     forumId: ForumId? = null,
+    initialQuery: String? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -250,6 +251,17 @@ fun SearchScreen(
         committedText = term.ifEmpty { null }
         if (term.isEmpty()) return
         App.searchHistory.remember(SearchTab.entries[pagerState.currentPage].history, term)
+    }
+
+    // Deep link (mnga://search?key=...) may carry a query: prefill and search once.
+    var deepLinkConsumed by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(initialQuery) {
+        val q = initialQuery?.trim().orEmpty()
+        if (q.isNotEmpty() && !deepLinkConsumed) {
+            deepLinkConsumed = true
+            text = q
+            commit(q)
+        }
     }
 
     // Data sources are rebuilt whenever the committed text or an option

@@ -19,6 +19,8 @@ sealed class NavigationIdentifier {
     data class ForumID(val id: ForumId) : NavigationIdentifier()
     data class UserID(val uid: String) : NavigationIdentifier()
     data class UserNameID(val name: String) : NavigationIdentifier()
+    /** In-app search, optionally with a prefilled query. */
+    data class Search(val query: String) : NavigationIdentifier()
 
     val isMNGAMockID: Boolean
         get() = when (this) {
@@ -27,6 +29,7 @@ sealed class NavigationIdentifier {
             is ForumID -> (if (id.hasFid()) id.fid else id.stid).startsWith("mnga_")
             is UserID -> uid.startsWith("mnga_")
             is UserNameID -> name.startsWith("mnga_")
+            is Search -> false
         }
 
     /** The `mnga://` deep link; null for user names (not supported). */
@@ -40,6 +43,10 @@ sealed class NavigationIdentifier {
                 else Constants.MNGA.forumFBase + id.fid
             is UserID -> Constants.MNGA.userBase + uid
             is UserNameID -> null
+            is Search -> Constants.MNGA.searchBase +
+                (query.takeIf { it.isNotEmpty() }?.let {
+                    "?key=" + android.net.Uri.encode(it)
+                } ?: "")
         }
 
     /** The NGA web equivalent; null for mock ids. */
@@ -55,6 +62,7 @@ sealed class NavigationIdentifier {
                     else base + "thread.php?fid=" + id.fid
                 is UserID -> base + "nuke.php?func=ucp&uid=" + uid
                 is UserNameID -> base + "nuke.php?func=ucp&username=" + name
+                is Search -> null
             }
         }
 
@@ -87,6 +95,10 @@ sealed class NavigationIdentifier {
                     }
                     full.startsWith(Constants.MNGA.userBase) ->
                         NavigationIdentifier.UserID(path)
+                    full.startsWith(Constants.MNGA.searchBase) ->
+                        NavigationIdentifier.Search(
+                            firstQuery("key") ?: firstQuery("q") ?: ""
+                        )
                     else -> null
                 }
             }

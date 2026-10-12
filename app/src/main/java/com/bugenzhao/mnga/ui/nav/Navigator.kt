@@ -113,7 +113,7 @@ sealed class Route {
         val user: com.bugenzhao.mnga.protos.datamodel.User? = null,
     ) : Route()
 
-    data object GlobalSearch : Route()
+    data class GlobalSearch(val query: String? = null) : Route()
     data class TopicSearch(
         val forumId: com.bugenzhao.mnga.protos.datamodel.ForumId? = null,
     ) : Route()
