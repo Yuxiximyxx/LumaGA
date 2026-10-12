@@ -24,7 +24,7 @@ object RouteCodec {
     const val ROUTE_TOPIC_LIST = "topic-list/{payload}"
     const val ROUTE_TOPIC_DETAILS = "topic-details/{payload}"
     const val ROUTE_USER_PROFILE = "user-profile/{payload}"
-    const val ROUTE_GLOBAL_SEARCH = "global-search"
+    const val ROUTE_GLOBAL_SEARCH = "global-search/{payload}"
     const val ROUTE_TOPIC_SEARCH = "topic-search/{payload}"
     const val ROUTE_HOT_TOPICS = "hot-topics"
     const val ROUTE_FAVORITES = "favorites"
