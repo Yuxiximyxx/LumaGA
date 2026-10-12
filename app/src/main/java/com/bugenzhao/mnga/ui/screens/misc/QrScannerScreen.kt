@@ -32,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +77,46 @@ fun QrScannerScreen(navigator: Navigator) {
     }
     var result by remember { mutableStateOf<String?>(null) }
     var confirming by remember { mutableStateOf(false) }
+    // Set when the last confirm failed on auth; offers re-login + auto retry.
+    var authFailed by remember { mutableStateOf(false) }
+    var pendingQrkey by remember { mutableStateOf<String?>(null) }
+
+    fun doConfirm(qrkey: String) {
+        authFailed = false
+        confirming = true
+        result = "检测到 NGA 登录二维码，正在确认…"
+        confirmNgaLogin(
+            qrkey,
+            onSuccess = {
+                confirming = false
+                authFailed = false
+                pendingQrkey = null
+                result = "登录确认成功！网页端应该已经登录。"
+            },
+            onError = { e ->
+                confirming = false
+                val msg = e.message ?: "未知错误"
+                authFailed = msg.contains("登录态") || msg.contains("重新登录") || msg.contains("还没登录")
+                if (authFailed) pendingQrkey = qrkey
+                result = "确认失败：$msg"
+            }
+        )
+    }
+
+    // After the login sheet closes, retry a pending confirm with fresh auth.
+    val isSigning by App.authStorage.isSigning.collectAsState()
+    var wasSigning by remember { mutableStateOf(false) }
+    LaunchedEffect(isSigning) {
+        if (wasSigning && !isSigning) {
+            val qk = pendingQrkey
+            if (qk != null) {
+                pendingQrkey = null
+                Log.d(TAG, "Login sheet closed, retrying confirm")
+                doConfirm(qk)
+            }
+        }
+        wasSigning = isSigning
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -139,9 +180,20 @@ fun QrScannerScreen(navigator: Navigator) {
                         } else {
                             Text(result!!, style = MaterialTheme.typography.bodyMedium)
                             Spacer(Modifier.height(16.dp))
+                            if (authFailed) {
+                                Button(onClick = {
+                                    // Opens the app login sheet; confirm auto-retries when it closes.
+                                    App.authStorage.setIsSigning(true)
+                                }) {
+                                    Text("重新登录并重试")
+                                }
+                                Spacer(Modifier.height(8.dp))
+                            }
                             Button(onClick = {
                                 result = null
                                 confirming = false
+                                authFailed = false
+                                pendingQrkey = null
                             }) {
                                 Text("继续扫码")
                             }
@@ -154,19 +206,7 @@ fun QrScannerScreen(navigator: Navigator) {
                             Log.d(TAG, "QR detected: $content")
                             val qrkey = parseNgaQrKey(content)
                             if (qrkey != null) {
-                                confirming = true
-                                result = "检测到 NGA 登录二维码，正在确认…"
-                                confirmNgaLogin(
-                                    qrkey,
-                                    onSuccess = {
-                                        confirming = false
-                                        result = "登录确认成功！网页端应该已经登录。"
-                                    },
-                                    onError = { e ->
-                                        confirming = false
-                                        result = "确认失败：${e.message}"
-                                    }
-                                )
+                                doConfirm(qrkey)
                             } else {
                                 result = "二维码内容：$content\n（不是 NGA 登录二维码）"
                             }
