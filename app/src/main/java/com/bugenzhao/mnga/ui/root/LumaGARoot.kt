@@ -445,6 +445,7 @@ private fun NavigationIdentifier.matchesRoute(route: Route): Boolean = when (thi
     is NavigationIdentifier.ForumID -> route is Route.TopicList && route.forumId == id
     is NavigationIdentifier.UserID -> route is Route.UserProfile && route.userId == uid
     is NavigationIdentifier.UserNameID -> route is Route.UserProfile && route.userName == name
+    is NavigationIdentifier.Search -> route is Route.GlobalSearch
 }
 
 private fun maybeNavigateToPasteboardLink(navigator: Navigator) {

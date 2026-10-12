@@ -268,6 +268,11 @@ fun PostRow(
                         action?.navigateToRemoteUserID?.value = navID.uid
                     is NavigationIdentifier.UserNameID ->
                         action?.navigateToRemoteUserName?.value = navID.name
+                    is NavigationIdentifier.Search -> {
+                        // Search deep links in post content: not wired to the
+                        // topic action model; external search intents go through
+                        // DeepLinkDestination instead.
+                    }
                     null -> App.openURL.open(resolved ?: uri, prefs = App.prefs)
                 }
             }
