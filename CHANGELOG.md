@@ -4,6 +4,16 @@
 
 版本号遵循语义化版本（versionCode = 主版本 × 10000 + 次版本 × 100 + 修订号）。
 
+## [1.1.28] - 2026-10-23
+
+### 🐛 修复
+- 预测式返回无效果：1.1.27 的「每页一个 Activity、靠系统跨 Activity 预测动画」在 Android 13/14 及多数 OEM 系统上不会触发预览，且绕开了 NavHost。改为与 yifgu/LumaGA 相同的实现——单 Activity + NavHost 原生预测式返回（navigation-compose 2.9）：移除 ScreenActivity 多 Activity 架构；各页面不再用 BackHandler 拦截返回调用 pop（会抢占 NavHost 的预测回调）；根页面双击退出仅保留在 Android 13 以下，13+ 根返回交给系统 back-to-home 预览。注：Android 13–14 需在开发者选项中开启「预测式返回动画」才能看到系统预览，Android 15+ 默认开启
+
+## [1.1.27] - 2026-10-17
+
+### ✨ 新增
+- 系统级预测式返回（Android 14+ 多 Activity 架构，每页独立 ScreenActivity）——真机无效果，已被 1.1.28 的 NavHost 方案取代
+
 ## [1.1.26] - 2026-10-12
 
 ### 🐛 修复

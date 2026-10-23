@@ -56,11 +56,7 @@ import kotlinx.coroutines.flow.filter
 
 /** Root composable: theme, navigation stack and global overlays. */
 @Composable
-fun LumaGARoot(
-    onNewIntent: (android.content.Intent) -> Unit,
-    initialRoute: Route = Route.ForumList,
-    navigationActivity: android.app.Activity? = null,
-) {
+fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
     val prefs = App.prefs
     val themeColor by prefs.themeColorRaw.flow.collectAsState()
     val colorScheme by prefs.colorSchemeRaw.flow.collectAsState()
@@ -70,9 +66,7 @@ fun LumaGARoot(
         colorSchemeMode = com.bugenzhao.mnga.storage.ColorSchemeMode.fromRaw(colorScheme),
     ) {
         val navController = rememberNavController()
-        val navigator = remember {
-            Navigator(navController, listOf(initialRoute), navigationActivity)
-        }
+        val navigator = remember { Navigator(navController, listOf(Route.ForumList)) }
         val editor = remember { com.bugenzhao.mnga.ui.editor.EditorController(appScope) }
 
         // Opaque theme background under the navigation stack: during the
@@ -80,21 +74,9 @@ fun LumaGARoot(
         // and without a solid layer beneath them the (always light) window
         // background flashes white in dark mode.
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            if (navigationActivity != null &&
-                android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-            ) {
-                // One destination per Activity: no NavHost back callback can
-                // suppress Android's cross-Activity predictive animation.
-                RouteDispatcher(navigator, initialRoute, editor)
-            } else {
-                NavigationHost(navigator, editor)
-            }
+            NavigationHost(navigator, editor)
         }
-        val lifecycleOwner = LocalLifecycleOwner.current
-        val lifecycleState by lifecycleOwner.lifecycle.currentStateFlow.collectAsState()
-        if (lifecycleState == Lifecycle.State.RESUMED) {
-            GlobalOverlays(navigator, editor)
-        }
+        GlobalOverlays(navigator, editor)
 
         // Pasteboard deep-link handling: when the newest clipboard entry is a
         // navigable NGA/LumaGA link that has not been jumped to yet, navigate
@@ -113,6 +95,7 @@ fun LumaGARoot(
                 view.viewTreeObserver.removeOnWindowFocusChangeListener(listener)
             }
         }
+        val lifecycleOwner = LocalLifecycleOwner.current
         LaunchedEffect(lifecycleOwner) {
             lifecycleOwner.lifecycle.currentStateFlow
                 .filter { it == androidx.lifecycle.Lifecycle.State.RESUMED }
@@ -129,15 +112,21 @@ fun LumaGARoot(
 }
 
 @Composable
-private fun NavigationHost(
+internal fun NavigationHost(
     navigator: Navigator,
     editor: com.bugenzhao.mnga.ui.editor.EditorController?,
 ) {
     // 首页（导航栈只有根）双击返回退出：3 秒内按两次退出，第一次提示。
+    // Android 13+ must leave root back to the system for the back-to-home
+    // preview, so double-back-to-exit only applies on older Android versions.
     // sheet/弹窗打开时它们自己的返回处理优先（后注册的 BackHandler 先触发）。
+    val stack by navigator.stack.collectAsState()
     val context = LocalContext.current
     var backPressedAt by remember { mutableLongStateOf(0L) }
-    BackHandler(enabled = navigator.size <= 1) {
+    BackHandler(
+        enabled = android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU &&
+            stack.size <= 1
+    ) {
         val now = android.os.SystemClock.uptimeMillis()
         if (now - backPressedAt < 3000) {
             (context as? android.app.Activity)?.finish()
@@ -168,6 +157,8 @@ private fun NavigationHost(
         }
     }
 
+    // NavHost owns predictive progress/cancellation; destinations must not
+    // intercept system back just to call navigator.pop().
     NavHost(
         navController = navigator.navController,
         startDestination = RouteCodec.ROUTE_FORUM_LIST,

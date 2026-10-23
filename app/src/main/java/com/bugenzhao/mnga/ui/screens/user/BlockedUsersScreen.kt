@@ -1,6 +1,5 @@
 package com.bugenzhao.mnga.ui.screens.user
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -74,8 +73,6 @@ fun BlockedUsersScreen(navigator: Navigator) {
         storage.remove(word)
         Haptics.play(view, Haptics.NotificationType.SUCCESS)
     }
-
-    BackHandler(enabled = navigator.size > 1) { navigator.pop() }
 
     Scaffold(
         topBar = {

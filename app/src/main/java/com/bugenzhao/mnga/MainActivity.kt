@@ -10,19 +10,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.bugenzhao.mnga.model.SchemesModel
 import com.bugenzhao.mnga.storage.PreferencesStorage
-import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.ui.root.LumaGARoot
 
-open class MainActivity : ComponentActivity() {
-
-    protected open fun initialRoute(): Route? = Route.ForumList
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val route = initialRoute() ?: run {
-            finish()
-            return
-        }
         enableEdgeToEdge()
         handleIntent(intent)
         setContent {
@@ -33,11 +26,7 @@ open class MainActivity : ComponentActivity() {
                     if (portrait) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                     else ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             }
-            LumaGARoot(
-                onNewIntent = { handleIntent(it) },
-                initialRoute = route,
-                navigationActivity = this,
-            )
+            LumaGARoot(onNewIntent = { handleIntent(it) })
         }
     }
 
