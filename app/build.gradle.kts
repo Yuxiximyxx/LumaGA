@@ -143,3 +143,11 @@ dependencies {
     // (EntryOwnerViewModelCreationTest).
     testImplementation("androidx.arch.core:core-testing:2.2.0")
 }
+
+// CI runs the unit tests: print full stack traces for failures so a red
+// run is diagnosable from the log alone.
+tasks.withType<Test>().configureEach {
+    testLogging {
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+}
