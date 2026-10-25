@@ -29,11 +29,12 @@ import kotlinx.coroutines.launch
  * programmatic navigation (deep links, context menus) and system back
  * presses stay in sync.
  *
- * System back is owned by SharedNav's host (its predictive-back handler
- * drives the pop transition with the gesture on Android 13+ and restores
- * the screen when the gesture is cancelled). Screens must therefore not
- * intercept back with their own BackHandler just to call [pop]; doing so
- * wins over the host's callback and silently disables the predictive
+ * System back is owned by the root-level `SharedNavBackHandler`
+ * (ui/root/RootBackHandler.kt), which drives SharedNav's predictive
+ * pop transition with the gesture on Android 14+ and restores the
+ * screen when the gesture is cancelled. Screens must therefore not
+ * intercept back with their own BackHandler just to call [pop]; doing
+ * so wins over the root callback and silently disables the predictive
  * preview.
  *
  * Two NavHost behaviors are reproduced by the adapter because screens

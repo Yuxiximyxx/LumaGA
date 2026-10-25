@@ -247,12 +247,17 @@ internal fun NavigationHost(
         }
     }
 
-    // SharedNavHost owns predictive progress/cancellation; destinations
-    // must not intercept system back just to call navigator.pop().
+    // System back is owned by SharedNavBackHandler below, driving
+    // SharedNav's predictive API; the host's internal back handler is
+    // disabled (v1.5.1 — see RootBackHandler.kt for why), and
+    // destinations must not intercept system back just to call
+    // navigator.pop().
     SharedNavHost(
         navController = navigator.controller,
         modifier = Modifier.fillMaxSize(),
+        backHandler = {},
     )
+    SharedNavBackHandler(navigator.controller)
 }
 
 /** Maps a route to its screen. */
