@@ -45,10 +45,9 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.ThumbDown
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
@@ -102,6 +101,9 @@ import com.bugenzhao.mnga.protos.service.PostVoteRequest
 import com.bugenzhao.mnga.protos.service.PostVoteResponse
 import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.ui.components.AvatarImage
+import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
+import com.bugenzhao.mnga.ui.components.MiuixMenuDivider
+import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.components.DateTimeText
 import com.bugenzhao.mnga.ui.post.AttachmentsView
 import com.bugenzhao.mnga.ui.post.ContentActions
@@ -870,36 +872,44 @@ private fun PostRowContextMenu(
     val clipboard = LocalClipboardManager.current
     val authUid = App.authStorage.authInfo.collectAsState().value.uid
 
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+    // Miuix menu (phase 3) replacing the Material DropdownMenu; groups
+    // and item actions are unchanged, rendered as Miuix menu rows in the
+    // Miuix popup panel anchored to the post row.
+    MiuixDropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        alignment = PopupPositionProvider.Align.Start,
+    ) {
         if (onPostAction != null && !mock && !dummy) {
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Reply")) },
-                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Reply, null) },
+            MiuixMenuItem(
+                text = L.str(context, "Reply"),
+                icon = Icons.AutoMirrored.Filled.Reply,
                 onClick = { onPostAction(PostRowAction.REPLY, post); onDismiss() },
             )
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Quote")) },
-                leadingIcon = { Icon(Icons.Filled.FormatQuote, null) },
+            MiuixMenuItem(
+                text = L.str(context, "Quote"),
+                icon = Icons.Filled.FormatQuote,
                 onClick = { onPostAction(PostRowAction.QUOTE, post); onDismiss() },
             )
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Comment")) },
-                leadingIcon = { Icon(Icons.Filled.MapsUgc, null) },
+            MiuixMenuItem(
+                text = L.str(context, "Comment"),
+                icon = Icons.Filled.MapsUgc,
                 onClick = { onPostAction(PostRowAction.COMMENT, post); onDismiss() },
             )
             if (authUid == post.authorId) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Edit")) },
-                    leadingIcon = { Icon(Icons.Filled.Edit, null) },
+                MiuixMenuItem(
+                    text = L.str(context, "Edit"),
+                    icon = Icons.Filled.Edit,
                     onClick = { onPostAction(PostRowAction.MODIFY, post); onDismiss() },
                 )
             }
-            HorizontalDivider()
+            MiuixMenuDivider()
         }
 
-        if (post.attachmentsList.isNotEmpty()) {            DropdownMenuItem(
-                text = { Text(L.str(context, "Attachments (%lld)", post.attachmentsList.size)) },
-                leadingIcon = { Icon(Icons.Filled.AttachFile, null) },
+        if (post.attachmentsList.isNotEmpty()) {
+            MiuixMenuItem(
+                text = L.str(context, "Attachments (%lld)", post.attachmentsList.size),
+                icon = Icons.Filled.AttachFile,
                 onClick = {
                     onDismiss()
                     onShowAttachments()
@@ -908,9 +918,9 @@ private fun PostRowContextMenu(
         }
 
         if (action != null && enableAuthorOnly && user != null) {
-            DropdownMenuItem(
-                text = { Text(L.str(context, "This Author Only")) },
-                leadingIcon = { Icon(Icons.Outlined.Person, null) },
+            MiuixMenuItem(
+                text = L.str(context, "This Author Only"),
+                icon = Icons.Outlined.Person,
                 onClick = {
                     if (PlusModel.checkPlus(PlusFeature.AUTHOR_ONLY)) {
                         onNavigateAuthorOnly?.invoke(post)
@@ -921,9 +931,9 @@ private fun PostRowContextMenu(
         }
 
         if (action != null && action.hasQuotedReplies(post.id)) {
-            DropdownMenuItem(
-                text = { Text(L.str(context, "View Replies")) },
-                leadingIcon = { Icon(Icons.Outlined.Search, null) },
+            MiuixMenuItem(
+                text = L.str(context, "View Replies"),
+                icon = Icons.Outlined.Search,
                 onClick = {
                     action.showQuotedReplies(post.id)
                     onDismiss()
@@ -932,9 +942,9 @@ private fun PostRowContextMenu(
         }
 
         if (locateFloor != null) {
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Locate This Floor")) },
-                leadingIcon = { Icon(Icons.Filled.LocationSearching, null) },
+            MiuixMenuItem(
+                text = L.str(context, "Locate This Floor"),
+                icon = Icons.Filled.LocationSearching,
                 onClick = {
                     locateFloor(post)
                     onDismiss()
@@ -943,14 +953,14 @@ private fun PostRowContextMenu(
         }
 
         if (onPostAction != null && !mock && !dummy && authUid != post.authorId) {
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Report")) },
-                leadingIcon = { Icon(Icons.Filled.HelpOutline, null) },
+            MiuixMenuItem(
+                text = L.str(context, "Report"),
+                icon = Icons.Filled.HelpOutline,
                 onClick = { onPostAction(PostRowAction.REPORT, post); onDismiss() },
             )
         }
 
-        HorizontalDivider()
+        MiuixMenuDivider()
 
         // `pid == "0"` is the main floor: share a topic link instead of a post one.
         val navID: NavigationIdentifier =
@@ -959,25 +969,25 @@ private fun PostRowContextMenu(
             } else {
                 NavigationIdentifier.PostID(post.id.pid)
             }
-        DropdownMenuItem(
-            text = { Text(L.str(context, "LumaGA Link")) },
-            leadingIcon = { Icon(Icons.Filled.Link, null) },
+        MiuixMenuItem(
+            text = L.str(context, "LumaGA Link"),
+            icon = Icons.Filled.Link,
             onClick = {
                 navID.mngaURL?.let { clipboard.setText(AnnotatedString(it)) }
                 onDismiss()
             },
         )
-        DropdownMenuItem(
-            text = { Text(L.str(context, "NGA Link")) },
-            leadingIcon = { Icon(Icons.Filled.Link, null) },
+        MiuixMenuItem(
+            text = L.str(context, "NGA Link"),
+            icon = Icons.Filled.Link,
             onClick = {
                 navID.webpageURL?.let { clipboard.setText(AnnotatedString(it)) }
                 onDismiss()
             },
         )
-        DropdownMenuItem(
-            text = { Text(L.str(context, "Share")) },
-            leadingIcon = { Icon(Icons.Filled.Share, null) },
+        MiuixMenuItem(
+            text = L.str(context, "Share"),
+            icon = Icons.Filled.Share,
             onClick = {
                 val text = navID.webpageURL ?: navID.mngaURL ?: ""
                 runCatching {
@@ -994,9 +1004,9 @@ private fun PostRowContextMenu(
                 onDismiss()
             },
         )
-        DropdownMenuItem(
-            text = { Text(L.str(context, "Open in Browser")) },
-            leadingIcon = { Icon(Icons.Filled.OpenInBrowser, null) },
+        MiuixMenuItem(
+            text = L.str(context, "Open in Browser"),
+            icon = Icons.Filled.OpenInBrowser,
             onClick = {
                 navID.webpageURL?.let {
                     runCatching {

@@ -48,11 +48,10 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -85,6 +84,8 @@ import com.bugenzhao.mnga.model.PlusModel
 import com.bugenzhao.mnga.protos.datamodel.Forum
 import com.bugenzhao.mnga.protos.service.AsyncRequest
 import com.bugenzhao.mnga.ui.components.LoadingRow
+import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
+import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.ui.screens.topiclist.copyToClipboard
@@ -196,7 +197,7 @@ fun ForumListScreen(
             .exclude(WindowInsets.navigationBars),
         topBar = {
             TopAppBar(
-                title = "LumaGA",
+                title = "泥坛",
                 actions = {
                     if (editMode) {
                         // Edit-favorites mode: hide every other action and show
@@ -574,37 +575,33 @@ private fun ForumContextMenu(
     onToggleFavorite: () -> Unit,
 ) {
     val context = LocalContext.current
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        DropdownMenuItem(
-            text = {
-                Text(
-                    L.str(
-                        context,
-                        if (isFavorite) "Remove from Favorites" else "Mark as Favorite",
-                    )
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
-                    contentDescription = null,
-                )
-            },
+    // Miuix menu (phase 3) replacing the Material DropdownMenu.
+    MiuixDropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        alignment = PopupPositionProvider.Align.Start,
+    ) {
+        MiuixMenuItem(
+            text = L.str(
+                context,
+                if (isFavorite) "Remove from Favorites" else "Mark as Favorite",
+            ),
+            icon = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
             onClick = onToggleFavorite,
         )
         navID.mngaURL?.let { url ->
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Copy Link")) },
-                leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
+            MiuixMenuItem(
+                text = L.str(context, "Copy Link"),
+                icon = Icons.Outlined.ContentCopy,
                 onClick = {
                     copyToClipboard(context, url)
                     onDismiss()
                 },
             )
         }
-        DropdownMenuItem(
-            text = { Text(L.str(context, "Share")) },
-            leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+        MiuixMenuItem(
+            text = L.str(context, "Share"),
+            icon = Icons.Outlined.Share,
             onClick = {
                 val url = navID.webpageURL ?: navID.mngaURL
                 if (url != null) shareText(context, url)
@@ -612,9 +609,9 @@ private fun ForumContextMenu(
             },
         )
         navID.webpageURL?.let { url ->
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Open in Browser")) },
-                leadingIcon = { Icon(Icons.Outlined.OpenInBrowser, contentDescription = null) },
+            MiuixMenuItem(
+                text = L.str(context, "Open in Browser"),
+                icon = Icons.Outlined.OpenInBrowser,
                 onClick = {
                     openInBrowser(context, url)
                     onDismiss()
@@ -642,77 +639,71 @@ private fun MoreMenu(
     onExpandAll: () -> Unit,
 ) {
     val context = LocalContext.current
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        DropdownMenuItem(
-            text = { Text(L.str(context, "Edit Favorites")) },
-            leadingIcon = {
-                Icon(Icons.Outlined.PlaylistAddCheck, contentDescription = null)
-            },
-            onClick = {
-                onEditFavorites()
-                onDismiss()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(L.str(context, "History")) },
-            leadingIcon = {
-                Icon(Icons.Filled.HistoryEdu, contentDescription = null)
-            },
-            onClick = {
-                if (PlusModel.checkPlus(PlusFeature.TOPIC_HISTORY)) onHistory()
-                onDismiss()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(L.str(context, "Filters")) },
-            leadingIcon = { Icon(Icons.Outlined.FilterList, contentDescription = null) },
-            onClick = onSubmenuShow,
-        )
-        DropdownMenu(
-            expanded = submenuExpanded,
-            onDismissRequest = onSubmenuDismiss,
-        ) {
+    // Miuix menu (phase 3) replacing the Material DropdownMenu: the
+    // Filters submenu swaps the popup content in place (Miuix has no
+    // cascading menus) and dismissal is staged like the Material popup
+    // stack. Item actions are unchanged.
+    MiuixDropdownMenu(
+        expanded = expanded,
+        onDismissRequest = {
+            if (submenuExpanded) onSubmenuDismiss() else onDismiss()
+        },
+    ) {
+        if (submenuExpanded) {
             FilterMode.entries.forEach { mode ->
-                DropdownMenuItem(
-                    text = { Text(L.str(context, mode.raw)) },
-                    leadingIcon = {
-                        Icon(
-                            if (mode == FilterMode.FAVORITES_ONLY) {
-                                Icons.Outlined.Star
-                            } else {
-                                Icons.Outlined.StarBorder
-                            },
-                            contentDescription = null,
-                        )
+                MiuixMenuItem(
+                    text = L.str(context, mode.raw),
+                    icon = if (mode == FilterMode.FAVORITES_ONLY) {
+                        Icons.Outlined.Star
+                    } else {
+                        Icons.Outlined.StarBorder
                     },
-                    trailingIcon = {
-                        if (mode == filterMode) {
-                            Icon(Icons.Outlined.Check, contentDescription = null)
-                        }
-                    },
+                    showCheck = mode == filterMode,
                     onClick = { onFilterModeChange(mode) },
                 )
             }
-        }
-        if (filterMode == FilterMode.ALL) {
-            if (!anyCollapsed) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Collapse All Categories")) },
-                    leadingIcon = { Icon(Icons.Outlined.ExpandLess, contentDescription = null) },
-                    onClick = {
-                        onCollapseAll()
-                        onDismiss()
-                    },
-                )
-            } else {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Expand All Categories")) },
-                    leadingIcon = { Icon(Icons.Outlined.ExpandMore, contentDescription = null) },
-                    onClick = {
-                        onExpandAll()
-                        onDismiss()
-                    },
-                )
+        } else {
+            MiuixMenuItem(
+                text = L.str(context, "Edit Favorites"),
+                icon = Icons.Outlined.PlaylistAddCheck,
+                onClick = {
+                    onEditFavorites()
+                    onDismiss()
+                },
+            )
+            MiuixMenuItem(
+                text = L.str(context, "History"),
+                icon = Icons.Filled.HistoryEdu,
+                onClick = {
+                    if (PlusModel.checkPlus(PlusFeature.TOPIC_HISTORY)) onHistory()
+                    onDismiss()
+                },
+            )
+            MiuixMenuItem(
+                text = L.str(context, "Filters"),
+                icon = Icons.Outlined.FilterList,
+                onClick = onSubmenuShow,
+            )
+            if (filterMode == FilterMode.ALL) {
+                if (!anyCollapsed) {
+                    MiuixMenuItem(
+                        text = L.str(context, "Collapse All Categories"),
+                        icon = Icons.Outlined.ExpandLess,
+                        onClick = {
+                            onCollapseAll()
+                            onDismiss()
+                        },
+                    )
+                } else {
+                    MiuixMenuItem(
+                        text = L.str(context, "Expand All Categories"),
+                        icon = Icons.Outlined.ExpandMore,
+                        onClick = {
+                            onExpandAll()
+                            onDismiss()
+                        },
+                    )
+                }
             }
         }
     }

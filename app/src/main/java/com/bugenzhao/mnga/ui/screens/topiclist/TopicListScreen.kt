@@ -36,8 +36,6 @@ import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -75,6 +73,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.model.NavigationIdentifier
+import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
+import com.bugenzhao.mnga.ui.components.MiuixMenuHeader
+import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.model.PagingDataSource
 import com.bugenzhao.mnga.model.PlusFeature
 import com.bugenzhao.mnga.model.PlusModel
@@ -540,41 +541,23 @@ private fun TopicListItem(
                 )
             }
 
-            DropdownMenu(
+            // Miuix menu (phase 3) replacing the Material DropdownMenu:
+            // the Share submenu swaps the popup content in place (Miuix
+            // has no cascading menus) and dismissal is staged - an
+            // outside tap first closes the submenu, like dismissing the
+            // topmost Material popup did.
+            MiuixDropdownMenu(
                 expanded = contextMenuTopic == topic,
                 onDismissRequest = {
-                    shareMenuExpanded = false
-                    onDismissMenu()
-                },
-            ) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Goto Topic")) },
-                    leadingIcon = { Icon(Icons.Outlined.ArrowForward, contentDescription = null) },
-                    onClick = {
-                        onClick()
+                    if (shareMenuExpanded) {
+                        shareMenuExpanded = false
+                    } else {
                         onDismissMenu()
-                    },
-                )
-                val title = topicSubjectContent(topic).trim()
-                if (title.isNotEmpty()) {
-                    DropdownMenuItem(
-                        text = { Text(L.str(context, "Copy Title")) },
-                        leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
-                        onClick = {
-                            copyToClipboard(context, title)
-                            onDismissMenu()
-                        },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Share")) },
-                    leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
-                    onClick = { shareMenuExpanded = true },
-                )
-                DropdownMenu(
-                    expanded = shareMenuExpanded,
-                    onDismissRequest = { shareMenuExpanded = false },
-                ) {
+                    }
+                },
+                alignment = PopupPositionProvider.Align.Start,
+            ) {
+                if (shareMenuExpanded) {
                     val navID = topicNavID(topic)
                     ShareLinksMenuItems(
                         shareTitle = topicSubjectFull(topic),
@@ -584,6 +567,31 @@ private fun TopicListItem(
                             shareMenuExpanded = false
                             onDismissMenu()
                         },
+                    )
+                } else {
+                    MiuixMenuItem(
+                        text = L.str(context, "Goto Topic"),
+                        icon = Icons.Outlined.ArrowForward,
+                        onClick = {
+                            onClick()
+                            onDismissMenu()
+                        },
+                    )
+                    val title = topicSubjectContent(topic).trim()
+                    if (title.isNotEmpty()) {
+                        MiuixMenuItem(
+                            text = L.str(context, "Copy Title"),
+                            icon = Icons.Outlined.ContentCopy,
+                            onClick = {
+                                copyToClipboard(context, title)
+                                onDismissMenu()
+                            },
+                        )
+                    }
+                    MiuixMenuItem(
+                        text = L.str(context, "Share"),
+                        icon = Icons.Outlined.Share,
+                        onClick = { shareMenuExpanded = true },
                     )
                 }
             }
@@ -601,9 +609,9 @@ private fun ShareLinksMenuItems(
 ) {
     val context = LocalContext.current
     mngaURL?.let { url ->
-        DropdownMenuItem(
-            text = { Text(L.str(context, "LumaGA Link")) },
-            leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+        MiuixMenuItem(
+            text = L.str(context, "LumaGA Link"),
+            icon = Icons.Outlined.Share,
             onClick = {
                 shareText(context, "$shareTitle $url".trim())
                 onDone()
@@ -611,17 +619,17 @@ private fun ShareLinksMenuItems(
         )
     }
     webpageURL?.let { url ->
-        DropdownMenuItem(
-            text = { Text(L.str(context, "NGA Link")) },
-            leadingIcon = { Icon(Icons.Outlined.Language, contentDescription = null) },
+        MiuixMenuItem(
+            text = L.str(context, "NGA Link"),
+            icon = Icons.Outlined.Language,
             onClick = {
                 shareText(context, "$shareTitle $url".trim())
                 onDone()
             },
         )
-        DropdownMenuItem(
-            text = { Text(L.str(context, "Open in Browser")) },
-            leadingIcon = { Icon(Icons.Outlined.OpenInBrowser, contentDescription = null) },
+        MiuixMenuItem(
+            text = L.str(context, "Open in Browser"),
+            icon = Icons.Outlined.OpenInBrowser,
             onClick = {
                 openInBrowser(context, url)
                 onDone()
@@ -679,24 +687,51 @@ private fun TopicListMoreMenu(
     webpageURL: String?,
 ) {
     val context = LocalContext.current
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        if (!mock) {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        debugName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                },
-                onClick = {},
-                enabled = false,
-            )
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Order by")) },
-                trailingIcon = {
-                    Text(
-                        L.str(
+    // Miuix menu (phase 3) replacing the Material DropdownMenu: a single
+    // popup whose content swaps between the main items and the Order /
+    // Share submenus (Miuix has no cascading menus); dismissal is staged
+    // like the Material popup stack - an outside tap closes the submenu
+    // first, then the menu itself. Item actions are unchanged.
+    MiuixDropdownMenu(
+        expanded = expanded,
+        onDismissRequest = {
+            when {
+                orderMenuExpanded -> onOrderMenuDismiss()
+                shareMenuExpanded -> onShareMenuDismiss()
+                else -> onDismiss()
+            }
+        },
+    ) {
+        when {
+            orderMenuExpanded -> {
+                MiuixMenuItem(
+                    text = L.str(context, "Latest Replies"),
+                    showCheck = orderOrDefault == TopicListOrder.LAST_POST,
+                    onClick = { onOrderChange(TopicListOrder.LAST_POST) },
+                )
+                MiuixMenuItem(
+                    text = L.str(context, "Latest Topics"),
+                    showCheck = orderOrDefault == TopicListOrder.POST_DATE,
+                    onClick = { onOrderChange(TopicListOrder.POST_DATE) },
+                )
+            }
+            shareMenuExpanded -> {
+                ShareLinksMenuItems(
+                    shareTitle = shareTitle,
+                    mngaURL = mngaURL,
+                    webpageURL = webpageURL,
+                    onDone = {
+                        onShareMenuDismiss()
+                        onDismiss()
+                    },
+                )
+            }
+            else -> {
+                if (!mock) {
+                    MiuixMenuHeader(debugName)
+                    MiuixMenuItem(
+                        text = L.str(context, "Order by"),
+                        trailingText = L.str(
                             context,
                             if (orderOrDefault == TopicListOrder.POST_DATE) {
                                 "Latest Topics"
@@ -704,140 +739,90 @@ private fun TopicListMoreMenu(
                                 "Latest Replies"
                             },
                         ),
-                        style = MaterialTheme.typography.labelSmall,
+                        onClick = onOrderMenuShow,
                     )
-                },
-                onClick = onOrderMenuShow,
-            )
-            DropdownMenu(
-                expanded = orderMenuExpanded,
-                onDismissRequest = onOrderMenuDismiss,
-            ) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Latest Replies")) },
-                    trailingIcon = {
-                        if (orderOrDefault == TopicListOrder.LAST_POST) {
-                            Icon(Icons.Outlined.Check, contentDescription = null)
-                        }
-                    },
-                    onClick = { onOrderChange(TopicListOrder.LAST_POST) },
+                    MiuixMenuItem(
+                        text = L.str(context, "Hot Topics"),
+                        icon = Icons.Outlined.LocalFireDepartment,
+                        onClick = {
+                            if (PlusModel.checkPlus(PlusFeature.HOT_TOPIC)) onHotTopics()
+                            onDismiss()
+                        },
+                    )
+                    MiuixMenuItem(
+                        text = L.str(context, "Recommended Topics"),
+                        icon = Icons.Outlined.ThumbUp,
+                        onClick = {
+                            onRecommended()
+                            onDismiss()
+                        },
+                    )
+                    if (toppedTopicID != null) {
+                        MiuixMenuItem(
+                            text = L.str(context, "Topped Topic"),
+                            icon = Icons.Outlined.PushPin,
+                            onClick = {
+                                onToppedTopic(toppedTopicID)
+                                onDismiss()
+                            },
+                        )
+                    }
+                }
+
+                MiuixMenuItem(
+                    text = L.str(context, "Share"),
+                    icon = Icons.Outlined.Share,
+                    onClick = onShareMenuShow,
                 )
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Latest Topics")) },
-                    trailingIcon = {
-                        if (orderOrDefault == TopicListOrder.POST_DATE) {
-                            Icon(Icons.Outlined.Check, contentDescription = null)
-                        }
-                    },
-                    onClick = { onOrderChange(TopicListOrder.POST_DATE) },
-                )
-            }
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Hot Topics")) },
-                leadingIcon = {
-                    Icon(Icons.Outlined.LocalFireDepartment, contentDescription = null)
-                },
-                onClick = {
-                    if (PlusModel.checkPlus(PlusFeature.HOT_TOPIC)) onHotTopics()
-                    onDismiss()
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Recommended Topics")) },
-                leadingIcon = { Icon(Icons.Outlined.ThumbUp, contentDescription = null) },
-                onClick = {
-                    onRecommended()
-                    onDismiss()
-                },
-            )
-            if (toppedTopicID != null) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Topped Topic")) },
-                    leadingIcon = { Icon(Icons.Outlined.PushPin, contentDescription = null) },
+
+                if (hasSubforums) {
+                    MiuixMenuItem(
+                        text = L.str(context, "Subforums"),
+                        icon = Icons.Outlined.Category,
+                        onClick = {
+                            onSubforums()
+                            onDismiss()
+                        },
+                    )
+                }
+                if (!mock) {
+                    MiuixMenuItem(
+                        text = L.str(context, "Search Topics"),
+                        icon = Icons.Outlined.Search,
+                        onClick = {
+                            onTopicSearch()
+                            onDismiss()
+                        },
+                    )
+                }
+                MiuixMenuItem(
+                    text = L.str(context, "History"),
+                    icon = Icons.Filled.HistoryEdu,
                     onClick = {
-                        onToppedTopic(toppedTopicID)
+                        if (PlusModel.checkPlus(PlusFeature.TOPIC_HISTORY)) onHistory()
+                        onDismiss()
+                    },
+                )
+                MiuixMenuItem(
+                    text = L.str(context, "Refresh"),
+                    icon = Icons.Outlined.Refresh,
+                    onClick = {
+                        onRefresh()
+                        onDismiss()
+                    },
+                )
+                MiuixMenuItem(
+                    text = L.str(
+                        context,
+                        if (isFavorite) "Remove from Favorites" else "Mark as Favorite",
+                    ),
+                    icon = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
+                    onClick = {
+                        onToggleFavorite()
                         onDismiss()
                     },
                 )
             }
         }
-
-        // Share submenu.
-        DropdownMenuItem(
-            text = { Text(L.str(context, "Share")) },
-            leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
-            onClick = onShareMenuShow,
-        )
-        DropdownMenu(
-            expanded = shareMenuExpanded,
-            onDismissRequest = onShareMenuDismiss,
-        ) {
-            ShareLinksMenuItems(
-                shareTitle = shareTitle,
-                mngaURL = mngaURL,
-                webpageURL = webpageURL,
-                onDone = {
-                    onShareMenuDismiss()
-                    onDismiss()
-                },
-            )
-        }
-
-        if (hasSubforums) {
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Subforums")) },
-                leadingIcon = { Icon(Icons.Outlined.Category, contentDescription = null) },
-                onClick = {
-                    onSubforums()
-                    onDismiss()
-                },
-            )
-        }
-        if (!mock) {
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Search Topics")) },
-                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                onClick = {
-                    onTopicSearch()
-                    onDismiss()
-                },
-            )
-        }
-        DropdownMenuItem(
-            text = { Text(L.str(context, "History")) },
-            leadingIcon = { Icon(Icons.Filled.HistoryEdu, contentDescription = null) },
-            onClick = {
-                if (PlusModel.checkPlus(PlusFeature.TOPIC_HISTORY)) onHistory()
-                onDismiss()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(L.str(context, "Refresh")) },
-            leadingIcon = { Icon(Icons.Outlined.Refresh, contentDescription = null) },
-            onClick = {
-                onRefresh()
-                onDismiss()
-            },
-        )
-        DropdownMenuItem(
-            text = {
-                Text(
-                    L.str(
-                        context,
-                        if (isFavorite) "Remove from Favorites" else "Mark as Favorite",
-                    )
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
-                    contentDescription = null,
-                )
-            },
-            onClick = {
-                onToggleFavorite()
-                onDismiss()
-            },
-        )
     }
 }

@@ -90,7 +90,7 @@ fun AboutScreen(navigator: Navigator? = null) {
                     )
                     Text(
                         // Brand name, intentionally not localized.
-                        "LumaGA",
+                        "泥坛",
                         style = MiuixTheme.textStyles.title2.copy(
                             fontWeight = FontWeight.SemiBold,
                         ),

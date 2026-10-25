@@ -123,8 +123,8 @@
     <string name="cache_loaded">已加载本地缓存</string>
     <string name="about_feedback">关于 &amp; 反馈</string>
     <string name="just_now">刚刚</string>
-    <string name="lumaga_description">LumaGA 是一个开源的泥潭 iOS 客户端，基于 SwiftUI 和 Rust 开发。如果您在使用 LumaGA App 的遇到了一些问题，或是希望添加新的功能，您可以轻触上面的按钮以通过 GitHub、NGA 短消息、邮件方式反馈。</string>
-    <string name="lumaga_please_share">轻触右上方的按钮分享 LumaGA 的获取链接！</string>
+    <string name="lumaga_description">泥坛 是一个开源的泥潭 iOS 客户端，基于 SwiftUI 和 Rust 开发。如果您在使用 泥坛 App 的遇到了一些问题，或是希望添加新的功能，您可以轻触上面的按钮以通过 GitHub、NGA 短消息、邮件方式反馈。</string>
+    <string name="lumaga_please_share">轻触右上方的按钮分享 泥坛 的获取链接！</string>
     <string name="support">支持</string>
     <string name="success">完成</string>
     <string name="draft_saved">草稿已保存</string>
@@ -227,17 +227,17 @@
     <string name="topic_details">帖子详情</string>
     <string name="post_row">楼层样式</string>
 
-    <string name="lumaga_link">LumaGA 链接</string>
+    <string name="lumaga_link">泥坛 链接</string>
     <string name="nga_link">NGA 链接</string>
     <string name="screenshot">截图</string>
     <string name="failed_to_render_screenshot">渲染截图失败。</string>
     <string name="navigated_to_link">跳转至链接</string>
-    <string name="not_a_valid_nga_or_lumaga_link_in_the_pasteboard">剪贴板中不是有效的 NGA 或 LumaGA 链接。</string>
+    <string name="not_a_valid_nga_or_lumaga_link_in_the_pasteboard">剪贴板中不是有效的 NGA 或 泥坛 链接。</string>
     <string name="invalid_url">无效的链接</string>
     <string name="navigate">跳转</string>
     <string name="connection">连接</string>
     <string name="backend">后端</string>
-    <string name="lumaga_backend">LumaGA 后端</string>
+    <string name="lumaga_backend">泥坛 后端</string>
     <string name="upload_image">上传图片</string>
     <string name="data">数据</string>
     <string name="all">全部</string>
@@ -250,7 +250,7 @@
     <string name="view_attachment">查看附件</string>
     <string name="attachments">附件</string>
     <string name="attachments_d">附件（%1$d）</string>
-    <string name="lumaga_development">LumaGA 开发</string>
+    <string name="lumaga_development">泥坛 开发</string>
     <string name="post_appearance">回复外观</string>
     <string name="dummy_user">某用户</string>
     <string name="this_is_a_post">这是一条回复。</string>
@@ -296,8 +296,8 @@
     <string name="auto_refreshed">已自动刷新</string>
     <string name="unlock_plus">解锁 Plus</string>
     <string name="plus_unlocked">Plus 已解锁 🎉</string>
-    <string name="plus_thanks">LumaGA 得以持续开发和维护，离不开您的支持。感谢您解锁 LumaGA Plus！</string>
-    <string name="plus_explanation">LumaGA Plus 提供无限的泥潭浏览和互动体验，允许您访问 LumaGA 的所有高级功能，更是我们持续改进和长期维护 LumaGA 的唯一动力。</string>
+    <string name="plus_thanks">泥坛 得以持续开发和维护，离不开您的支持。感谢您解锁 泥坛 Plus！</string>
+    <string name="plus_explanation">泥坛 Plus 提供无限的泥潭浏览和互动体验，允许您访问 泥坛 的所有高级功能，更是我们持续改进和长期维护 泥坛 的唯一动力。</string>
     <string name="try_plus">试用 Plus</string>
     <string name="you_re_enjoying_a_plus_trial">您正在享受 Plus 试用</string>
     <string name="trial_ends_on_s">试用将于%1$s结束</string>
@@ -307,10 +307,10 @@
     <string name="redeem_code">兑换代码</string>
     <string name="we_couldn_t_verify_your_purchase_please_try_again">无法验证您的购买，请重试。</string>
     <string name="s_is_a_plus_feature">“%1$s”是 Plus 功能</string>
-    <string name="unlock_lumaga_plus_to_access_this_feature">解锁 LumaGA Plus 以访问此功能。</string>
-    <string name="tap_to_unlock_lumaga_plus_to_access_this_feature">轻触来解锁 LumaGA Plus 以访问此功能；\n提供 14 天免费试用</string>
+    <string name="unlock_lumaga_plus_to_access_this_feature">解锁 泥坛 Plus 以访问此功能。</string>
+    <string name="tap_to_unlock_lumaga_plus_to_access_this_feature">轻触来解锁 泥坛 Plus 以访问此功能；\n提供 14 天免费试用</string>
     <string name="show_plus_in_title">在标题中展示 Plus 标识</string>
-    <string name="lumaga_main_menu">LumaGA 主菜单</string>
+    <string name="lumaga_main_menu">泥坛 主菜单</string>
     <string name="sign_in_to_nga_and_discover_more_features_here">在这里登录 NGA 账号，探索更多功能。</string>
     <string name="s_continue">继续</string>
     <string name="current_version">当前版本</string>
@@ -363,7 +363,7 @@
     <string name="sync_favorites">同步收藏</string>
     <string name="back">返回</string>
     <string name="sync_favorite_forums">同步收藏版块</string>
-    <string name="lumaga_login_notice">LumaGA 提示：如遇登录限制，请在 PC 网页端成功登录一次，然后再尝试登录 LumaGA。</string>
+    <string name="lumaga_login_notice">泥坛 提示：如遇登录限制，请在 PC 网页端成功登录一次，然后再尝试登录 泥坛。</string>
     <string name="all_plus_features">Plus 功能一览</string>
     <string name="comment_on_posts_in_all_topics">在话题中对帖子进行贴条。</string>
     <string name="post_quote_reply_comment_and_create_new_topics_anonymously">匿名发帖：回复、引用、贴条和发布新话题。</string>
@@ -375,14 +375,14 @@
     <string name="jump_to_arbitrary_floor_or_page_in_a_topic">在话题中跳转到任意楼层或页面。</string>
     <string name="log_in_and_switch_between_multiple_accounts">登录并在多个账号之间切换。</string>
     <string name="view_user_profiles_with_their_posts_and_replies">查看用户档案，包括其回复和帖子。</string>
-    <string name="full_access_to_customizing_the_appearance_of_lumaga">获得 LumaGA 的所有外观自定义选项。</string>
+    <string name="full_access_to_customizing_the_appearance_of_lumaga">获得 泥坛 的所有外观自定义选项。</string>
     <string name="block_contents_from_specific_users_or_with_specific_keywords">屏蔽来自特定用户或包含特定关键词的帖子。</string>
     <string name="organize_favorite_topics_into_multiple_folders">使用多个收藏夹整理收藏的话题。</string>
     <string name="resume_reading_progress_from_where_you_left_off">从之前停下来的地方继续阅读进度。</string>
     <string name="sync_favorite_forums_across_devices">跨设备云端同步收藏版块。</string>
     <string name="more_features_in_the_future">解锁未来更多功能</string>
-    <string name="plus_more_feature">LumaGA 得以持续开发和维护，离不开您的支持。更多功能正在开发中！</string>
-    <string name="lumaga_error_kind">LumaGA</string>
+    <string name="plus_more_feature">泥坛 得以持续开发和维护，离不开您的支持。更多功能正在开发中！</string>
+    <string name="lumaga_error_kind">泥坛</string>
     <string name="error_response">错误响应</string>
     <string name="missing_field">缺少字段</string>
     <string name="network_connection">网络连接</string>
@@ -415,7 +415,7 @@
     <string name="download_complete">下载完成</string>
     <string name="install">安装</string>
     <string name="permission_required">需要权限</string>
-    <string name="allow_install_apps">请先允许 LumaGA 安装应用，然后重新点击「安装」。</string>
+    <string name="allow_install_apps">请先允许 泥坛 安装应用，然后重新点击「安装」。</string>
     <string name="open_settings">打开设置</string>
     <string name="update_check_failed">检查更新失败</string>
     <string name="download_failed">下载失败</string>
@@ -427,5 +427,5 @@
     <string name="ok">好</string>
     <string name="source_code">开源仓库</string>
     <string name="an_nga_forum_client">一个 NGA 论坛客户端，移植自 MNGA。</string>
-    <string name="app_name">LumaGA</string>
+    <string name="app_name">泥坛</string>
 </resources>

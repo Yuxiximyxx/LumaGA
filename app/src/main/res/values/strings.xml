@@ -123,8 +123,8 @@
     <string name="cache_loaded">Cache Loaded</string>
     <string name="about_feedback">About &amp; Feedback</string>
     <string name="just_now">Just now</string>
-    <string name="lumaga_description">LumaGA Description</string>
-    <string name="lumaga_please_share">LumaGA Please Share</string>
+    <string name="lumaga_description">泥坛 Description</string>
+    <string name="lumaga_please_share">泥坛 Please Share</string>
     <string name="support">Support</string>
     <string name="success">Success</string>
     <string name="draft_saved">Draft Saved</string>
@@ -227,17 +227,17 @@
     <string name="topic_details">Topic Details</string>
     <string name="post_row">Post Row</string>
 
-    <string name="lumaga_link">LumaGA Link</string>
+    <string name="lumaga_link">泥坛 Link</string>
     <string name="nga_link">NGA Link</string>
     <string name="screenshot">Screenshot</string>
     <string name="failed_to_render_screenshot">Failed to render screenshot.</string>
     <string name="navigated_to_link">Navigated to Link</string>
-    <string name="not_a_valid_nga_or_lumaga_link_in_the_pasteboard">Not a valid NGA or LumaGA link in the pasteboard.</string>
+    <string name="not_a_valid_nga_or_lumaga_link_in_the_pasteboard">Not a valid NGA or 泥坛 link in the pasteboard.</string>
     <string name="invalid_url">Invalid URL</string>
     <string name="navigate">Navigate</string>
     <string name="connection">Connection</string>
     <string name="backend">Backend</string>
-    <string name="lumaga_backend">LumaGA Backend</string>
+    <string name="lumaga_backend">泥坛 Backend</string>
     <string name="upload_image">Upload Image</string>
     <string name="data">Data</string>
     <string name="all">All</string>
@@ -250,7 +250,7 @@
     <string name="view_attachment">View Attachment</string>
     <string name="attachments">Attachments</string>
     <string name="attachments_d">Attachments (%lld)</string>
-    <string name="lumaga_development">LumaGA Development</string>
+    <string name="lumaga_development">泥坛 Development</string>
     <string name="post_appearance">Post Appearance</string>
     <string name="dummy_user">Dummy User</string>
     <string name="this_is_a_post">This is a post.</string>
@@ -307,10 +307,10 @@
     <string name="redeem_code">Redeem Code</string>
     <string name="we_couldn_t_verify_your_purchase_please_try_again">We couldn\'t verify your purchase. Please try again.</string>
     <string name="s_is_a_plus_feature">\"%1$s\" is a Plus feature</string>
-    <string name="unlock_lumaga_plus_to_access_this_feature">Unlock LumaGA Plus to access this feature.</string>
-    <string name="tap_to_unlock_lumaga_plus_to_access_this_feature">Tap to unlock LumaGA Plus to access this feature</string>
+    <string name="unlock_lumaga_plus_to_access_this_feature">Unlock 泥坛 Plus to access this feature.</string>
+    <string name="tap_to_unlock_lumaga_plus_to_access_this_feature">Tap to unlock 泥坛 Plus to access this feature</string>
     <string name="show_plus_in_title">Show Plus in Title</string>
-    <string name="lumaga_main_menu">LumaGA Main Menu</string>
+    <string name="lumaga_main_menu">泥坛 Main Menu</string>
     <string name="sign_in_to_nga_and_discover_more_features_here">Sign in to NGA and discover more features here.</string>
     <string name="s_continue">Continue</string>
     <string name="current_version">Current Version</string>
@@ -365,7 +365,7 @@
     <string name="compact_topic_list">精简列表样式（无头像）</string>
     <string name="back">Back</string>
     <string name="sync_favorite_forums">Sync Favorite Forums</string>
-    <string name="lumaga_login_notice">LumaGA Login Notice</string>
+    <string name="lumaga_login_notice">泥坛 Login Notice</string>
     <string name="all_plus_features">All Plus Features</string>
     <string name="comment_on_posts_in_all_topics">Comment on posts in all topics.</string>
     <string name="post_quote_reply_comment_and_create_new_topics_anonymously">Post, quote, reply, comment, and create new topics anonymously.</string>
@@ -377,14 +377,14 @@
     <string name="jump_to_arbitrary_floor_or_page_in_a_topic">Jump to arbitrary floor or page in a topic.</string>
     <string name="log_in_and_switch_between_multiple_accounts">Log in and switch between multiple accounts.</string>
     <string name="view_user_profiles_with_their_posts_and_replies">View user profiles, with their posts and replies.</string>
-    <string name="full_access_to_customizing_the_appearance_of_lumaga">Full access to customizing the appearance of LumaGA.</string>
+    <string name="full_access_to_customizing_the_appearance_of_lumaga">Full access to customizing the appearance of 泥坛.</string>
     <string name="block_contents_from_specific_users_or_with_specific_keywords">Block contents from specific users, or with specific keywords.</string>
     <string name="organize_favorite_topics_into_multiple_folders">Organize favorite topics into multiple folders.</string>
     <string name="resume_reading_progress_from_where_you_left_off">Resume reading progress from where you left off.</string>
     <string name="sync_favorite_forums_across_devices">Sync favorite forums across devices.</string>
     <string name="more_features_in_the_future">More Features in the Future</string>
     <string name="plus_more_feature">Plus More Feature</string>
-    <string name="lumaga_error_kind">LumaGA</string>
+    <string name="lumaga_error_kind">泥坛</string>
     <string name="error_response">Error Response</string>
     <string name="missing_field">Missing Field</string>
     <string name="network_connection">Network Connection</string>
@@ -417,7 +417,7 @@
     <string name="download_complete">Download Complete</string>
     <string name="install">Install</string>
     <string name="permission_required">Permission Required</string>
-    <string name="allow_install_apps">Allow LumaGA to install apps, then tap Install again.</string>
+    <string name="allow_install_apps">Allow 泥坛 to install apps, then tap Install again.</string>
     <string name="open_settings">Open Settings</string>
     <string name="update_check_failed">Update Check Failed</string>
     <string name="download_failed">Download Failed</string>
@@ -429,5 +429,5 @@
     <string name="ok">OK</string>
     <string name="source_code">Source Code</string>
     <string name="an_nga_forum_client">An NGA forum client, ported from MNGA.</string>
-    <string name="app_name">LumaGA</string>
+    <string name="app_name">泥坛</string>
 </resources>

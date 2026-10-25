@@ -24,7 +24,7 @@ enum class TopicListOrder(val raw: Int) {
 }
 
 enum class ThemeColor(val raw: Int, val label: String, val lightColor: Long, val darkColor: Long) {
-    LUMAGA(0, "LumaGA", 0xFFC09D73, 0xFFE4BD88),
+    LUMAGA(0, "泥坛", 0xFFC09D73, 0xFFE4BD88),
     RED(1, "Red", 0xFFFF3B30, 0xFFFF453A),
     ORANGE(2, "Orange", 0xFFFF9500, 0xFFFF9F0A),
     YELLOW(3, "Yellow", 0xFFFFCC00, 0xFFFFD60A),

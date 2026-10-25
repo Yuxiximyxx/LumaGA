@@ -23,8 +23,6 @@ import androidx.compose.material.icons.outlined.Create
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
@@ -78,6 +76,9 @@ import com.bugenzhao.mnga.protos.service.FavoriteFolderModifyRequest
 import com.bugenzhao.mnga.protos.service.TopicFavorRequest
 import com.bugenzhao.mnga.protos.service.TopicFavorResponse
 import com.bugenzhao.mnga.ui.components.AdaptiveFooter
+import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
+import com.bugenzhao.mnga.ui.components.MiuixMenuHeader
+import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.components.ErrorPlaceholder
 import com.bugenzhao.mnga.ui.components.ListPlaceholder
 import com.bugenzhao.mnga.ui.nav.Navigator
@@ -173,17 +174,20 @@ fun FavoritesScreen(navigator: Navigator, initialFolderId: String? = null) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = { folderMenuExpanded = true }) {
-                        Icon(
-                            if (currentFolder?.isDefault == true) {
-                                Icons.Outlined.FolderOpen
-                            } else {
-                                Icons.Outlined.Folder
-                            },
-                            contentDescription = L.str(context, "Folder"),
-                        )
-                    }
-                    FolderMenu(
+                    // Box anchor so the folder popup attaches to this
+                    // button (phase 3 Miuix menu anchoring).
+                    Box {
+                        IconButton(onClick = { folderMenuExpanded = true }) {
+                            Icon(
+                                if (currentFolder?.isDefault == true) {
+                                    Icons.Outlined.FolderOpen
+                                } else {
+                                    Icons.Outlined.Folder
+                                },
+                                contentDescription = L.str(context, "Folder"),
+                            )
+                        }
+                        FolderMenu(
                         expanded = folderMenuExpanded,
                         onDismiss = { folderMenuExpanded = false },
                         folders = folders.sortedFolders(),
@@ -202,11 +206,12 @@ fun FavoritesScreen(navigator: Navigator, initialFolderId: String? = null) {
                             showingRename = true
                         },
                         onDelete = { showingDeleteConfirmation = true },
-                        onCreate = {
-                            newName = ""
-                            showingCreate = true
-                        },
-                    )
+                            onCreate = {
+                                newName = ""
+                                showingCreate = true
+                            },
+                        )
+                    }
                 },
             )
         },
@@ -338,11 +343,10 @@ fun FavoritesScreen(navigator: Navigator, initialFolderId: String? = null) {
 /**
  * The folder picker + management dropdown (SS15).
  *
- * Kept on Material3 DropdownMenu/DropdownMenuItem: Miuix 0.8.8's only popup
- * item (basic.DropdownImpl inside extra.SuperListPopup + basic.ListPopupColumn)
- * renders a single-line text plus a check mark only — it cannot express this
- * menu's leading icons, two-line folder entries (name + "Default" summary),
- * or the disabled current-folder header item.
+ * Phase 3: rebuilt on the shared Miuix menu components (see
+ * ui/components/MiuixMenu.kt) - the two-line folder entries and the
+ * current-folder header are MiuixMenuItem summaries / a MiuixMenuHeader,
+ * which Miuix 0.8.8's own DropdownImpl rows could not express.
  */
 @Composable
 private fun FolderMenu(
@@ -357,45 +361,33 @@ private fun FolderMenu(
     onCreate: () -> Unit,
 ) {
     val context = LocalContext.current
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+    MiuixDropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         if (currentFolder != null) {
-            DropdownMenuItem(
-                text = {
-                    Column {
-                        Text("#${currentFolder.id} ${currentFolder.name}")
-                        if (currentFolder.isDefault) {
-                            Text(
-                                L.str(context, "Default"),
-                                style = MiuixTheme.textStyles.footnote2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        }
-                    }
-                },
-                onClick = {},
-                enabled = false,
+            MiuixMenuHeader(
+                text = "#${currentFolder.id} ${currentFolder.name}",
+                summary = if (currentFolder.isDefault) L.str(context, "Default") else null,
             )
             if (!currentFolder.isDefault) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Make Default")) },
-                    leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
+                MiuixMenuItem(
+                    text = L.str(context, "Make Default"),
+                    icon = Icons.Outlined.FolderOpen,
                     onClick = {
                         onMakeDefault()
                         onDismiss()
                     },
                 )
             }
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Rename")) },
-                leadingIcon = { Icon(Icons.Outlined.Create, contentDescription = null) },
+            MiuixMenuItem(
+                text = L.str(context, "Rename"),
+                icon = Icons.Outlined.Create,
                 onClick = {
                     onRename()
                     onDismiss()
                 },
             )
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Delete")) },
-                leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+            MiuixMenuItem(
+                text = L.str(context, "Delete"),
+                icon = Icons.Outlined.Delete,
                 onClick = {
                     onDelete()
                     onDismiss()
@@ -404,30 +396,16 @@ private fun FolderMenu(
         }
         // Folder switcher.
         folders.forEach { folder ->
-            DropdownMenuItem(
-                text = {
-                    Column {
-                        Text(folder.name)
-                        if (folder.isDefault) {
-                            Text(
-                                L.str(context, "Default Folder"),
-                                style = MiuixTheme.textStyles.footnote2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        }
-                    }
-                },
-                trailingIcon = {
-                    if (folder.id == currentFolder?.id) {
-                        Icon(Icons.Outlined.Check, contentDescription = null)
-                    }
-                },
+            MiuixMenuItem(
+                text = folder.name,
+                summary = if (folder.isDefault) L.str(context, "Default Folder") else null,
+                showCheck = folder.id == currentFolder?.id,
                 onClick = { onSwitchFolder(folder) },
             )
         }
-        DropdownMenuItem(
-            text = { Text(L.str(context, "New Folder")) },
-            leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null) },
+        MiuixMenuItem(
+            text = L.str(context, "New Folder"),
+            icon = Icons.Outlined.Add,
             onClick = {
                 onCreate()
                 onDismiss()

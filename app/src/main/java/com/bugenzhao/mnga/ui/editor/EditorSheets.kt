@@ -42,8 +42,6 @@ import androidx.compose.material.icons.outlined.TheaterComedy
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -53,6 +51,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
@@ -84,6 +83,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.bugenzhao.mnga.logicCallAsync
+import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
+import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.model.ContentEditorModel
 import com.bugenzhao.mnga.model.GenericPostModel
 import com.bugenzhao.mnga.model.PlusFeature
@@ -550,14 +551,18 @@ private fun EditorToolbar(
             IconButton(onClick = { colorMenu = true }) {
                 Icon(Icons.Outlined.Palette, contentDescription = "color")
             }
-            // Retained Material DropdownMenu: each item carries a color
-            // swatch leading icon, which Miuix DropdownImpl (text + selected
-            // check only) cannot express. Inner Text/Icon are Miuix.
-            DropdownMenu(expanded = colorMenu, onDismissRequest = { colorMenu = false }) {
+            // Miuix menu (phase 3): the color swatch rides in the
+            // MiuixMenuItem leading slot - Miuix's own DropdownImpl
+            // rows cannot carry one (see ui/components/MiuixMenu.kt).
+            MiuixDropdownMenu(
+                expanded = colorMenu,
+                onDismissRequest = { colorMenu = false },
+                alignment = PopupPositionProvider.Align.Start,
+            ) {
                 COLOR_PALETTE.forEach { (name, hex) ->
-                    DropdownMenuItem(
-                        text = { Text(name) },
-                        leadingIcon = {
+                    MiuixMenuItem(
+                        text = name,
+                        leadingContent = {
                             Box(
                                 Modifier.size(14.dp)
                                     .background(Color(0xFF000000 or hex))

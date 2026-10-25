@@ -48,8 +48,6 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.Button
@@ -121,6 +119,10 @@ import com.bugenzhao.mnga.protos.service.TopicDetailsResponse
 import com.bugenzhao.mnga.protos.service.UpdateTopicProgressRequest
 import com.bugenzhao.mnga.storage.TopicResumeFrom
 import com.bugenzhao.mnga.ui.components.DateTimeText
+import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
+import com.bugenzhao.mnga.ui.components.MiuixMenuDivider
+import com.bugenzhao.mnga.ui.components.MiuixMenuHeader
+import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.components.hotAccentColor
 import com.bugenzhao.mnga.ui.components.toggleTopicFavor
 import com.bugenzhao.mnga.ui.components.imageviewer.ImageViewerDialog
@@ -1647,104 +1649,95 @@ private fun TopicDetailsMoreMenu(
         IconButton(onClick = { open = true }) {
             Icon(Icons.Filled.MoreVert, contentDescription = null)
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        // Miuix menu (phase 3) replacing the Material DropdownMenu; the
+        // grouped layout (id header, action groups, link group) is kept,
+        // rendered with Miuix menu rows inside the Miuix popup panel.
+        MiuixDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             // Debug id header.
-            Text(
+            MiuixMenuHeader(
                 "#" + topic.id + (topic.fav.takeIf { it.isNotEmpty() }?.let { " @$it" } ?: ""),
-                style = MaterialTheme.typography.labelSmall,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
-            HorizontalDivider()
+            MiuixMenuDivider()
             if (onJump != null) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Jump to...")) },
-                    leadingIcon = { Icon(Icons.Filled.SwapVert, null) },
+                MiuixMenuItem(
+                    text = L.str(context, "Jump to..."),
+                    icon = Icons.Filled.SwapVert,
                     onClick = { open = false; onJump() },
                 )
             }
             if (onLoadFirstPage != null) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Load First Page")) },
-                    leadingIcon = { Icon(Icons.Filled.ArrowUpward, null) },
+                MiuixMenuItem(
+                    text = L.str(context, "Load First Page"),
+                    icon = Icons.Filled.ArrowUpward,
                     onClick = { open = false; onLoadFirstPage() },
                 )
             }
             if (onReply != null) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Reply")) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Reply, null) },
+                MiuixMenuItem(
+                    text = L.str(context, "Reply"),
+                    icon = Icons.AutoMirrored.Filled.Reply,
                     onClick = { open = false; onReply() },
                 )
             }
             if (onGotoTopic != null) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Goto Topic")) },
-                    leadingIcon = { Icon(Icons.Filled.SubdirectoryArrowRight, null) },
+                MiuixMenuItem(
+                    text = L.str(context, "Goto Topic"),
+                    icon = Icons.Filled.SubdirectoryArrowRight,
                     onClick = { open = false; onGotoTopic() },
                 )
             }
             if (onJump != null || onLoadFirstPage != null || onReply != null || onGotoTopic != null) {
-                HorizontalDivider()
+                MiuixMenuDivider()
             }
             if (enableAuthorOnly) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Author Only")) },
-                    leadingIcon = { Icon(Icons.Filled.Person, null) },
+                MiuixMenuItem(
+                    text = L.str(context, "Author Only"),
+                    icon = Icons.Filled.Person,
                     onClick = { open = false; onAuthorOnly() },
                 )
             }
             if (!localMode) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "View Cached Topic")) },
-                    leadingIcon = { Icon(Icons.Filled.Bookmark, null) },
+                MiuixMenuItem(
+                    text = L.str(context, "View Cached Topic"),
+                    icon = Icons.Filled.Bookmark,
                     onClick = { open = false; onViewCached() },
                 )
             }
             if (onToggleFavorite != null) {
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            L.str(
-                                context,
-                                if (isFavorite) "Remove from Favorites" else "Mark as Favorite",
-                            )
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
-                            contentDescription = null,
-                        )
-                    },
+                MiuixMenuItem(
+                    text = L.str(
+                        context,
+                        if (isFavorite) "Remove from Favorites" else "Mark as Favorite",
+                    ),
+                    icon = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
                     onClick = { open = false; onToggleFavorite() },
                 )
             }
-            HorizontalDivider()
+            MiuixMenuDivider()
             val navID = NavigationIdentifier.TopicID(topic.id, topic.fav.takeIf { it.isNotEmpty() })
-            DropdownMenuItem(
-                text = { Text(L.str(context, "LumaGA Link")) },
-                leadingIcon = { Icon(Icons.Filled.Bookmark, null) },
+            MiuixMenuItem(
+                text = L.str(context, "LumaGA Link"),
+                icon = Icons.Filled.Bookmark,
                 onClick = {
                     navID.mngaURL?.let {
                         val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
                             as? android.content.ClipboardManager
                         cm?.setPrimaryClip(
-                            android.content.ClipData.newPlainText("LumaGA", it)
+                            android.content.ClipData.newPlainText("泥坛", it)
                         )
                     }
                     open = false
                 },
             )
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Open in Browser")) },
-                leadingIcon = { Icon(Icons.Filled.OpenInBrowser, null) },
+            MiuixMenuItem(
+                text = L.str(context, "Open in Browser"),
+                icon = Icons.Filled.OpenInBrowser,
                 onClick = { open = false; openInBrowser(context, topic) },
             )
             if (atForum != null) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Goto Forum") + " " + atForum.name) },
-                    leadingIcon = { Icon(Icons.Filled.SwapVert, null) },
+                MiuixMenuItem(
+                    text = L.str(context, "Goto Forum") + " " + atForum.name,
+                    icon = Icons.Filled.SwapVert,
                     onClick = { open = false; onGotoForum(atForum) },
                 )
             }

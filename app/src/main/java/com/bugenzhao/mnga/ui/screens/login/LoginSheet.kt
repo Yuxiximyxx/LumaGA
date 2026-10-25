@@ -20,8 +20,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -51,6 +49,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.bugenzhao.mnga.App
+import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
+import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.protos.datamodel.AuthInfo
 import com.bugenzhao.mnga.util.L
 import com.bugenzhao.mnga.util.URLs
@@ -233,32 +233,33 @@ fun LoginSheet(onDismiss: () -> Unit) {
                             IconButton(onClick = { pagesMenuOpen.value = true }) {
                                 Icon(Icons.Filled.MoreVert, contentDescription = null)
                             }
-                            // Kept as Material DropdownMenu: Miuix 0.8.8 has no
-                            // anchored icon overflow menu — SuperDropdown is a
-                            // settings row with a selected index, and
-                            // SuperListPopup/DropdownImpl are single-choice
-                            // pickers that need a Miuix Scaffold popup host,
-                            // which this platform Dialog does not provide.
-                            DropdownMenu(
+                            // Miuix menu (phase 3): this sheet is a
+                            // platform Dialog with no Miuix Scaffold
+                            // popup host, so the menu uses the
+                            // WindowListPopup variant (window-level
+                            // Dialog host) of the shared Miuix menu -
+                            // see ui/components/MiuixMenu.kt.
+                            MiuixDropdownMenu(
                                 expanded = pagesMenuOpen.value,
                                 onDismissRequest = { pagesMenuOpen.value = false },
+                                windowPopup = true,
                             ) {
-                                DropdownMenuItem(
-                                    text = { Text(L.str(context, "Sign In")) },
+                                MiuixMenuItem(
+                                    text = L.str(context, "Sign In"),
                                     onClick = {
                                         pagesMenuOpen.value = false
                                         load(URLs.login)
                                     },
                                 )
-                                DropdownMenuItem(
-                                    text = { Text(L.str(context, "Agreement")) },
+                                MiuixMenuItem(
+                                    text = L.str(context, "Agreement"),
                                     onClick = {
                                         pagesMenuOpen.value = false
                                         openExternal(URLs.agreement)
                                     },
                                 )
-                                DropdownMenuItem(
-                                    text = { Text(L.str(context, "Privacy")) },
+                                MiuixMenuItem(
+                                    text = L.str(context, "Privacy"),
                                     onClick = {
                                         pagesMenuOpen.value = false
                                         openExternal(URLs.privacy)

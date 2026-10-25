@@ -99,7 +99,7 @@ fun UpdateFlowDialogs() {
                 onDismissRequest = { model.reset() },
             ) {
                 Column {
-                    Text("LumaGA ${current.version}")
+                    Text("泥坛 ${current.version}")
                     DialogButtonRow {
                         TextButton(
                             text = L.str(context, "OK"),
@@ -202,7 +202,7 @@ fun UpdateFlowDialogs() {
                 onDismissRequest = { model.reset() },
             ) {
                 Column {
-                    Text("LumaGA ${current.release.version}")
+                    Text("泥坛 ${current.release.version}")
                     DialogButtonRow {
                         TextButton(
                             text = L.str(context, "Later"),

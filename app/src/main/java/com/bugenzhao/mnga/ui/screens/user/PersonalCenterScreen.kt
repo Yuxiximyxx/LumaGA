@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAddAlt1
 import androidx.compose.material.icons.filled.PersonRemoveAlt1
-import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Shield
@@ -266,12 +265,6 @@ private fun PersonalCenterContent(
                     title = L.str(context, "Settings"),
                 ) {
                     navigator.push(Route.Settings)
-                }
-                MenuRow(
-                    icon = Icons.Filled.QrCodeScanner,
-                    title = "扫码登录",
-                ) {
-                    navigator.push(Route.QrScanner)
                 }
             }
         }

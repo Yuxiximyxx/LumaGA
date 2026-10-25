@@ -20,8 +20,6 @@ import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.WindowInsets
@@ -33,6 +31,7 @@ import androidx.compose.foundation.layout.union
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -65,6 +64,8 @@ import com.bugenzhao.mnga.protos.service.SubforumFilterRequest
 import com.bugenzhao.mnga.protos.service.SubforumFilterResponse
 import com.bugenzhao.mnga.protos.service.TopicListResponse
 import com.bugenzhao.mnga.ui.components.ListPlaceholder
+import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
+import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.ui.screens.forumlist.forumIdKey
@@ -237,36 +238,26 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
                                 }
                             }
 
-                            // Kept as a Material DropdownMenu: Miuix 0.8.8's
-                            // SuperListPopup items (DropdownImpl) are text +
-                            // checkmark only, with no leading-icon slot, so
-                            // this single item's star icon cannot be
-                            // expressed there. The item's Text/Icon are Miuix,
-                            // as in the phase-1 menus.
-                            DropdownMenu(
+                            // Miuix menu (phase 3): the single star item
+                            // is a MiuixMenuItem with a leading icon -
+                            // Miuix 0.8.8's own DropdownImpl rows cannot
+                            // carry one (see ui/components/MiuixMenu.kt).
+                            MiuixDropdownMenu(
                                 expanded = contextMenuForum == forum,
                                 onDismissRequest = { contextMenuForum = null },
+                                alignment = PopupPositionProvider.Align.Start,
                             ) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            L.str(
-                                                context,
-                                                if (isFavorite) {
-                                                    "Remove from Favorites"
-                                                } else {
-                                                    "Mark as Favorite"
-                                                },
-                                            )
-                                        )
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            if (isFavorite) Icons.Outlined.Star
-                                            else Icons.Outlined.StarBorder,
-                                            contentDescription = null,
-                                        )
-                                    },
+                                MiuixMenuItem(
+                                    text = L.str(
+                                        context,
+                                        if (isFavorite) {
+                                            "Remove from Favorites"
+                                        } else {
+                                            "Mark as Favorite"
+                                        },
+                                    ),
+                                    icon = if (isFavorite) Icons.Outlined.Star
+                                    else Icons.Outlined.StarBorder,
                                     onClick = {
                                         App.favoriteForums.toggle(forum) {
                                             Haptics.lightImpact(view)

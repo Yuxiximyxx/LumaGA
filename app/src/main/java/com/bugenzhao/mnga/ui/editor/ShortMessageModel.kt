@@ -10,7 +10,7 @@ import com.bugenzhao.mnga.protos.service.ShortMessagePostResponse
 import kotlinx.coroutines.CoroutineScope
 
 /** Default subject for outgoing short messages, mirroring the iOS behavior. */
-private const val DEFAULT_SUBJECT = "From LumaGA"
+private const val DEFAULT_SUBJECT = "From 泥坛"
 
 /**
  * One short-message intent, ported from `ShortMessagePostTask` in

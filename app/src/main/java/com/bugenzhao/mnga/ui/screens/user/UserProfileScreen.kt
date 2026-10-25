@@ -22,8 +22,6 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.FrontHand
 import androidx.compose.material.icons.outlined.OpenInBrowser
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.WindowInsets
@@ -69,6 +67,8 @@ import com.bugenzhao.mnga.protos.datamodel.User
 import com.bugenzhao.mnga.protos.service.AsyncRequest
 import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.ui.components.DateTimeText
+import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
+import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.ui.screens.topiclist.TopicRow
@@ -405,71 +405,68 @@ private fun ProfileOverflowMenu(
     var expanded by remember { mutableStateOf(false) }
     val webURL = userWebURL(user)
 
-    IconButton(onClick = { expanded = true }) {
-        Icon(Icons.Filled.MoreHoriz, contentDescription = L.str(context, "More"))
-    }
-    // Kept as Material DropdownMenu: Miuix 0.8.8's SuperListPopup is only a
-    // popup container (plus ListPopupColumn) with no menu-item composable
-    // carrying text/leadingIcon/onClick, so the flat menu cannot be
-    // expressed without hand-rolled items; same call as in TopicListScreen.
-    // The items' Text/Icon are the Miuix ones.
-    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        if (isMyself) {
-            DropdownMenuItem(
-                text = { Text(L.str(context, "Edit Signature")) },
-                leadingIcon = { Icon(Icons.Outlined.EditNote, null) },
-                onClick = { expanded = false; onEditSignature() },
-            )
+    // Miuix menu (phase 3) replacing the Material DropdownMenu; the
+    // Box anchors the popup to this button (see MiuixMenu.kt).
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Filled.MoreHoriz, contentDescription = L.str(context, "More"))
         }
-        if (!isMyself) {
-            if (!anonymous) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "New Short Message")) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Chat, null) },
-                    onClick = { expanded = false; onNewMessage() },
+        MiuixDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            if (isMyself) {
+                MiuixMenuItem(
+                    text = L.str(context, "Edit Signature"),
+                    icon = Icons.Outlined.EditNote,
+                    onClick = { expanded = false; onEditSignature() },
                 )
             }
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        L.str(context, if (blocked) "Unblock This User" else "Block This User"),
-                        color = if (blocked) MiuixTheme.colorScheme.onSurface
-                        else MiuixTheme.colorScheme.error,
+            if (!isMyself) {
+                if (!anonymous) {
+                    MiuixMenuItem(
+                        text = L.str(context, "New Short Message"),
+                        icon = Icons.AutoMirrored.Filled.Chat,
+                        onClick = { expanded = false; onNewMessage() },
                     )
-                },
-                leadingIcon = { Icon(Icons.Outlined.FrontHand, null) },
-                onClick = { expanded = false; onBlockUser() },
-            )
-        }
-        if (!anonymous) {
-            DropdownMenuItem(
-                text = { Text(L.str(context, "LumaGA Link")) },
-                leadingIcon = { Icon(Icons.Filled.Share, null) },
-                onClick = {
-                    expanded = false
-                    shareText(context, "mnga://user/${user.id}", user.name.displayString)
-                },
-            )
-            if (webURL != null) {
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "NGA Link")) },
-                    leadingIcon = { Icon(Icons.Filled.Share, null) },
+                }
+                MiuixMenuItem(
+                    text = L.str(context, if (blocked) "Unblock This User" else "Block This User"),
+                    icon = Icons.Outlined.FrontHand,
+                    // Destructive entry in error color (icon tinted too,
+                    // matching HyperOS menu convention).
+                    contentColor = if (blocked) MiuixTheme.colorScheme.onSurface
+                    else MiuixTheme.colorScheme.error,
+                    onClick = { expanded = false; onBlockUser() },
+                )
+            }
+            if (!anonymous) {
+                MiuixMenuItem(
+                    text = L.str(context, "LumaGA Link"),
+                    icon = Icons.Filled.Share,
                     onClick = {
                         expanded = false
-                        shareText(context, webURL, user.name.displayString)
+                        shareText(context, "mnga://user/${user.id}", user.name.displayString)
                     },
                 )
-                DropdownMenuItem(
-                    text = { Text(L.str(context, "Open in Browser")) },
-                    leadingIcon = { Icon(Icons.Outlined.OpenInBrowser, null) },
-                    onClick = {
-                        expanded = false
-                        App.openURL.open(
-                            android.net.Uri.parse(webURL),
-                            prefs = App.prefs,
-                        )
-                    },
-                )
+                if (webURL != null) {
+                    MiuixMenuItem(
+                        text = L.str(context, "NGA Link"),
+                        icon = Icons.Filled.Share,
+                        onClick = {
+                            expanded = false
+                            shareText(context, webURL, user.name.displayString)
+                        },
+                    )
+                    MiuixMenuItem(
+                        text = L.str(context, "Open in Browser"),
+                        icon = Icons.Outlined.OpenInBrowser,
+                        onClick = {
+                            expanded = false
+                            App.openURL.open(
+                                android.net.Uri.parse(webURL),
+                                prefs = App.prefs,
+                            )
+                        },
+                    )
+                }
             }
         }
     }

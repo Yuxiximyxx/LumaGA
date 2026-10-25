@@ -448,7 +448,7 @@ private fun TopicMetaBlock(
  * payloads (search results, browsing history) carry only a numeric forum id, so
  * the line would otherwise be a blank gap under the author.
  */
-private const val OriginPlaceholder = "LumaGA"
+private const val OriginPlaceholder = "泥坛"
 
 /** Favorite marker, parent forum (color-chipped) and subject tags, one line. */
 @Composable
@@ -557,7 +557,7 @@ private fun authorAvatarUrl(authorId: String, anonymous: Boolean): String? {
 /** Copy [text] onto the system clipboard. */
 fun copyToClipboard(context: Context, text: String) {
     val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
-    manager.setPrimaryClip(ClipData.newPlainText("LumaGA", text))
+    manager.setPrimaryClip(ClipData.newPlainText("泥坛", text))
 }
 
 /** Share plain text through the Android share sheet. */

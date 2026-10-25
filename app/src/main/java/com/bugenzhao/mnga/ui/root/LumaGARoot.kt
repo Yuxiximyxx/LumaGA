@@ -308,9 +308,6 @@ internal fun NavigationHost(
         composable(RouteCodec.ROUTE_CLOCK_IN) {
             RouteDispatcher(navigator, Route.ClockIn, editor)
         }
-        composable(RouteCodec.ROUTE_QR_SCANNER) {
-            RouteDispatcher(navigator, Route.QrScanner, editor)
-        }
         // Personal center: the bottom-bar Mine tab root, crossfading with
         // the Home tab instead of sliding like a pushed page.
         composable(
@@ -371,8 +368,6 @@ fun RouteDispatcher(
         is Route.ClockIn -> com.bugenzhao.mnga.ui.screens.user.ClockInScreen(navigator)
         is Route.PersonalCenter ->
             com.bugenzhao.mnga.ui.screens.user.PersonalCenterScreen(navigator)
-        is Route.QrScanner ->
-            com.bugenzhao.mnga.ui.screens.misc.QrScannerScreen(navigator)
         is Route.Settings ->
             com.bugenzhao.mnga.ui.screens.prefs.PreferencesSheet(
                 onDismiss = { navigator.pop() },

@@ -464,7 +464,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
             // region About
             item(key = "about") {
                 Section(
-                    header = "LumaGA ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    header = "泥坛 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                 ) {
                     NavigationRow(
                         title = L.str(context, "About"),
