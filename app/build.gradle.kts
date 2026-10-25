@@ -2,13 +2,12 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.bugenzhao.mnga"
-    compileSdk = 36
+    compileSdk = 37
 
     // Release signing credentials. The keystore and passwords live in
     // app/release-keystore.properties, which is git-ignored; a backup copy is
