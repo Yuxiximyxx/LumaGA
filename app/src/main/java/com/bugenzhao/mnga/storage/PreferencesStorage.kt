@@ -54,11 +54,9 @@ enum class ColorSchemeMode(val raw: Int) {
 
 /**
  * Glass material of the floating tab dock (liquid-glass-recipes' three
- * glasses). FROSTED is the default — its veil is the look the dock shipped
- * with in v1.7.0 (thick milky veil). The materials are rendered by
- * Prismal backdrop sampling with per-material parameters and degrade by
- * device tier (AGSL refraction on API 33+, RenderEffect blur on 31–32,
- * legacy frost below); see MainTabDock.kt for what each one varies.
+ * glasses). FROSTED is the default — it is the look the dock shipped with
+ * in v1.7.0 (thick milky veil). All three are approximations on the dock's
+ * no-backdrop-sampling route; see MainTabDock.kt for what each one varies.
  */
 enum class DockGlassMaterial(val raw: Int) {
     CLEAR(0),
