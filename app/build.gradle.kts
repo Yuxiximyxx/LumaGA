@@ -75,6 +75,17 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        unitTests {
+            // Local unit tests run against the stubbed android.jar: return
+            // default values instead of throwing "not mocked". Needed by
+            // EntryOwnerViewModelCreationTest — the saved-state path reads
+            // an (empty) Bundle-backed SavedState via BaseBundle while
+            // creating a SavedStateHandle. On device the Bundle is real.
+            isReturnDefaultValues = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
