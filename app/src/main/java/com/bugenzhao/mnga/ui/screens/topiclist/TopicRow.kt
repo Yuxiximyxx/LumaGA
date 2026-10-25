@@ -266,11 +266,13 @@ fun TopicRow(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     /**
-     * SharedNav shared-container key (phase 4). When non-null the card
-     * registers as the shared element for the destination with the same
-     * key, so pushing that destination morphs this card into the page
-     * instead of running the plain push transition. Only the topic list
-     * passes it (`topic-details/<id>`, matching the details destination).
+     * SharedNav shared-container key. When non-null the card registers as
+     * the shared element for the destination with the same key, so
+     * pushing that destination morphs this card into the page instead of
+     * running the plain push transition, and popping morphs the page
+     * back into this card. Callers pass `topic-details/<id>` (the topic
+     * details destination's key). One registry state exists per key, so
+     * within one list the key must be unique per row — topic ids are.
      */
     sharedContainerKey: String? = null,
 ) {

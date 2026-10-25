@@ -52,6 +52,8 @@ import com.bugenzhao.mnga.ui.components.PagedList
 import com.bugenzhao.mnga.ui.components.RepliesBadge
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.nav.RouteDestination
+import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.ui.screens.user.checkPlusFeature
 import com.bugenzhao.mnga.ui.screens.user.displayString
 import com.bugenzhao.mnga.util.DateFormatters
@@ -111,7 +113,18 @@ fun ShortMessageListScreen(
                 key = { it.id },
                 emptyPlaceholder = L.str(context, "No Short Messages"),
             ) { _, message ->
-                ShortMessageRow(message) {
+                ShortMessageRow(
+                    message = message,
+                    // Morph the conversation row into its details page
+                    // (SharedNav shared container; key = destination key).
+                    modifier = Modifier.sharedContainer(
+                        key = RouteDestination.keyFor(
+                            Route.ShortMessageDetails(id = message.id)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        containerColor = null,
+                    ),
+                ) {
                     navigator.push(Route.ShortMessageDetails(id = message.id))
                 }
             }

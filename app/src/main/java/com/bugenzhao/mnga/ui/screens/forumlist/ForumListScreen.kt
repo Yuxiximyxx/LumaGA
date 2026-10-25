@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
@@ -88,6 +89,8 @@ import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.nav.RouteDestination
+import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.ui.screens.topiclist.copyToClipboard
 import com.bugenzhao.mnga.ui.screens.topiclist.openInBrowser
 import com.bugenzhao.mnga.ui.screens.topiclist.shareText
@@ -324,6 +327,15 @@ fun ForumListScreen(
                                 forum = forum,
                                 isFavorite = true,
                                 editMode = editMode,
+                                // Morph into the topic list from this cell
+                                // (not in edit mode: cells drag instead).
+                                sharedContainerKey = if (editMode) {
+                                    null
+                                } else {
+                                    RouteDestination.keyFor(
+                                        Route.TopicList(forumId = forum.id)
+                                    )
+                                },
                                 contextMenuForum = contextMenuForum,
                                 onContextMenu = { contextMenuForum = it },
                                 onDismissMenu = { contextMenuForum = null },
@@ -388,6 +400,19 @@ fun ForumListScreen(
                                         forum = forum,
                                         isFavorite = App.favoriteForums.isFavorite(forum.id),
                                         editMode = false,
+                                        // The favorites cell above owns the
+                                        // shared-container registration for a
+                                        // favorited forum (one state per
+                                        // key); only register here when the
+                                        // forum has no twin cell.
+                                        sharedContainerKey =
+                                            if (App.favoriteForums.isFavorite(forum.id)) {
+                                                null
+                                            } else {
+                                                RouteDestination.keyFor(
+                                                    Route.TopicList(forumId = forum.id)
+                                                )
+                                            },
                                         contextMenuForum = contextMenuForum,
                                         onContextMenu = { contextMenuForum = it },
                                         onDismissMenu = { contextMenuForum = null },
@@ -490,9 +515,30 @@ private fun ForumGridCellWithMenu(
     onToggleFavorite: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * SharedNav shared-container key for the topic-list destination this
+     * cell opens (null = no morph). The registry holds ONE state per key,
+     * so a forum visible in two cells at once (favorites grid + its
+     * category cell) must register from only one of them — callers pass
+     * the key for the favorites cell always, and for a category cell
+     * only when the forum is not favorited.
+     */
+    sharedContainerKey: String? = null,
 ) {
     val navID = NavigationIdentifier.ForumID(forum.id)
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier.then(
+            if (sharedContainerKey != null) {
+                Modifier.sharedContainer(
+                    key = sharedContainerKey,
+                    shape = RoundedCornerShape(16.dp),
+                    containerColor = null,
+                )
+            } else {
+                Modifier
+            }
+        )
+    ) {
         ForumGridCell(
             forum = forum,
             editMode = editMode,

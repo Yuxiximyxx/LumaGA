@@ -57,6 +57,9 @@ import com.bugenzhao.mnga.protos.datamodel.ShortMessagePost
 import com.bugenzhao.mnga.protos.service.AsyncRequest
 import com.bugenzhao.mnga.ui.components.AdaptiveFooter
 import com.bugenzhao.mnga.ui.nav.Navigator
+import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.nav.RouteDestination
+import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.ui.screens.user.RawPostContent
 import com.bugenzhao.mnga.ui.screens.user.UserView
 import com.bugenzhao.mnga.ui.screens.user.UserViewStyle
@@ -181,6 +184,18 @@ fun ShortMessageDetailsScreen(
                                         UserView(
                                             user = user,
                                             style = UserViewStyle.VERTICAL,
+                                            // Participants are unique per
+                                            // user in this row, so the cell
+                                            // can own the profile's
+                                            // shared-container registration:
+                                            // morph it into the profile page.
+                                            modifier = Modifier.sharedContainer(
+                                                key = RouteDestination.keyFor(
+                                                    Route.UserProfile(user = user)
+                                                ),
+                                                shape = RoundedCornerShape(12.dp),
+                                                containerColor = null,
+                                            ),
                                             onShowUserProfile = { u ->
                                                 navigator.push(
                                                     com.bugenzhao.mnga.ui.nav.Route.UserProfile(

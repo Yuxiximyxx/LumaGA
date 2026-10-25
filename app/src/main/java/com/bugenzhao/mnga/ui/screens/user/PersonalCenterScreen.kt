@@ -52,6 +52,8 @@ import com.bugenzhao.mnga.protos.datamodel.User
 import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.nav.RouteDestination
+import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.util.L
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
@@ -110,7 +112,15 @@ private fun PersonalCenterContent(
         item(key = "current-user") {
             MenuCard {
                 if (signedIn) {
-                    CurrentUserCard(user = currentUser) {
+                    CurrentUserCard(
+                        user = currentUser,
+                        // Morph the current-user card into the profile
+                        // page (SharedNav shared container; key follows
+                        // the profile destination for this user).
+                        sharedContainerKey = currentUser?.let {
+                            RouteDestination.keyFor(Route.UserProfile(user = it))
+                        },
+                    ) {
                         currentUser?.let { user ->
                             navigator.push(Route.UserProfile(user = user))
                         }
@@ -391,12 +401,24 @@ private fun AccountRow(
 @Composable
 private fun CurrentUserCard(
     user: User?,
+    sharedContainerKey: String? = null,
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
     Row(
         Modifier
             .fillMaxWidth()
+            .then(
+                if (sharedContainerKey != null) {
+                    Modifier.sharedContainer(
+                        key = sharedContainerKey,
+                        shape = RoundedCornerShape(16.dp),
+                        containerColor = null,
+                    )
+                } else {
+                    Modifier
+                }
+            )
             .clickable { onClick() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,

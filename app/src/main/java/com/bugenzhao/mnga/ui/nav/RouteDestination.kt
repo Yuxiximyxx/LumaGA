@@ -98,7 +98,17 @@ class RouteDestination(
             is Route.TopicList -> "topic-list/${route.forumId.fidOrStid()}/${route.mode}/${route.dateRange}"
             is Route.TopicDetails -> "topic-details/${route.topicId}"
             is Route.UserProfile ->
-                "user-profile/${route.userId ?: route.userName ?: "embedded"}"
+                // Prefer the carried user object's id over the name so
+                // pushes that only carry a `User` still get a per-user
+                // key (they all used to collapse into "embedded", which
+                // would alias every such profile to one shared-container
+                // state). Falls back to the name, then the legacy bucket.
+                "user-profile/${
+                    route.userId
+                        ?: route.user?.id?.takeIf { it.isNotEmpty() }
+                        ?: route.userName
+                        ?: "embedded"
+                }"
             is Route.GlobalSearch -> "global-search"
             is Route.TopicSearch -> "topic-search/${route.forumId?.fidOrStid().orEmpty()}"
             Route.HotTopics -> "hot-topics"

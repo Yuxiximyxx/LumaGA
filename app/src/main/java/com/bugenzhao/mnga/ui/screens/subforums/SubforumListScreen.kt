@@ -2,6 +2,7 @@ package com.bugenzhao.mnga.ui.screens.subforums
 
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,6 +69,8 @@ import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.nav.RouteDestination
+import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.ui.screens.forumlist.forumIdKey
 import com.bugenzhao.mnga.ui.screens.forumlist.ForumRow
 import com.bugenzhao.mnga.util.Haptics
@@ -204,7 +207,16 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
                             // container (same approach as ForumRowCard); the
                             // row's old padding becomes the card's insideMargin.
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().sharedContainer(
+                                    // Morph this row into the subforum's
+                                    // topic list (SharedNav shared
+                                    // container; key = destination key).
+                                    key = RouteDestination.keyFor(
+                                        Route.TopicList(forumId = forum.id)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp),
+                                    containerColor = null,
+                                ),
                                 cornerRadius = 12.dp,
                                 insideMargin = PaddingValues(
                                     start = 16.dp,

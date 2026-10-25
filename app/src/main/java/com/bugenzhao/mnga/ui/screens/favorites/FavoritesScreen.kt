@@ -585,6 +585,7 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
                             topic = topic,
                             dimmedSubject = false,
                             showIndicators = false,
+                            sharedContainerKey = "topic-details/${topic.id}",
                             onClick = {
                                 navigator.push(
                                     Route.TopicDetails(

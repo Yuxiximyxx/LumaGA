@@ -68,6 +68,8 @@ import com.bugenzhao.mnga.protos.service.MarkNotificationReadRequest
 import com.bugenzhao.mnga.protos.service.SyncRequest
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.nav.RouteDestination
+import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.ui.screens.user.nameDisplayCompat
 import com.bugenzhao.mnga.util.DateFormatters
 import com.bugenzhao.mnga.util.Haptics
@@ -236,13 +238,22 @@ fun NotificationListSheet(
                         }
                         itemsIndexed(state.items, key = { _, n -> n.id }) { _, noti ->
                             val read = isRead(noti)
+                            val targetRoute = routeForNotification(noti)
                             NotificationRow(
                                 noti = noti,
                                 read = read,
+                                // Morph the row into its target page
+                                // (SharedNav shared container; the key
+                                // follows the per-type destination).
+                                modifier = Modifier.sharedContainer(
+                                    key = RouteDestination.keyFor(targetRoute),
+                                    shape = RoundedCornerShape(12.dp),
+                                    containerColor = null,
+                                ),
                                 onClick = {
                                     mark(listOf(noti.id), read = true)
                                     // 与其它列表页一致：push 详情，返回时回到通知列表。
-                                    navigator.push(routeForNotification(noti))
+                                    navigator.push(targetRoute)
                                 },
                                 onToggleRead = { mark(listOf(noti.id), read = !read) },
                             )
@@ -273,6 +284,7 @@ private fun NotificationRow(
     read: Boolean,
     onClick: () -> Unit,
     onToggleRead: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val foreground =
@@ -282,7 +294,7 @@ private fun NotificationRow(
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MiuixTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(
             Modifier

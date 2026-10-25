@@ -62,6 +62,8 @@ import com.bugenzhao.mnga.ui.screens.forumlist.ForumIcon
 import com.bugenzhao.mnga.ui.screens.topiclist.TopicRow
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.nav.RouteDestination
+import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.util.L
 import com.bugenzhao.mnga.util.errorLocalized
 import kotlinx.coroutines.CoroutineScope
@@ -171,7 +173,18 @@ internal fun ForumResultsList(
                 ) {
                     item(key = "header") { SectionHeader(L.str(context, "Search Results")) }
                     itemsIndexed(state.items, key = { _, forum -> forum.id.idDescription }) { _, forum ->
-                        ForumRowLite(forum) {
+                        ForumRowLite(
+                            forum = forum,
+                            // Morph the result row into the forum's topic
+                            // list (SharedNav shared container).
+                            modifier = Modifier.sharedContainer(
+                                key = RouteDestination.keyFor(
+                                    Route.TopicList(forumId = forum.id)
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                containerColor = null,
+                            ),
+                        ) {
                             navigator.push(Route.TopicList(forumId = forum.id))
                         }
                     }
@@ -243,6 +256,7 @@ internal fun TopicResultsList(
                             TopicRow(
                                 topic = topic,
                                 isFavored = favoredOverrides[topic.id],
+                                sharedContainerKey = "topic-details/${topic.id}",
                                 onClick = { navigator.push(topicDetailsRoute(topic)) },
                             )
                         }
@@ -267,13 +281,17 @@ internal fun topicDetailsRoute(topic: Topic): Route.TopicDetails =
 
 /** Simplified `ForumRowView`: icon, localized name/info, stid and favorite marks. */
 @Composable
-internal fun ForumRowLite(forum: Forum, onClick: () -> Unit) {
+internal fun ForumRowLite(
+    forum: Forum,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     val context = LocalContext.current
     val isFavorite = App.favoriteForums.isFavorite(forum.id)
 
     Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         color = MiuixTheme.colorScheme.surface,
     ) {

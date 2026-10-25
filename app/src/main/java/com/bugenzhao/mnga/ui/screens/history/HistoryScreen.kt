@@ -288,6 +288,7 @@ fun HistoryScreen(navigator: Navigator) {
                                 TopicRow(
                                     topic = topic,
                                     dimmedSubject = false,
+                                    sharedContainerKey = "topic-details/${topic.id}",
                                     onClick = {
                                         navigator.push(
                                             Route.TopicDetails(

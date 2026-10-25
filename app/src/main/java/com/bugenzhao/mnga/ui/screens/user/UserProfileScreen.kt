@@ -74,6 +74,7 @@ import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.ui.screens.topiclist.TopicRow
 import com.bugenzhao.mnga.util.L
 import com.bugenzhao.mnga.util.URLs
+import com.xah.container.component.base.sharedContainer
 import java.net.URLEncoder
 import kotlinx.coroutines.launch
 
@@ -310,6 +311,7 @@ fun UserProfileScreen(
                                     // the posting date is what distinguishes
                                     // them, not the last reply.
                                     useTopicPostDate = true,
+                                    sharedContainerKey = "topic-details/${topic.id}",
                                     onClick = {
                                         navigator.push(
                                             Route.TopicDetails(
@@ -338,7 +340,16 @@ fun UserProfileScreen(
                             }
                         } else {
                             itemsIndexed(postState.items, key = { _, tp -> "p-${tp.post.id.pid}" }) { _, tp ->
-                                SectionCard {
+                                // The card is the tapped element: morph it
+                                // into the topic-details page (SharedNav
+                                // shared container; key = destination key).
+                                SectionCard(
+                                    modifier = Modifier.sharedContainer(
+                                        key = "topic-details/${tp.topic.id}",
+                                        shape = RoundedCornerShape(12.dp),
+                                        containerColor = null,
+                                    ),
+                                ) {
                                     UserPostRow(tp) {
                                         // The original page is unknown (iOS FIXME).
                                         navigator.push(
@@ -497,9 +508,12 @@ private fun UserPostRow(tp: TopicWithLightPost, onClick: () -> Unit) {
 }
 
 @Composable
-internal fun SectionCard(content: @Composable () -> Unit) {
+internal fun SectionCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         color = MiuixTheme.colorScheme.surface,
     ) { Column { content() } }

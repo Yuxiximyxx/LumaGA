@@ -62,6 +62,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -95,7 +96,9 @@ import com.bugenzhao.mnga.ui.components.SwipeToFavorBox
 import com.bugenzhao.mnga.ui.components.toggleTopicFavor
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.nav.RouteDestination
 import com.bugenzhao.mnga.ui.nav.TopicListMode
+import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.util.Haptics
 import com.bugenzhao.mnga.util.L
 import kotlinx.coroutines.launch
@@ -650,6 +653,15 @@ private fun ForumShortcutRow(
 ) {
     com.bugenzhao.mnga.ui.screens.forumlist.ForumRowCard(
         forum = topic.shortcutForum,
+        // Morph the shortcut row into the forum's topic list (SharedNav
+        // shared container; key = destination key).
+        modifier = Modifier.sharedContainer(
+            key = RouteDestination.keyFor(
+                Route.TopicList(forumId = topic.shortcutForum.id)
+            ),
+            shape = RoundedCornerShape(16.dp),
+            containerColor = null,
+        ),
         isFavorite = false,
         asTopicShortcut = topic,
         onClick = onClick,
