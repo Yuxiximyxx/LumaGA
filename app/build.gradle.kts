@@ -133,6 +133,8 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.barcode.scanning)
     implementation(libs.miuix)
+    implementation(libs.miuix.preference)
+    implementation(libs.miuix.blur)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Instrumented tests (currently not run in CI; the emulator workflow was
