@@ -575,7 +575,6 @@ fun TopicDetailsScreen(
         topBar = {
             SmallTopAppBar(
                 title = title,
-                subtitle = subtitle ?: "",
                 // 标题随头部滚出淡入；滚出后顶栏底色变深与正文区分。
                 titleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = titleAlpha),
                 color = if (headerScrolledAway) {

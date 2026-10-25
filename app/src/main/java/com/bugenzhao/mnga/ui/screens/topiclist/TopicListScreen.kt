@@ -260,7 +260,6 @@ fun TopicListScreen(
         topBar = {
             SmallTopAppBar(
                 title = screenTitle.ifEmpty { forumId.idDisplay() },
-                subtitle = subtitle ?: "",
                 navigationIcon = {
                     // 与详情页一致的返回按钮。
                     IconButton(onClick = { navigator.pop() }) {
@@ -402,13 +401,21 @@ fun TopicListScreen(
             }
         },
     ) { padding ->
-        val headerLabel = when (mode) {
+        // Miuix 0.8.8 SmallTopAppBar has no subtitle slot; the subtitle
+        // (parent forum / forum name) is folded into the list header label
+        // so the information stays on screen.
+        val baseHeaderLabel = when (mode) {
             TopicListMode.HOT -> L.str(context, hotRangeLabel(hotRange))
             TopicListMode.RECOMMENDED -> null
             TopicListMode.NORMAL -> L.str(
                 context,
                 if (orderOrDefault == TopicListOrder.POST_DATE) "Latest Topics" else "Latest Replies",
             )
+        }
+        val headerLabel = when {
+            subtitle.isNullOrEmpty() -> baseHeaderLabel
+            baseHeaderLabel == null -> subtitle
+            else -> "$subtitle · $baseHeaderLabel"
         }
         val header: (@Composable () -> Unit)? = headerLabel?.let { label ->
             {
