@@ -426,6 +426,6 @@
     <string name="close">关闭</string>
     <string name="ok">好</string>
     <string name="source_code">开源仓库</string>
-    <string name="an_nga_forum_client">一个 NGA 论坛客户端，移植自 MNGA。</string>
+    <string name="an_nga_forum_client">泥坛 —— 基于 Duzc01/LumaGA 的个人 fork，原项目移植自 MNGA。</string>
     <string name="app_name">泥坛</string>
 </resources>

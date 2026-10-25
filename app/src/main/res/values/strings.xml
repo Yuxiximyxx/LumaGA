@@ -428,6 +428,6 @@
     <string name="close">Close</string>
     <string name="ok">OK</string>
     <string name="source_code">Source Code</string>
-    <string name="an_nga_forum_client">An NGA forum client, ported from MNGA.</string>
+    <string name="an_nga_forum_client">Nitan — a personal fork of Duzc01/LumaGA, originally ported from MNGA.</string>
     <string name="app_name">泥坛</string>
 </resources>

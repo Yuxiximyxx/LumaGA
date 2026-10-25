@@ -18,11 +18,16 @@ object Constants {
 
     /**
      * The GitHub repository releases are published to; the update check reads
-     * its latest release. Kept in sync with `scripts/create-release.sh`, which
-     * tags `v<versionName>` and attaches the signed APK as a release asset.
+     * its latest release. This is the fork's own repository (Yuxiximyxx),
+     * not the upstream's — the About page's source link and the update
+     * check both derive from this single constant, and pointing it at the
+     * upstream repo made the update check offer upstream builds signed
+     * with a different certificate. Kept in sync with
+     * `scripts/create-release.sh`, which tags `v<versionName>` and
+     * attaches the signed APK as a release asset.
      */
     object GitHub {
-        const val repo = "Duzc01/LumaGA"
+        const val repo = "Yuxiximyxx/LumaGA"
         const val repoUrl = "https://github.com/$repo"
         const val releasesUrl = "$repoUrl/releases"
         const val latestReleaseApi = "https://api.github.com/repos/$repo/releases/latest"

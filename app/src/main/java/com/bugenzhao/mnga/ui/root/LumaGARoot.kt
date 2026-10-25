@@ -30,6 +30,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.model.NavigationIdentifier
+import com.bugenzhao.mnga.ui.nav.CardPageEffects
 import com.bugenzhao.mnga.ui.nav.LocalNavigator
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
@@ -77,22 +78,27 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         val navigator = remember { Navigator() }
         val defaultPageEffects = rememberDefaultPageEffects()
 
-        // Page transitions (SharedNav): the Default effect is the library's
-        // card-style geometry — pages scale between 0.875 and 1 while their
-        // corner radius interpolates against the device screen corner, the
-        // covered page blurring and dimming behind. The same effect drives
-        // the predictive-back preview, so during the gesture the current
-        // page shrinks into a rounded card over the restored previous page,
-        // following the finger and snapping back when cancelled — the
-        // system Settings demo look the user asked for. (The old NavHost
-        // slide geometry is intentionally not reproduced: in SharedNav one
-        // effect drives both the transition and its predictive preview.)
+        // Page transitions (SharedNav): the background page gets the
+        // library's Default geometry — it scales to 0.875 while its
+        // corner radius interpolates against the device screen corner,
+        // blurring and dimming behind the foreground page. The foreground
+        // page uses CardPageEffects instead of the stock Default
+        // foreground (which scales 0↔1 around a top-center pivot and made
+        // plain pops collapse into a small floating rectangle): it is
+        // floored at 0.875 around the screen center and fades through the
+        // range below that floor. Within the predictive-gesture band the
+        // frame is identical to stock, so the predictive-back preview —
+        // current page shrinking into a rounded card over the restored
+        // previous page, following the finger, snapping back when
+        // cancelled — is unchanged. (The old NavHost slide geometry is
+        // intentionally not reproduced: in SharedNav one effect drives
+        // both the transition and its predictive preview.)
         // The Mine tab keeps its crossfade (tab switches are not pushes in
         // spirit), via the per-push fade effect below; its back preview is
         // therefore a fade as well.
         val pushEffect = remember {
             DefaultTransitionEffect(
-                pageEffect = defaultPageEffects,
+                pageEffect = CardPageEffects(defaultPageEffects),
                 pushAnimation = tween(280),
                 popAnimation = tween(280),
             )
