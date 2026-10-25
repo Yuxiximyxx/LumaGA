@@ -132,6 +132,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.miuix)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Instrumented tests (currently not run in CI; the emulator workflow was

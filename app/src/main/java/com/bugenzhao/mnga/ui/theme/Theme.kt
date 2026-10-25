@@ -8,11 +8,15 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.bugenzhao.mnga.storage.ColorSchemeMode
 import com.bugenzhao.mnga.storage.ThemeColor
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode as MiuixColorSchemeMode
 
 private fun tint(base: Color, factor: Float): Color = Color(
     red = (base.red * factor).coerceIn(0f, 1f),
@@ -131,12 +135,32 @@ fun LumaGATheme(
         controller.isAppearanceLightNavigationBars = !dark
     }
     
-    MaterialTheme(
-        colorScheme = when (colorSchemeMode) {
-            ColorSchemeMode.CLASSIC -> classicScheme(accent)
-            else -> scheme(accent, dark)
-        },
-        typography = LumaGATypography,
-        content = content,
-    )
+    // Miuix theme layer (MIUIX migration phase 1): wraps the Material theme so
+    // migrated screens can use Miuix components while unmigrated ones keep the
+    // existing Material scheme. The mode follows the app's own color-scheme
+    // setting; Monet variants seed the Miuix palette from the user's accent
+    // color, mirroring how the Material scheme is built around it. CLASSIC
+    // (the NGA yellow scheme) has no Miuix counterpart and maps to plain
+    // light, since Miuix components are not used on classic-styled surfaces.
+    val miuixController = remember(colorSchemeMode, accent) {
+        ThemeController(
+            when (colorSchemeMode) {
+                ColorSchemeMode.AUTO -> MiuixColorSchemeMode.MonetSystem
+                ColorSchemeMode.LIGHT -> MiuixColorSchemeMode.MonetLight
+                ColorSchemeMode.DARK -> MiuixColorSchemeMode.MonetDark
+                ColorSchemeMode.CLASSIC -> MiuixColorSchemeMode.Light
+            },
+            keyColor = accent,
+        )
+    }
+    MiuixTheme(controller = miuixController) {
+        MaterialTheme(
+            colorScheme = when (colorSchemeMode) {
+                ColorSchemeMode.CLASSIC -> classicScheme(accent)
+                else -> scheme(accent, dark)
+            },
+            typography = LumaGATypography,
+            content = content,
+        )
+    }
 }
