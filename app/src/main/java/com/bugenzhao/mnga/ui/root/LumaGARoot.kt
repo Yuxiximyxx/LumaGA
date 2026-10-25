@@ -53,6 +53,7 @@ import com.bugenzhao.mnga.model.appScope
 import com.xah.navigation.anim.effect.DefaultTransitionEffect
 import com.xah.navigation.anim.effect.FadeTransitionEffect
 import com.xah.navigation.anim.effect.rememberDefaultPageEffects
+import com.styropyr0.prismal.sources.prismalGlassLayer
 import com.xah.navigation.component.SharedNavHost
 import com.xah.navigation.component.rememberNavController
 import kotlinx.coroutines.flow.filter
@@ -142,7 +143,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .com.styropyr0.prismal.sources.prismalGlassLayer(dockBackdrop),
+                            .prismalGlassLayer(dockBackdrop),
                     ) {
                         NavigationHost(navigator, editor)
                     }
