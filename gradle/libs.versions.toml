@@ -13,6 +13,7 @@ buglyCrash = "4.1.9"
 buglyNative = "3.9.2"
 miuix = "0.8.8"
 sharedNav = "1.0.0-dev09300016"
+prismal = "v1.0.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,6 +39,7 @@ protobuf-util = { group = "com.google.protobuf", name = "protobuf-java-util", ve
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 miuix = { group = "top.yukonga.miuix.kmp", name = "miuix", version.ref = "miuix" }
 sharednav-navigation = { group = "com.github.Chiu-xaH.SharedNav", name = "navigation-android", version.ref = "sharedNav" }
+prismal = { group = "com.github.styropyr0", name = "PrismalAGSL", version.ref = "prismal" }
 miuix-icons = { group = "top.yukonga.miuix.kmp", name = "miuix-icons", version.ref = "miuix" }
 
 [plugins]

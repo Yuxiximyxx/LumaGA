@@ -129,11 +129,24 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         val colorSchemeMode = com.bugenzhao.mnga.storage.ColorSchemeMode.fromRaw(colorScheme)
         val tabDockGlassMaterial =
             com.bugenzhao.mnga.storage.DockGlassMaterial.fromRaw(tabDockGlassRaw)
+        // Backdrop for the tab dock's glass (Prismal): only the navigation
+        // content is recorded — overlays, the editor and the dock itself
+        // stay out of the sample. The recording is a live layer, so page
+        // transitions and scrolling are sampled as they draw; the dock's
+        // blur/refraction therefore tracks the content beneath it instead
+        // of a frozen snapshot.
+        val dockBackdrop = com.styropyr0.prismal.sources.rememberPrismalGlassLayer()
         Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
             CompositionLocalProvider(LocalNavigator provides navigator) {
                 Box(Modifier.fillMaxSize()) {
-                    NavigationHost(navigator, editor)
-                    MainTabBar(navigator, colorSchemeMode, tabDockGlassMaterial)
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .com.styropyr0.prismal.sources.prismalGlassLayer(dockBackdrop),
+                    ) {
+                        NavigationHost(navigator, editor)
+                    }
+                    MainTabBar(navigator, colorSchemeMode, tabDockGlassMaterial, dockBackdrop)
                 }
             }
         }
@@ -188,6 +201,7 @@ private fun BoxScope.MainTabBar(
     navigator: Navigator,
     colorSchemeMode: com.bugenzhao.mnga.storage.ColorSchemeMode,
     glassMaterial: com.bugenzhao.mnga.storage.DockGlassMaterial,
+    backdrop: com.styropyr0.prismal.sources.PrismalGlassLayer,
 ) {
     val stack by navigator.stack.collectAsState()
     val current = stack.lastOrNull()
@@ -209,6 +223,7 @@ private fun BoxScope.MainTabBar(
             },
             colorSchemeMode = colorSchemeMode,
             glassMaterial = glassMaterial,
+            backdrop = backdrop,
         )
     }
 }
