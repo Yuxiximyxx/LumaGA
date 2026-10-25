@@ -18,10 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -101,7 +102,7 @@ private fun BannerToast(model: ToastModel) {
                 ToastVisual(
                     L.str(context, "Cache Loaded"),
                     msg.message,
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                    MiuixTheme.colorScheme.primary.copy(alpha = 0.2f),
                     Icons.Filled.CheckCircle,
                 )
             else -> ToastVisual(L.str(context, "Error"), "", red, Icons.Filled.Error)
@@ -132,7 +133,7 @@ private fun HudToast(model: ToastModel) {
             ToastCard(
                 title,
                 subtitle,
-                MaterialTheme.colorScheme.surfaceContainerHigh,
+                MiuixTheme.colorScheme.surfaceContainerHigh,
                 Icons.Filled.CheckCircle,
             )
         }
@@ -158,7 +159,7 @@ private fun ToastCard(
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = MiuixTheme.colorScheme.surfaceContainerHigh,
         shadowElevation = 6.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -174,7 +175,7 @@ private fun ToastCard(
                     Text(
                         subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )

@@ -18,15 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
@@ -46,6 +38,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.ui.nav.Navigator
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.Dispatchers
@@ -63,7 +63,6 @@ private const val TAG = "QrScanner"
  * (nuke.php?__lib=login&__act=qrlogin_ui&qrkey=...), confirms the login
  * with the current app session so the web page logs in.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QrScannerScreen(navigator: Navigator) {
     val context = LocalContext.current
@@ -128,8 +127,8 @@ fun QrScannerScreen(navigator: Navigator) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("扫码登录") },
+            SmallTopAppBar(
+                title = "扫码登录",
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {
                         Icon(
@@ -218,7 +217,7 @@ fun QrScannerScreen(navigator: Navigator) {
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 48.dp),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MiuixTheme.colorScheme.onSurface
                     )
                 }
             }

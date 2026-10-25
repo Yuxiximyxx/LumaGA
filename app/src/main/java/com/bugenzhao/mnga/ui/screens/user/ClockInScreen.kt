@@ -18,20 +18,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,10 +76,11 @@ fun ClockInScreen(navigator: Navigator? = null) {
 
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = { Text(L.str(context, "Clock In")) },
+            SmallTopAppBar(
+                title = L.str(context, "Clock In"),
                 navigationIcon = {
                     IconButton(onClick = { navigator?.pop() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -98,7 +102,7 @@ fun ClockInScreen(navigator: Navigator? = null) {
             Text(
                 L.str(context, "Clock Streak"),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Spacer(Modifier.height(6.dp))
             val continued = stats?.continuedDays ?: 0
@@ -107,13 +111,13 @@ fun ClockInScreen(navigator: Navigator? = null) {
                 style = MaterialTheme.typography.displayLarge.copy(
                     fontWeight = FontWeight.Bold,
                 ),
-                color = if (clockedIn) Gold else MaterialTheme.colorScheme.onSurface,
+                color = if (clockedIn) Gold else MiuixTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 L.str(context, "Clock Streak Days"),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Spacer(Modifier.height(20.dp))
 
@@ -123,7 +127,7 @@ fun ClockInScreen(navigator: Navigator? = null) {
             Text(
                 L.str(context, "Clock Total Days", stats?.totalDays ?: 0),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
 
             Spacer(Modifier.height(32.dp))
@@ -160,8 +164,8 @@ fun ClockInScreen(navigator: Navigator? = null) {
                     onClick = {},
                     enabled = false,
                     colors = ButtonDefaults.buttonColors(
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledColor = MiuixTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -174,7 +178,10 @@ fun ClockInScreen(navigator: Navigator? = null) {
             } else {
                 Button(
                     onClick = { App.currentUser.clockInOnce() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Gold),
+                    colors = ButtonDefaults.buttonColors(
+                        color = Gold,
+                        contentColor = Color.White,
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -211,7 +218,7 @@ private fun CoinRow(coins: List<CoinBadge>) {
                     Text(
                         coin.label,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
                     Text(
                         coin.value.toString(),
@@ -269,7 +276,7 @@ private fun MonthGrid(
     val goldBrush = Brush.linearGradient(
         listOf(Gold.copy(alpha = 0.85f), Gold.copy(alpha = 1f)),
     )
-    val grey = MaterialTheme.colorScheme.outlineVariant
+    val grey = MiuixTheme.colorScheme.dividerLine
     val firstDay = month.atDay(1)
     val leading = firstDay.dayOfWeek.value - 1 // 周一 = 0 偏移
     val days = month.lengthOfMonth()
@@ -281,7 +288,7 @@ private fun MonthGrid(
     Text(
         month.format(java.time.format.DateTimeFormatter.ofPattern("yyyy年M月")),
         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
     )
     Spacer(Modifier.height(6.dp))
 
@@ -292,7 +299,7 @@ private fun MonthGrid(
                 w,
                 Modifier.width(cellSize),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 textAlign = TextAlign.Center,
             )
         }
@@ -341,7 +348,7 @@ private fun MonthGrid(
                                 Text(
                                     day.toString(),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 )
                             }
                         }

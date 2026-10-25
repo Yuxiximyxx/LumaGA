@@ -47,14 +47,13 @@ import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.HorizontalDivider
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.extra.SuperBottomSheet
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -184,7 +183,7 @@ fun PostRow(
     }
     val rowColor by animateColorAsState(
         targetValue = if (highlighted) {
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+            MiuixTheme.colorScheme.primary.copy(alpha = 0.10f)
         } else {
             Color.Transparent
         },
@@ -311,7 +310,7 @@ fun PostRow(
                 } == true
             }
             if (visibleComments.isNotEmpty()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MiuixTheme.colorScheme.dividerLine)
                 Row {
                     Spacer(Modifier.width(6.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -326,7 +325,7 @@ fun PostRow(
                 val sig = user?.signature
                 if (sig != null && sig.spansList.isNotEmpty()) {
                     // 签名分隔线：浅金色、更粗，与签名内容同宽，中间标注"签名"。
-                    val sigColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                    val sigColor = MiuixTheme.colorScheme.primary.copy(alpha = 0.4f)
                     Row(
                         Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -352,7 +351,7 @@ fun PostRow(
                         content = sig,
                         env = ContentEnv(actions = contentActions),
                         fontSize = PostFontSize.SMALL,
-                        defaultColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        defaultColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
                 }
             }
@@ -414,7 +413,6 @@ fun PostRow(
 }
 
 /** Attachments list sheet, ported from `AttachmentsView` presentation. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PostAttachmentsSheet(
     post: Post,
@@ -422,7 +420,7 @@ private fun PostAttachmentsSheet(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    SuperBottomSheet(show = true, onDismissRequest = onDismiss) {
         AttachmentsView(
             attachments = post.attachmentsList,
             onViewImage = { urls, current ->
@@ -496,12 +494,12 @@ private fun PostRowFloor(post: Post) {
             deviceIcon(post.device),
             contentDescription = null,
             modifier = Modifier.size(13.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
         Text(
             L.str(context, "[Floor %lld]", post.floor),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
     }
 }
@@ -562,9 +560,9 @@ private fun PostRowUserName(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             color = if (user?.mute == true) {
-                MaterialTheme.colorScheme.onSurfaceVariant
+                MiuixTheme.colorScheme.onSurfaceVariantSummary
             } else {
-                MaterialTheme.colorScheme.onSurface
+                MiuixTheme.colorScheme.onSurface
             },
             modifier = Modifier
                 .weight(1f, fill = false)
@@ -579,14 +577,14 @@ private fun PostRowUserName(
                 Icons.Filled.MicOff,
                 contentDescription = "Muted",
                 modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.error,
+                tint = MiuixTheme.colorScheme.error,
             )
         }
         if (isAuthor && showAuthorIndicator) {
             Text(
                 L.str(context, "(OP)"),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MiuixTheme.colorScheme.primary,
                 maxLines = 1,
             )
         }
@@ -619,7 +617,7 @@ fun PostRowUserView(
 @Composable
 private fun UserDetailsLine(user: User, showRegDate: Boolean) {
     val context = LocalContext.current
-    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val secondary = MiuixTheme.colorScheme.onSurfaceVariantSummary
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -628,13 +626,13 @@ private fun UserDetailsLine(user: User, showRegDate: Boolean) {
             label = L.str(context, "Fame:"),
             // Fame is stored x10 signed; render with one decimal.
             value = String.format("%.1f", user.fame / 10.0),
-            color = if (user.fame < 0) MaterialTheme.colorScheme.error else secondary,
+            color = if (user.fame < 0) MiuixTheme.colorScheme.error else secondary,
         )
         LabelledStat(
             label = L.str(context, "Posts:"),
             value = user.postNum.toString(),
             color = if (user.postNum in 1 until 50) {
-                MaterialTheme.colorScheme.error
+                MiuixTheme.colorScheme.error
             } else {
                 secondary
             },
@@ -699,7 +697,7 @@ private fun PostRowFooter(
                     Icons.Filled.AttachFile,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.outline,
+                    tint = MiuixTheme.colorScheme.outline,
                 )
             }
         }
@@ -714,9 +712,9 @@ private fun PostRowFooter(
                     .size(18.dp)
                     .combinedClickable(onClick = onUpvote, onLongClick = {}),
                 tint = if (vote.state == VoteState.UP) {
-                    MaterialTheme.colorScheme.primary
+                    MiuixTheme.colorScheme.primary
                 } else {
-                    MaterialTheme.colorScheme.outline
+                    MiuixTheme.colorScheme.outline
                 },
             )
             val score = maxOf(post.score + vote.delta, 0)
@@ -725,9 +723,9 @@ private fun PostRowFooter(
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (vote.state == VoteState.UP) FontWeight.Bold else FontWeight.Normal,
                 color = if (vote.state == VoteState.UP) {
-                    MaterialTheme.colorScheme.primary
+                    MiuixTheme.colorScheme.primary
                 } else {
-                    MaterialTheme.colorScheme.outline
+                    MiuixTheme.colorScheme.outline
                 },
             )
             Icon(
@@ -737,9 +735,9 @@ private fun PostRowFooter(
                     .size(18.dp)
                     .combinedClickable(onClick = onDownvote, onLongClick = {}),
                 tint = if (vote.state == VoteState.DOWN) {
-                    MaterialTheme.colorScheme.primary
+                    MiuixTheme.colorScheme.primary
                 } else {
-                    MaterialTheme.colorScheme.outline
+                    MiuixTheme.colorScheme.outline
                 },
             )
             Icon(
@@ -748,7 +746,7 @@ private fun PostRowFooter(
                 modifier = Modifier
                     .size(18.dp)
                     .combinedClickable(onClick = onQuote, onLongClick = {}),
-                tint = MaterialTheme.colorScheme.outline,
+                tint = MiuixTheme.colorScheme.outline,
             )
             if (showMenu) {
                 Icon(
@@ -758,7 +756,7 @@ private fun PostRowFooter(
                         .size(18.dp)
                         .clip(CircleShape)
                         .clickable(onClick = onMenuClick),
-                    tint = MaterialTheme.colorScheme.outline,
+                    tint = MiuixTheme.colorScheme.outline,
                 )
             }
         }
@@ -843,7 +841,7 @@ private fun BlockedContent(
             Box(
                 Modifier
                     .matchParentSize()
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+                    .background(MiuixTheme.colorScheme.surface.copy(alpha = 0.85f)),
             )
         }
     }
@@ -1062,7 +1060,7 @@ private fun SwipeActionsRow(
                             act.icon,
                             contentDescription = act.label,
                             tint = if (act.tint == Color.Unspecified) {
-                                MaterialTheme.colorScheme.primary
+                                MiuixTheme.colorScheme.primary
                             } else {
                                 act.tint
                             },
@@ -1070,7 +1068,7 @@ private fun SwipeActionsRow(
                         Text(
                             L.str(context, act.label),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MiuixTheme.colorScheme.primary,
                         )
                     }
                 }

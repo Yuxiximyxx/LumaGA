@@ -19,11 +19,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,7 +51,9 @@ fun LoadingRow() {
         CircularProgressIndicator(
             modifier = Modifier.size(22.dp),
             strokeWidth = 2.dp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            colors = ProgressIndicatorDefaults.progressIndicatorColors(
+                foregroundColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            ),
         )
     }
 }
@@ -66,7 +70,7 @@ fun AdaptiveFooter(loading: Boolean, noMore: Boolean) {
             Text(
                 L.str(LocalContext.current, "No More Topics"),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
         }
         else -> Spacer(Modifier.height(8.dp))
@@ -122,7 +126,7 @@ fun GroupedRow(
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MiuixTheme.colorScheme.primary,
                 )
             }
         }
@@ -136,7 +140,7 @@ fun RowChevron() {
     Icon(
         Icons.Filled.ChevronRight,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.outline,
+        tint = MiuixTheme.colorScheme.outline,
         modifier = Modifier.size(18.dp),
     )
 }
@@ -161,7 +165,7 @@ fun Avatar(url: String?, name: String? = null, size: Int = 40, onClick: (() -> U
 @Composable
 fun DateTimeText(
     timestampSeconds: Long,
-    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    color: Color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
 ) {
     val context = LocalContext.current
     val strategy = com.bugenzhao.mnga.App.prefs.postRowDateTimeStrategy
@@ -207,7 +211,7 @@ private const val HotHottestRepliesThreshold = 1000
 
 /** The muted gray shared by a topic row's metadata line. */
 @Composable
-fun topicMetaColor(): Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+fun topicMetaColor(): Color = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.72f)
 
 /**
  * The app's "heat" accent — the same warm orange a hot [RepliesBadge] uses,
@@ -216,7 +220,7 @@ fun topicMetaColor(): Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(al
  */
 @Composable
 fun hotAccentColor(): Color =
-    if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) HotRepliesDark else HotRepliesLight
+    if (MiuixTheme.colorScheme.surface.luminance() < 0.5f) HotRepliesDark else HotRepliesLight
 
 /**
  * Replies count with a leading bubble icon, highlighted once the topic gets
@@ -226,7 +230,7 @@ fun hotAccentColor(): Color =
  */
 @Composable
 fun RepliesBadge(replies: Int, delta: Int? = null) {
-    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val dark = MiuixTheme.colorScheme.surface.luminance() < 0.5f
     val hot = replies >= HotRepliesThreshold
     val color = when {
         replies >= HotHottestRepliesThreshold -> if (dark) HotHottestDark else HotHottestLight
@@ -262,7 +266,7 @@ fun RepliesBadge(replies: Int, delta: Int? = null) {
             Text(
                 "+$delta",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = MiuixTheme.colorScheme.primary,
                 // 与主数字一致：小号字形的视觉中心偏低约 1dp。
                 modifier = Modifier.offset(y = (-1).dp),
             )
@@ -280,7 +284,7 @@ fun ListPlaceholder(text: String) {
         Text(
             text,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
     }
 }
@@ -296,17 +300,18 @@ fun ErrorPlaceholder(error: LogicException, onRetry: () -> Unit) {
         Text(
             error.error,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
+            color = MiuixTheme.colorScheme.error,
         )
         Surface(
             shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.primary,
+            color = MiuixTheme.colorScheme.primary,
+            contentColor = MiuixTheme.colorScheme.onPrimary,
             onClick = onRetry,
         ) {
             Text(
                 L.str(LocalContext.current, "Retry"),
                 Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = MiuixTheme.colorScheme.onPrimary,
             )
         }
     }

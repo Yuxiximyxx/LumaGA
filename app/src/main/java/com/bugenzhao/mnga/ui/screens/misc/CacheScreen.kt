@@ -7,29 +7,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.exclude
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.Coil
 import com.bugenzhao.mnga.logicCallAsync
@@ -58,6 +49,17 @@ import com.bugenzhao.mnga.util.fmtL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** What a pending clear confirmation refers to. */
 private sealed interface PendingClear {
@@ -77,7 +79,6 @@ private fun cacheTypeLabel(type: CacheType): String = when (type) {
  * Cache management settings page, ported from `Views/CacheView.swift`.
  * The image cache is the Coil disk cache; data caches live in the logic layer.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CacheScreen(navigator: Navigator? = null) {
     val context = LocalContext.current
@@ -140,10 +141,11 @@ fun CacheScreen(navigator: Navigator? = null) {
 
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = { Text(L.str(context, "Cache Management")) },
+            SmallTopAppBar(
+                title = L.str(context, "Cache Management"),
                 navigationIcon = {
                     IconButton(onClick = { navigator?.pop() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -165,7 +167,7 @@ fun CacheScreen(navigator: Navigator? = null) {
                             Icon(
                                 Icons.Filled.Image,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
                         },
                         status = imageStatus,
@@ -188,7 +190,7 @@ fun CacheScreen(navigator: Navigator? = null) {
                                 Icon(
                                     Icons.Filled.CleaningServices,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 )
                             },
                             status = cacheStatus[type],
@@ -236,19 +238,17 @@ private fun SectionCard(
 ) {
     Column(Modifier.fillMaxWidth()) {
         if (header != null) {
-            Text(
-                header,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 28.dp, bottom = 6.dp),
+            SmallTitle(
+                text = header,
+                insideMargin = PaddingValues(start = 28.dp, bottom = 6.dp),
             )
         }
         GroupedList { Column { content() } }
         if (footer != null) {
             Text(
                 footer,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 modifier = Modifier.padding(start = 28.dp, top = 6.dp, end = 16.dp),
             )
         }
@@ -275,17 +275,17 @@ private fun CacheRow(
         leading?.invoke()
         Text(
             label,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MiuixTheme.textStyles.body1,
             color =
-                if (clearable) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurfaceVariant,
+                if (clearable) MiuixTheme.colorScheme.onSurface
+                else MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
         Spacer(Modifier.weight(1f))
         if (status != null) {
             Text(
                 status,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
         } else {
             CircularProgressIndicator(
@@ -300,17 +300,30 @@ private fun CacheRow(
 @Composable
 private fun ClearCacheDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    AlertDialog(
+    WindowDialog(
+        show = true,
+        title = L.str(context, "Are you sure to clear the cache?"),
         onDismissRequest = onDismiss,
-        title = { Text(L.str(context, "Are you sure to clear the cache?")) },
-        text = { Text(L.str(context, "This will take a while.")) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(L.str(context, "Clear"), color = MaterialTheme.colorScheme.error)
+    ) {
+        Column {
+            Text(L.str(context, "This will take a while."))
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    text = L.str(context, "Cancel"),
+                    onClick = onDismiss,
+                )
+                Spacer(Modifier.size(8.dp))
+                TextButton(
+                    text = L.str(context, "Clear"),
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.textButtonColors(
+                        textColor = MiuixTheme.colorScheme.error,
+                    ),
+                )
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(L.str(context, "Cancel")) }
-        },
-    )
+        }
+    }
 }

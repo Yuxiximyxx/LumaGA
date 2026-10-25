@@ -52,8 +52,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.TextButton
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -933,7 +933,7 @@ fun TopicDetailsScreen(
                                     Text(
                                         L.str(context, "Loading Previous Page"),
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                     )
                                 }
                             }
@@ -982,7 +982,7 @@ fun TopicDetailsScreen(
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
+                            .background(MiuixTheme.colorScheme.surface.copy(alpha = 0.72f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator()
@@ -1286,7 +1286,7 @@ private fun TopicDetailsRow(
                 TopicSubjectHeader(topic = topic)
                 // 屏宽浅色分割线：分隔主题头部与帖子流。
                 HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    color = MiuixTheme.colorScheme.dividerLine.copy(alpha = 0.5f),
                 )
                 if (first != null) {
                     PostRow(
@@ -1355,7 +1355,7 @@ private fun TopicDetailsRow(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                    TextButton(onClick = { if (!loading) onLoadNewReplies() }, enabled = !loading) {
+                    Button(onClick = { if (!loading) onLoadNewReplies() }, enabled = !loading) {
                         Icon(Icons.Filled.Refresh, null, Modifier.size(18.dp))
                         Spacer(Modifier.size(6.dp))
                         Text(L.str(context, "Load New Replies"))
@@ -1389,7 +1389,7 @@ private fun Modifier.hotBand(
     separated: Boolean = false,
 ): Modifier {
     val heat = hotAccentColor()
-    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val dark = MiuixTheme.colorScheme.surface.luminance() < 0.5f
     // Dark surfaces swallow a tint, so the wash there is twice as strong.
     val wash = heat.copy(alpha = if (dark) 0.10f else 0.05f)
     return this
@@ -1555,13 +1555,13 @@ private fun TopicSubjectHeader(topic: Topic) {
                         Icons.Filled.Bookmark,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MiuixTheme.colorScheme.primary,
                     )
                     Text(
                         topic.parentForum.name,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MiuixTheme.colorScheme.primary,
                     )
                 }
                 tags.forEach { tag ->
@@ -1597,12 +1597,12 @@ private fun TopicSubjectHeader(topic: Topic) {
                     Icons.Outlined.ChatBubbleOutline,
                     contentDescription = null,
                     modifier = Modifier.size(15.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
                 Text(
                     topic.repliesNum.toString(),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
             Row(
@@ -1613,7 +1613,7 @@ private fun TopicSubjectHeader(topic: Topic) {
                     Icons.Outlined.Schedule,
                     contentDescription = null,
                     modifier = Modifier.size(15.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
                 DateTimeText(timestampSeconds = topic.postDate)
             }
@@ -1652,7 +1652,7 @@ private fun TopicDetailsMoreMenu(
             Text(
                 "#" + topic.id + (topic.fav.takeIf { it.isNotEmpty() }?.let { " @$it" } ?: ""),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
             HorizontalDivider()
@@ -1758,7 +1758,7 @@ private fun LocalCacheBanner(reason: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MiuixTheme.colorScheme.surfaceVariant,
         modifier = modifier.fillMaxWidth(),
     ) {
         Text(
@@ -1768,7 +1768,7 @@ private fun LocalCacheBanner(reason: String, modifier: Modifier = Modifier) {
                 L.str(context, "Cached Topic") + " · " + reason
             },
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
         )
     }
@@ -1784,17 +1784,17 @@ private fun XMLParseErrorMain(
     val context = LocalContext.current
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MiuixTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth().padding(16.dp),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             TopicSubjectHeader(topic = topic)
-            TextButton(onClick = onRefresh) {
+            Button(onClick = onRefresh) {
                 Icon(Icons.Filled.Refresh, null, Modifier.size(18.dp))
                 Spacer(Modifier.size(6.dp))
                 Text(L.str(context, "Refresh"))
             }
-            TextButton(onClick = onOpenInBrowser) {
+            Button(onClick = onOpenInBrowser) {
                 Icon(Icons.Filled.OpenInBrowser, null, Modifier.size(18.dp))
                 Spacer(Modifier.size(6.dp))
                 Text(L.str(context, "Open in Browser"))
@@ -1829,7 +1829,7 @@ private fun ReplyChainOverlay(
             dismissOnBackPress = true,
         ),
     ) {
-        Surface(color = MaterialTheme.colorScheme.background) {
+        Surface(color = MiuixTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize()) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -1872,7 +1872,7 @@ private fun ReplyChainOverlay(
                                         "Reply not found. It may have been deleted.",
                                     ),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 )
                             }
 

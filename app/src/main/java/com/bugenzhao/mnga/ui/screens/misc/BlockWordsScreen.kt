@@ -6,11 +6,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,20 +30,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.FrontHand
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.exclude
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +54,14 @@ import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.util.Haptics
 import com.bugenzhao.mnga.util.L
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * Block word editor, ported from `Views/BlockWordListView.swift`: keyword rows
@@ -91,10 +93,11 @@ fun BlockWordsScreen(navigator: Navigator? = null) {
 
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = { Text(L.str(context, "Block Contents")) },
+            SmallTopAppBar(
+                title = L.str(context, "Block Contents"),
                 navigationIcon = {
                     IconButton(onClick = { navigator?.pop() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -123,14 +126,14 @@ fun BlockWordsScreen(navigator: Navigator? = null) {
                 Icon(
                     Icons.Outlined.FrontHand,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     modifier = Modifier.size(48.dp),
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
                     L.str(context, "No Block Words"),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MiuixTheme.textStyles.headline1,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
         } else {
@@ -141,16 +144,16 @@ fun BlockWordsScreen(navigator: Navigator? = null) {
             ) {
                 if (newWord != null) {
                     item(key = "new-word") {
-                        OutlinedTextField(
+                        TextField(
                             value = newWord.orEmpty(),
                             onValueChange = { newWord = it },
-                            label = { Text(L.str(context, "New word")) },
+                            label = L.str(context, "New word"),
                             singleLine = true,
                             trailingIcon = {
                                 Icon(
                                     Icons.Filled.Edit,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 )
                             },
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -184,12 +187,14 @@ private fun SwipeToDeleteWordRow(word: BlockWord, onDelete: () -> Unit) {
             }
         },
     )
+    // Miuix 0.8.8 has no SwipeToDismiss equivalent; SwipeToDismissBox itself
+    // stays material3, only its colors moved to the Miuix color scheme.
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
             Row(
                 Modifier.fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(12.dp))
+                    .background(MiuixTheme.colorScheme.errorContainer, RoundedCornerShape(12.dp))
                     .padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End,
@@ -197,7 +202,7 @@ private fun SwipeToDeleteWordRow(word: BlockWord, onDelete: () -> Unit) {
                 Icon(
                     Icons.Filled.Delete,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    tint = MiuixTheme.colorScheme.onErrorContainer,
                 )
             }
         },
@@ -212,7 +217,7 @@ private fun WordRow(word: BlockWord) {
     val userName = word.word.takeIf { it.startsWith(BlockWordsStorage.userPrefix) }
         ?.removePrefix(BlockWordsStorage.userPrefix)
     Surface(
-        color = MaterialTheme.colorScheme.surface,
+        color = MiuixTheme.colorScheme.surface,
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -223,7 +228,7 @@ private fun WordRow(word: BlockWord) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    color = MiuixTheme.colorScheme.surfaceContainerHigh,
                     shape = RoundedCornerShape(50),
                 ) {
                     Row(
@@ -234,13 +239,13 @@ private fun WordRow(word: BlockWord) {
                         Icon(
                             Icons.Filled.AccountCircle,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MiuixTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp),
                         )
                         Text(
                             userName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.onSurface,
                         )
                     }
                 }
@@ -251,7 +256,7 @@ private fun WordRow(word: BlockWord) {
                 Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(word.word, style = MaterialTheme.typography.bodyLarge)
+                Text(word.word, style = MiuixTheme.textStyles.body1)
             }
         }
     }

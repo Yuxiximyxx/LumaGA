@@ -1,20 +1,25 @@
 package com.bugenzhao.mnga.ui.screens.user
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
@@ -24,18 +29,10 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAddAlt1
 import androidx.compose.material.icons.filled.PersonRemoveAlt1
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -56,34 +54,29 @@ import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.util.L
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * Personal center page: the former account bottom sheet (`UserMenuSheet`),
- * repackaged as a full page that slides in from the left. Current user card,
- * quick links, account switcher, sign in/out and app settings.
+ * repackaged as a full page. Since the MIUIX phase-2 shell it is the
+ * bottom-bar "Mine" tab root, so it has no back button; its content
+ * (current user card, quick links, account switcher, sign in/out and app
+ * settings) is unchanged from the drawer-page era.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonalCenterScreen(navigator: Navigator) {
     val context = LocalContext.current
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        L.str(context, "Personal Center"),
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navigator.pop() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
-                        )
-                    }
-                },
+                title = L.str(context, "Personal Center"),
             )
         },
     ) { padding ->
@@ -146,17 +139,11 @@ private fun PersonalCenterContent(
                         title = L.str(context, "Notifications"),
                         trailing = {
                             if (unreadCount > 0) {
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.primary,
-                                ) {
-                                    Text(
-                                        unreadCount.toString(),
-                                        Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                    )
-                                }
+                                CountBadge(
+                                    text = unreadCount.toString(),
+                                    containerColor = MiuixTheme.colorScheme.primary,
+                                    contentColor = MiuixTheme.colorScheme.onPrimary,
+                                )
                             }
                         },
                     ) {
@@ -197,17 +184,11 @@ private fun PersonalCenterContent(
                         title = L.str(context, "Block Management"),
                         trailing = if (blockedUserCount > 0) {
                             {
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                ) {
-                                    Text(
-                                        blockedUserCount.toString(),
-                                        Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
+                                CountBadge(
+                                    text = blockedUserCount.toString(),
+                                    containerColor = MiuixTheme.colorScheme.surfaceContainerHigh,
+                                    contentColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                )
                             }
                         } else null,
                     ) {
@@ -248,8 +229,8 @@ private fun PersonalCenterContent(
                             {
                                 Text(
                                     L.str(context, "Clocked In"),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MiuixTheme.textStyles.body2,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 )
                             }
                         } else null,
@@ -269,7 +250,7 @@ private fun PersonalCenterContent(
                     MenuRow(
                         icon = Icons.Filled.PersonRemoveAlt1,
                         title = L.str(context, "Sign Out"),
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = MiuixTheme.colorScheme.error,
                     ) {
                         App.authStorage.clearCurrentAuth()
                     }
@@ -301,21 +282,40 @@ private fun PersonalCenterContent(
     }
 }
 
+/** Count pill shown at a row's trailing edge (unread / blocked counts). */
+@Composable
+private fun CountBadge(text: String, containerColor: Color, contentColor: Color) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(containerColor),
+    ) {
+        Text(
+            text,
+            Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+            style = MiuixTheme.textStyles.footnote1,
+            color = contentColor,
+        )
+    }
+}
+
+/** Grouped card container, same Miuix Card recipe as the shared GroupedList. */
 @Composable
 private fun MenuCard(content: @Composable () -> Unit) {
-    Surface(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-    ) { Column { content() } }
+        insideMargin = PaddingValues(0.dp),
+    ) {
+        Column { content() }
+    }
 }
 
 @Composable
 private fun SectionLabel(text: String) {
     Text(
         text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MiuixTheme.textStyles.footnote1,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
     )
 }
@@ -325,11 +325,11 @@ private fun MenuRow(
     icon: ImageVector,
     title: String,
     subtitle: String? = null,
-    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    trailingIcon: ImageVector? = null,
+    tint: Color? = null,
     trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
+    val iconTint = tint ?: MiuixTheme.colorScheme.onSurfaceVariantSummary
     Row(
         Modifier
             .fillMaxWidth()
@@ -338,19 +338,22 @@ private fun MenuRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(icon, contentDescription = null, tint = tint)
+        Icon(icon, contentDescription = null, tint = iconTint)
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                title,
+                style = MiuixTheme.textStyles.body1,
+                color = tint ?: MiuixTheme.colorScheme.onSurface,
+            )
             if (subtitle != null) {
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
         }
         if (trailing != null) trailing()
-        if (trailingIcon != null) Icon(trailingIcon, contentDescription = null, tint = tint)
     }
 }
 
@@ -372,12 +375,12 @@ private fun AccountRow(
         Icon(
             if (selected) Icons.Filled.Person else Icons.Outlined.Badge,
             contentDescription = null,
-            tint = if (selected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = if (selected) MiuixTheme.colorScheme.primary
+            else MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
         Text(
             info.cachedName.ifEmpty { info.uid.ifEmpty { L.str(context, "Unknown") } },
-            style = MaterialTheme.typography.bodyLarge,
+            style = MiuixTheme.textStyles.body1,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -385,8 +388,8 @@ private fun AccountRow(
         if (selected) {
             Text(
                 L.str(context, "Current Version"),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.primary,
             )
         }
     }
@@ -414,7 +417,7 @@ private fun CurrentUserCard(
         Icon(
             Icons.Filled.Group,
             contentDescription = L.str(context, "Accounts"),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
     }
 }

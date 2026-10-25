@@ -18,17 +18,20 @@ import androidx.compose.material.icons.outlined.AddComment
 import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.TheaterComedy
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -77,10 +80,11 @@ fun ShortMessageListScreen(
     }
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = { Text(L.str(context, "Short Messages")) },
+            SmallTopAppBar(
+                title = L.str(context, "Short Messages"),
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -126,7 +130,7 @@ internal fun ShortMessageRow(
     val context = LocalContext.current
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MiuixTheme.colorScheme.surface,
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
@@ -140,7 +144,7 @@ internal fun ShortMessageRow(
                 Icon(
                     Icons.AutoMirrored.Outlined.Chat,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MiuixTheme.colorScheme.primary,
                 )
                 Text(
                     message.subject.ifEmpty { L.str(context, "Short Message") },
@@ -165,7 +169,7 @@ internal fun ShortMessageRow(
                         Date(message.lastPostDate * 1000),
                     ),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
         }
@@ -183,7 +187,7 @@ private fun ParticipantsLabel(
         Icon(
             Icons.Outlined.MailOutline,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             modifier = modifier,
         )
         return
@@ -201,12 +205,12 @@ private fun ParticipantsLabel(
                     else Icons.Filled.Person,
                     contentDescription = null,
                     modifier = Modifier.padding(0.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
                 Text(
                     name.displayString,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -215,12 +219,12 @@ private fun ParticipantsLabel(
                 Icon(
                     Icons.Filled.Group,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
                 Text(
                     names.joinToString(", ") { it.displayString },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

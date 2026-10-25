@@ -29,20 +29,23 @@ import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.MarkEmailRead
 import androidx.compose.material.icons.outlined.MarkEmailUnread
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.PullToRefresh
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -160,25 +163,14 @@ fun NotificationListSheet(
 
     // 页面形式（与设置页一致的 AppBar），不再是底部弹窗。
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            L.str(context, "Notifications"),
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            if (unreadCount > 0) L.str(context, "%lld Unread", unreadCount)
-                            else L.str(context, "All Read"),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
+            // Miuix 0.8.8 SmallTopAppBar has no subtitle slot; the unread
+            // count subtitle is folded into the list header below (same
+            // approach as TopicListScreen).
+            SmallTopAppBar(
+                title = L.str(context, "Notifications"),
                 navigationIcon = {
                     IconButton(onClick = onDismiss) {
                         Icon(
@@ -206,7 +198,7 @@ fun NotificationListSheet(
             )
         },
     ) { padding ->
-        PullToRefreshBox(
+        PullToRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = { dataSource.refreshAsync(sleepMillis = 500) },
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -220,7 +212,7 @@ fun NotificationListSheet(
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
                             L.str(context, "All Read"),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
                 else -> {
@@ -231,6 +223,17 @@ fun NotificationListSheet(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                        item(key = "unread-header") {
+                            Text(
+                                if (unreadCount > 0) {
+                                    L.str(context, "%lld Unread", unreadCount)
+                                } else {
+                                    L.str(context, "All Read")
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
                         itemsIndexed(state.items, key = { _, n -> n.id }) { _, noti ->
                             val read = isRead(noti)
                             NotificationRow(
@@ -273,12 +276,12 @@ private fun NotificationRow(
 ) {
     val context = LocalContext.current
     val foreground =
-        if (read) MaterialTheme.colorScheme.onSurfaceVariant
-        else MaterialTheme.colorScheme.onSurface
+        if (read) MiuixTheme.colorScheme.onSurfaceVariantSummary
+        else MiuixTheme.colorScheme.onSurface
 
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MiuixTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -311,7 +314,7 @@ private fun NotificationRow(
                         if (read) Icons.Outlined.MarkEmailUnread
                         else Icons.Outlined.MarkEmailRead,
                         contentDescription = L.str(context, if (read) "Unread" else "Read"),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MiuixTheme.colorScheme.primary,
                     )
                 }
             }
@@ -328,14 +331,14 @@ private fun NotificationRow(
                             Icons.Filled.Person,
                             contentDescription = null,
                             modifier = Modifier.size(13.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                         Text(
                             noti.otherUser.nameDisplayCompat.ifEmpty {
                                 noti.otherUser.name.normal
                             },
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
                 } else if (noti.type == Notification.Type.VOTE) {
@@ -347,12 +350,12 @@ private fun NotificationRow(
                             Icons.Outlined.Comment,
                             contentDescription = null,
                             modifier = Modifier.size(13.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                         Text(
                             L.str(context, "Your post"),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
                 }
@@ -361,14 +364,14 @@ private fun NotificationRow(
                     Text(
                         description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
                 }
                 Box(Modifier.weight(1f))
                 Text(
                     DateFormatters.automatic(context, Date(noti.timestamp * 1000)),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
         }
@@ -392,6 +395,6 @@ private fun UnreadDot() {
         Modifier
             .padding(2.dp)
             .size(8.dp)
-            .background(MaterialTheme.colorScheme.primary, CircleShape),
+            .background(MiuixTheme.colorScheme.primary, CircleShape),
     )
 }

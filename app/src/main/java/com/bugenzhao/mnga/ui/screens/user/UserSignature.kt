@@ -9,17 +9,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Send
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.extra.SuperBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -138,7 +140,11 @@ fun SignatureEditorSheet(
     var selection by remember { mutableStateOf(TextRange(text.length)) }
     var textState by remember(ctx) { mutableStateOf(text) }
 
-    ModalBottomSheet(
+    // Miuix SuperBottomSheet takes the title as a parameter instead of a
+    // content slot, so the old in-content title Text is dropped.
+    SuperBottomSheet(
+        show = true,
+        title = L.str(context, "Edit Signature"),
         onDismissRequest = {
             model.editorDismissed()
             onDismiss()
@@ -148,11 +154,7 @@ fun SignatureEditorSheet(
             Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(
-                L.str(context, "Edit Signature"),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            OutlinedTextField(
+            TextField(
                 value = textState,
                 onValueChange = {
                     textState = it
@@ -172,7 +174,7 @@ fun SignatureEditorSheet(
                     Icon(
                         Icons.Outlined.Delete,
                         contentDescription = L.str(context, "Discard"),
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = MiuixTheme.colorScheme.error,
                     )
                 }
                 androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
@@ -197,26 +199,32 @@ fun SignatureEditorSheet(
     }
 
     if (showDiscardDialog) {
-        AlertDialog(
+        WindowDialog(
+            show = true,
+            title = L.str(context, "Discard the draft?"),
+            summary = L.str(context, "Save the draft by swiping down to dismiss the editor."),
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text(L.str(context, "Discard the draft?")) },
-            text = {
-                Text(L.str(context, "Save the draft by swiping down to dismiss the editor."))
-            },
-            confirmButton = {
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
                 TextButton(
+                    text = L.str(context, "Cancel"),
+                    onClick = { showDiscardDialog = false },
+                )
+                TextButton(
+                    text = L.str(context, "Discard"),
                     onClick = {
                         showDiscardDialog = false
                         model.discardCurrentContext()
                         onDismiss()
                     },
-                ) { Text(L.str(context, "Discard"), color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDiscardDialog = false }) {
-                    Text(L.str(context, "Cancel"))
-                }
-            },
-        )
+                    colors = ButtonDefaults.textButtonColors(
+                        textColor = MiuixTheme.colorScheme.error,
+                    ),
+                )
+            }
+        }
     }
 }

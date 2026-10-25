@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,28 +23,29 @@ import androidx.compose.material.icons.outlined.Create
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.PullToRefresh
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -157,25 +159,11 @@ fun FavoritesScreen(navigator: Navigator, initialFolderId: String? = null) {
     }
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            L.str(context, "Favorite Topics"),
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            currentFolder?.name ?: L.str(context, "Default Folder"),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                        )
-                    }
-                },
+            SmallTopAppBar(
+                title = L.str(context, "Favorite Topics"),
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {
                         Icon(
@@ -223,99 +211,139 @@ fun FavoritesScreen(navigator: Navigator, initialFolderId: String? = null) {
             )
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            val folder = currentFolder
-            if (folder == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+        // Miuix 0.8.8 SmallTopAppBar has no subtitle slot; the current
+        // folder name (the old subtitle) is folded into a header label
+        // above the list so the information stays on screen.
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            Text(
+                currentFolder?.name ?: L.str(context, "Default Folder"),
+                style = MiuixTheme.textStyles.footnote2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+            Box(Modifier.fillMaxSize()) {
+                val folder = currentFolder
+                if (folder == null) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    FavoriteTopicList(folder = folder, navigator = navigator)
                 }
-            } else {
-                FavoriteTopicList(folder = folder, navigator = navigator)
             }
         }
     }
 
     // Rename dialog.
     if (showingRename) {
-        AlertDialog(
+        WindowDialog(
+            show = true,
+            title = L.str(context, "Rename Folder"),
             onDismissRequest = { showingRename = false },
-            title = { Text(L.str(context, "Rename Folder")) },
-            text = {
-                OutlinedTextField(
-                    value = newName,
-                    onValueChange = { newName = it },
-                    placeholder = { Text(L.str(context, "Folder Name")) },
-                    singleLine = true,
+        ) {
+            TextField(
+                value = newName,
+                onValueChange = { newName = it },
+                label = L.str(context, "Folder Name"),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    text = L.str(context, "Cancel"),
+                    onClick = { showingRename = false },
                 )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    modifyCurrent { it.setRename(newName) }
-                    showingRename = false
-                }) { Text(L.str(context, "Done")) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showingRename = false }) {
-                    Text(L.str(context, "Cancel"))
-                }
-            },
-        )
+                TextButton(
+                    text = L.str(context, "Done"),
+                    onClick = {
+                        modifyCurrent { it.setRename(newName) }
+                        showingRename = false
+                    },
+                )
+            }
+        }
     }
     // Create-folder dialog.
     if (showingCreate) {
-        AlertDialog(
+        WindowDialog(
+            show = true,
+            title = L.str(context, "New Folder"),
             onDismissRequest = { showingCreate = false },
-            title = { Text(L.str(context, "New Folder")) },
-            text = {
-                OutlinedTextField(
-                    value = newName,
-                    onValueChange = { newName = it },
-                    placeholder = { Text(L.str(context, "Folder Name")) },
-                    singleLine = true,
+        ) {
+            TextField(
+                value = newName,
+                onValueChange = { newName = it },
+                label = L.str(context, "Folder Name"),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    text = L.str(context, "Cancel"),
+                    onClick = { showingCreate = false },
                 )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val name = newName.trim()
-                    showingCreate = false
-                    if (name.isNotEmpty()) {
-                        scope.launch {
-                            val id = foldersModel.create(name)
-                            if (id != null) {
-                                Haptics.play(view, Haptics.NotificationType.SUCCESS)
+                TextButton(
+                    text = L.str(context, "Done"),
+                    onClick = {
+                        val name = newName.trim()
+                        showingCreate = false
+                        if (name.isNotEmpty()) {
+                            scope.launch {
+                                val id = foldersModel.create(name)
+                                if (id != null) {
+                                    Haptics.play(view, Haptics.NotificationType.SUCCESS)
+                                }
                             }
                         }
-                    }
-                }) { Text(L.str(context, "Done")) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showingCreate = false }) {
-                    Text(L.str(context, "Cancel"))
-                }
-            },
-        )
+                    },
+                )
+            }
+        }
     }
     // Delete confirmation.
     if (showingDeleteConfirmation) {
-        AlertDialog(
+        WindowDialog(
+            show = true,
+            title = L.str(context, "Delete the folder and all its topics?"),
             onDismissRequest = { showingDeleteConfirmation = false },
-            title = { Text(L.str(context, "Delete the folder and all its topics?")) },
-            confirmButton = {
-                TextButton(onClick = {
-                    modifyCurrent { it.setDelete(true) }
-                    showingDeleteConfirmation = false
-                }) { Text(L.str(context, "Delete")) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showingDeleteConfirmation = false }) {
-                    Text(L.str(context, "Cancel"))
-                }
-            },
-        )
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    text = L.str(context, "Cancel"),
+                    onClick = { showingDeleteConfirmation = false },
+                )
+                TextButton(
+                    text = L.str(context, "Delete"),
+                    onClick = {
+                        modifyCurrent { it.setDelete(true) }
+                        showingDeleteConfirmation = false
+                    },
+                )
+            }
+        }
     }
 }
 
-/** The folder picker + management dropdown (SS15). */
+/**
+ * The folder picker + management dropdown (SS15).
+ *
+ * Kept on Material3 DropdownMenu/DropdownMenuItem: Miuix 0.8.8's only popup
+ * item (basic.DropdownImpl inside extra.SuperListPopup + basic.ListPopupColumn)
+ * renders a single-line text plus a check mark only — it cannot express this
+ * menu's leading icons, two-line folder entries (name + "Default" summary),
+ * or the disabled current-folder header item.
+ */
 @Composable
 private fun FolderMenu(
     expanded: Boolean,
@@ -338,8 +366,8 @@ private fun FolderMenu(
                         if (currentFolder.isDefault) {
                             Text(
                                 L.str(context, "Default"),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MiuixTheme.textStyles.footnote2,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
                         }
                     }
@@ -383,8 +411,8 @@ private fun FolderMenu(
                         if (folder.isDefault) {
                             Text(
                                 L.str(context, "Default Folder"),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MiuixTheme.textStyles.footnote2,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
                         }
                     }
@@ -511,7 +539,7 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
         }
     }
 
-    PullToRefreshBox(
+    PullToRefresh(
         isRefreshing = state.isRefreshing,
         onRefresh = { dataSource.refreshAsync(sleepMillis = 500) },
         modifier = Modifier.fillMaxSize(),
@@ -561,14 +589,14 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.errorContainer)
+                                    .background(MiuixTheme.colorScheme.errorContainer)
                                     .padding(horizontal = 20.dp),
                                 contentAlignment = Alignment.CenterEnd,
                             ) {
                                 Icon(
                                     Icons.Outlined.Delete,
                                     contentDescription = L.str(context, "Delete"),
-                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    tint = MiuixTheme.colorScheme.onErrorContainer,
                                 )
                             }
                         },

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,25 +20,26 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.PullToRefresh
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -142,16 +144,11 @@ fun HistoryScreen(navigator: Navigator) {
     } ?: displayTopics
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        L.str(context, "History"),
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                    )
-                },
+            SmallTopAppBar(
+                title = L.str(context, "History"),
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {
                         Icon(
@@ -176,7 +173,7 @@ fun HistoryScreen(navigator: Navigator) {
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (searchActive) {
-                OutlinedTextField(
+                TextField(
                     value = searchText,
                     onValueChange = { value ->
                         searchText = value
@@ -185,7 +182,8 @@ fun HistoryScreen(navigator: Navigator) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text(L.str(context, "Search History")) },
+                    label = L.str(context, "Search History"),
+                    useLabelAsPlaceholder = true,
                     singleLine = true,
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                     trailingIcon = {
@@ -217,7 +215,7 @@ fun HistoryScreen(navigator: Navigator) {
                 }
             }
 
-            PullToRefreshBox(
+            PullToRefresh(
                 isRefreshing = state.isRefreshing,
                 onRefresh = { dataSource.refreshAsync(sleepMillis = 500) },
                 modifier = Modifier.fillMaxSize(),
@@ -275,14 +273,14 @@ fun HistoryScreen(navigator: Navigator) {
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .clip(RoundedCornerShape(12.dp))
-                                            .background(MaterialTheme.colorScheme.errorContainer)
+                                            .background(MiuixTheme.colorScheme.errorContainer)
                                             .padding(horizontal = 20.dp),
                                         contentAlignment = alignment,
                                     ) {
                                         Icon(
                                             Icons.Outlined.Delete,
                                             contentDescription = L.str(context, "Delete"),
-                                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                                            tint = MiuixTheme.colorScheme.onErrorContainer,
                                         )
                                     }
                                 },
@@ -311,21 +309,28 @@ fun HistoryScreen(navigator: Navigator) {
     }
 
     if (showingClearConfirmation) {
-        AlertDialog(
+        WindowDialog(
+            show = true,
+            title = L.str(context, "Are you sure to clear the cache?"),
+            summary = L.str(context, "Topic Histories"),
             onDismissRequest = { showingClearConfirmation = false },
-            title = { Text(L.str(context, "Are you sure to clear the cache?")) },
-            text = { Text(L.str(context, "Topic Histories")) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showingClearConfirmation = false
-                    clearHistory()
-                }) { Text(L.str(context, "Clear")) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showingClearConfirmation = false }) {
-                    Text(L.str(context, "Cancel"))
-                }
-            },
-        )
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    text = L.str(context, "Cancel"),
+                    onClick = { showingClearConfirmation = false },
+                )
+                TextButton(
+                    text = L.str(context, "Clear"),
+                    onClick = {
+                        showingClearConfirmation = false
+                        clearHistory()
+                    },
+                )
+            }
+        }
     }
 }

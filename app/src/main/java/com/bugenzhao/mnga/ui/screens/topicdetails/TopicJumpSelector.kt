@@ -9,17 +9,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
+import top.yukonga.miuix.kmp.basic.Slider
+import top.yukonga.miuix.kmp.basic.TabRow
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.extra.SuperBottomSheet
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,7 +44,6 @@ enum class TopicJumpSelectorMode(val label: String) {
     PAGE("Page"),
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopicJumpSelector(
     maxFloor: Int,
@@ -74,25 +69,20 @@ fun TopicJumpSelector(
         pageText = selectedPage(selectedFloor).toString()
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    SuperBottomSheet(show = true, onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                TopicJumpSelectorMode.entries.forEachIndexed { index, m ->
-                    SegmentedButton(
-                        selected = mode == m,
-                        onClick = { onModeChange(m) },
-                        shape = SegmentedButtonDefaults.itemShape(index, TopicJumpSelectorMode.entries.size),
-                    ) {
-                        Text(L.str(context, m.label))
-                    }
-                }
-            }
+            TabRow(
+                tabs = TopicJumpSelectorMode.entries.map { L.str(context, it.label) },
+                selectedTabIndex = mode.ordinal,
+                onTabSelected = { onModeChange(TopicJumpSelectorMode.entries[it]) },
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             Spacer(Modifier.padding(8.dp))
             Text(
                 L.str(context, "Jump to..."),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Spacer(Modifier.padding(4.dp))
 
@@ -156,17 +146,12 @@ fun TopicJumpSelector(
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(
+                    text = L.str(context, "Jump"),
                     onClick = {
                         onJump(selectedFloor, selectedPage(selectedFloor))
                         onDismiss()
                     },
-                ) {
-                    Text(
-                        L.str(context, "Jump"),
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                )
             }
         }
     }
@@ -180,13 +165,13 @@ private fun RangeCaption(start: String, end: String) {
         Text(
             start,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
         Spacer(Modifier.weight(1f))
         Text(
             end,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
     }
 }
@@ -194,19 +179,15 @@ private fun RangeCaption(start: String, end: String) {
 /** Number-pad text field, trailing aligned. */
 @Composable
 private fun NumberField(value: String, onValueChange: (String) -> Unit) {
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    ) {
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier
-                .widthIn(min = 120.dp)
-                .heightIn(min = 56.dp),
-            singleLine = true,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.End),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
-    }
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier
+            .widthIn(min = 120.dp)
+            .heightIn(min = 56.dp),
+        backgroundColor = MiuixTheme.colorScheme.surfaceContainerHigh,
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.End),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+    )
 }

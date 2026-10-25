@@ -24,11 +24,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -273,7 +275,7 @@ internal fun ForumRowLite(forum: Forum, onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MiuixTheme.colorScheme.surface,
     ) {
         Row(
             Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -292,7 +294,7 @@ internal fun ForumRowLite(forum: Forum, onClick: () -> Unit) {
                     Text(
                         L.str(context, forum.info),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -303,7 +305,7 @@ internal fun ForumRowLite(forum: Forum, onClick: () -> Unit) {
                     Icons.Outlined.Layers,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
             if (isFavorite) {
@@ -311,7 +313,7 @@ internal fun ForumRowLite(forum: Forum, onClick: () -> Unit) {
                     Icons.Outlined.Star,
                     contentDescription = null,
                     modifier = Modifier.size(15.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MiuixTheme.colorScheme.primary,
                 )
             }
         }
@@ -327,7 +329,7 @@ internal fun SectionHeader(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         modifier = Modifier.padding(horizontal = 4.dp),
     )
 }
@@ -340,10 +342,14 @@ internal fun CenteredSpinner() {
             .padding(vertical = 48.dp),
         contentAlignment = Alignment.Center,
     ) {
+        // Miuix's indicator takes its color via ProgressIndicatorColors, not
+        // a `color` parameter; keep the muted foreground the Material one had.
         CircularProgressIndicator(
             modifier = Modifier.size(24.dp),
             strokeWidth = 2.5.dp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            colors = ProgressIndicatorDefaults.progressIndicatorColors(
+                foregroundColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            ),
         )
     }
 }
@@ -379,20 +385,20 @@ private fun PlaceholderState(message: String) {
             Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                .background(MiuixTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Outlined.Search,
                 contentDescription = null,
                 modifier = Modifier.size(26.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                tint = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.7f),
             )
         }
         Text(
             message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.85f),
         )
     }
 }
@@ -409,7 +415,7 @@ internal fun ErrorState(message: String) {
         Text(
             message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
+            color = MiuixTheme.colorScheme.error,
         )
     }
 }

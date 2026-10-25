@@ -32,8 +32,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -239,7 +240,7 @@ private fun PageCapsule(
                 },
             ),
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = MiuixTheme.colorScheme.surfaceContainerHigh,
         shadowElevation = 4.dp,
     ) {
         Box {
@@ -250,7 +251,7 @@ private fun PageCapsule(
                         .fillMaxHeight()
                         .fillMaxWidth(pageProgressFraction(currentPage, totalPages))
                         .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            MiuixTheme.colorScheme.primary.copy(alpha = 0.12f),
                         ),
                 )
             }
@@ -281,12 +282,12 @@ private fun PageCapsule(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 15.sp,
                             ),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MiuixTheme.colorScheme.primary,
                         )
                         Text(
                             text = " / ",
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.6f),
                         )
                         Text(
                             text = "$totalPages",
@@ -294,7 +295,7 @@ private fun PageCapsule(
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 15.sp,
                             ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
                 }
@@ -328,7 +329,7 @@ private fun PageNumberList(
                     .fillMaxHeight()
                     .clip(CircleShape)
                     .background(
-                        if (selected) MaterialTheme.colorScheme.primaryContainer
+                        if (selected) MiuixTheme.colorScheme.primaryContainer
                         else Color.Transparent,
                     )
                     .clickable { onJumpToPage(page) },
@@ -339,8 +340,8 @@ private fun PageNumberList(
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                     ),
-                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (selected) MiuixTheme.colorScheme.onPrimaryContainer
+                    else MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
         }

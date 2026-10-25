@@ -7,8 +7,10 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,18 +20,19 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -201,21 +204,13 @@ fun LoginSheet(onDismiss: () -> Unit) {
         onDismissRequest = { close() },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize()) {
-                TopAppBar(
-                    title = {
-                        Column(Modifier.fillMaxWidth()) {
-                            Text(L.str(context, "Sign in to NGA"))
-                            Text(
-                                currentUrl.value,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    },
+                // Miuix 0.8.8 SmallTopAppBar takes a plain String title and has
+                // no subtitle slot; the current URL that used to sit under the
+                // title is shown as a small strip directly below the bar.
+                SmallTopAppBar(
+                    title = L.str(context, "Sign in to NGA"),
                     navigationIcon = {
                         IconButton(onClick = { close() }) {
                             Icon(Icons.Filled.Close, contentDescription = null)
@@ -238,6 +233,12 @@ fun LoginSheet(onDismiss: () -> Unit) {
                             IconButton(onClick = { pagesMenuOpen.value = true }) {
                                 Icon(Icons.Filled.MoreVert, contentDescription = null)
                             }
+                            // Kept as Material DropdownMenu: Miuix 0.8.8 has no
+                            // anchored icon overflow menu — SuperDropdown is a
+                            // settings row with a selected index, and
+                            // SuperListPopup/DropdownImpl are single-choice
+                            // pickers that need a Miuix Scaffold popup host,
+                            // which this platform Dialog does not provide.
                             DropdownMenu(
                                 expanded = pagesMenuOpen.value,
                                 onDismissRequest = { pagesMenuOpen.value = false },
@@ -266,6 +267,15 @@ fun LoginSheet(onDismiss: () -> Unit) {
                             }
                         }
                     },
+                )
+                Text(
+                    currentUrl.value,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                 )
 
                 Box(Modifier.fillMaxSize()) {
@@ -385,25 +395,29 @@ fun LoginSheet(onDismiss: () -> Unit) {
     val message = alertMessage.value
     val result = alertResult.value
     if (message != null && result != null) {
-        AlertDialog(
+        WindowDialog(
+            show = true,
+            title = L.str(context, "From NGA"),
+            summary = message + "\n\n" + L.str(context, "LumaGA Login Notice"),
             onDismissRequest = {
                 result.confirm()
                 alertMessage.value = null
                 alertResult.value = null
             },
-            title = { Text(L.str(context, "From NGA")) },
-            text = {
-                Text(message + "\n\n" + L.str(context, "LumaGA Login Notice"))
-            },
-            confirmButton = {
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
                 TextButton(
+                    text = L.str(context, "OK"),
                     onClick = {
                         result.confirm()
                         alertMessage.value = null
                         alertResult.value = null
-                    }
-                ) { Text(L.str(context, "OK")) }
-            },
-        )
+                    },
+                )
+            }
+        }
     }
 }

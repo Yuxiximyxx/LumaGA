@@ -2,10 +2,10 @@ package com.bugenzhao.mnga.ui.screens.subforums
 
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,29 +15,31 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.PullToRefresh
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Switch
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,7 +54,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.logicCallAsync
@@ -148,20 +149,15 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
     }
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        L.str(context, "Subforums of %@", forumName),
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                    )
-                },
+            SmallTopAppBar(
+                title = L.str(context, "Subforums of %@", forumName),
             )
         },
     ) { padding ->
-        PullToRefreshBox(
+        PullToRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = { dataSource.refreshAsync(sleepMillis = 500) },
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -184,7 +180,7 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
                 if (dataSource.isInitialLoading && subforums.isEmpty()) {
                     item(key = "loading") {
                         Box(Modifier.fillMaxWidth().padding(vertical = 32.dp)) {
-                            androidx.compose.material3.CircularProgressIndicator(
+                            CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp).align(Alignment.Center),
                                 strokeWidth = 2.dp,
                             )
@@ -202,24 +198,23 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
                         val forum = subforum.forum
                         val isFavorite = favoriteForums.any { it.id == forum.id }
                         Box {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surface,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        enabled = true,
-                                        onClick = { navigator.push(Route.TopicList(forumId = forum.id)) },
-                                        onLongClick = { contextMenuForum = forum },
-                                    ),
+                            // Miuix Card's native click/long-press handling
+                            // replaces the Material Surface + combinedClickable
+                            // container (same approach as ForumRowCard); the
+                            // row's old padding becomes the card's insideMargin.
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                cornerRadius = 12.dp,
+                                insideMargin = PaddingValues(
+                                    start = 16.dp,
+                                    top = 12.dp,
+                                    bottom = 12.dp,
+                                    end = 8.dp,
+                                ),
+                                onClick = { navigator.push(Route.TopicList(forumId = forum.id)) },
+                                onLongPress = { contextMenuForum = forum },
                             ) {
                                 Row(
-                                    Modifier.padding(
-                                        start = 16.dp,
-                                        top = 12.dp,
-                                        bottom = 12.dp,
-                                        end = 8.dp,
-                                    ),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Column(Modifier.weight(1f)) {
@@ -242,6 +237,12 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
                                 }
                             }
 
+                            // Kept as a Material DropdownMenu: Miuix 0.8.8's
+                            // SuperListPopup items (DropdownImpl) are text +
+                            // checkmark only, with no leading-icon slot, so
+                            // this single item's star icon cannot be
+                            // expressed there. The item's Text/Icon are Miuix,
+                            // as in the phase-1 menus.
                             DropdownMenu(
                                 expanded = contextMenuForum == forum,
                                 onDismissRequest = { contextMenuForum = null },
@@ -286,15 +287,17 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
 @Composable
 private fun SubforumTipCard(onDismiss: () -> Unit) {
     val context = LocalContext.current
-    Card(Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        insideMargin = PaddingValues(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 8.dp),
+    ) {
         Row(
-            Modifier.padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 8.dp),
             verticalAlignment = Alignment.Top,
         ) {
             Icon(
                 Icons.Outlined.Category,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MiuixTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp),
             )
             Spacer(Modifier.width(12.dp))
@@ -306,7 +309,7 @@ private fun SubforumTipCard(onDismiss: () -> Unit) {
                 Text(
                     L.str(context, "Subforum Tip"),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
             IconButton(onClick = onDismiss) {

@@ -1,21 +1,15 @@
 package com.bugenzhao.mnga.ui.components
 
 import android.net.Uri
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.OpenInBrowser
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.exclude
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -24,12 +18,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 
 /**
  * In-app browser sheet, the Android stand-in for the iOS `SafariView`.
  * Presents [uri] in an embedded WebView until dismissed.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InAppBrowserSheet(uri: Uri, onDismiss: () -> Unit) {
     val context = LocalContext.current
@@ -44,10 +41,10 @@ fun InAppBrowserSheet(uri: Uri, onDismiss: () -> Unit) {
     }
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = { Text(uri.host ?: "", maxLines = 1) },
+            SmallTopAppBar(
+                title = uri.host ?: "",
                 navigationIcon = {
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)

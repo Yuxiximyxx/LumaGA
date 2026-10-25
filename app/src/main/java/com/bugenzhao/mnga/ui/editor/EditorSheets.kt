@@ -41,22 +41,27 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.TheaterComedy
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material.icons.outlined.UnfoldMore
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.DropdownImpl
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
+import top.yukonga.miuix.kmp.basic.ListPopupColumn
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Switch
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.extra.SuperBottomSheet
+import top.yukonga.miuix.kmp.extra.SuperListPopup
+import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -76,6 +81,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.bugenzhao.mnga.logicCallAsync
 import com.bugenzhao.mnga.model.ContentEditorModel
@@ -110,7 +116,6 @@ private val SMALL_SIZES = listOf("10%", "50%", "80%", "90%")
 private val LARGE_SIZES = listOf("110%", "120%", "150%", "200%")
 
 /** Editor sheet for every topic posting flow, ported from `GenericEditorView`. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostEditorSheet(model: PostReplyModel, onDismiss: () -> Unit) {
     GenericEditorSheet(
@@ -122,7 +127,6 @@ fun PostEditorSheet(model: PostReplyModel, onDismiss: () -> Unit) {
 }
 
 /** Editor sheet for short messages, ported from `ShortMessageEditorView`. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShortMessageEditorSheet(model: ShortMessageModel, onDismiss: () -> Unit) {
     GenericEditorSheet(
@@ -133,7 +137,6 @@ fun ShortMessageEditorSheet(model: ShortMessageModel, onDismiss: () -> Unit) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GenericEditorSheet(
     model: GenericPostModel,
@@ -238,10 +241,18 @@ private fun GenericEditorSheet(
 
     val title = L.str(context, ctx?.task?.actionTitle?.takeIf { it.isNotEmpty() } ?: "Editor")
 
-    ModalBottomSheet(onDismissRequest = {
-        model.editorDismissed()
-        onDismiss()
-    }) {
+    // Miuix SuperBottomSheet replaces the Material ModalBottomSheet: it is
+    // composed only while the editor is open (show = true), drag-down /
+    // outside-tap / back all route to the same onDismissRequest as before,
+    // and insideMargin is zeroed so the content keeps its own 20.dp padding.
+    SuperBottomSheet(
+        show = true,
+        onDismissRequest = {
+            model.editorDismissed()
+            onDismiss()
+        },
+        insideMargin = DpSize(0.dp, 0.dp),
+    ) {
         Column(
             Modifier.fillMaxWidth()
                 .imePadding()
@@ -264,13 +275,17 @@ private fun GenericEditorSheet(
                     Icon(
                         Icons.Outlined.Delete,
                         contentDescription = L.str(context, "Discard"),
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = MiuixTheme.colorScheme.error,
                     )
                 }
                 if (isSending) {
                     CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
                 } else {
-                    Button(onClick = { model.send() }, enabled = ctx != null) {
+                    Button(
+                        onClick = { model.send() },
+                        enabled = ctx != null,
+                        colors = ButtonDefaults.buttonColorsPrimary(),
+                    ) {
                         Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null)
                         Spacer(Modifier.width(6.dp))
                         Text(L.str(context, "Send"))
@@ -291,13 +306,13 @@ private fun GenericEditorSheet(
                     Column {
                         var toState by
                             remember(c.seed) { mutableStateOf(TextFieldValue(c.to ?: "")) }
-                        OutlinedTextField(
+                        TextField(
                             value = toState,
                             onValueChange = {
                                 toState = it
                                 update { ctx0 -> ctx0.copy(to = it.text) }
                             },
-                            label = { Text(L.str(context, "Send To")) },
+                            label = L.str(context, "Send To"),
                             singleLine = true,
                             modifier =
                                 Modifier.fillMaxWidth().focusRequester(sendToFocus),
@@ -305,7 +320,7 @@ private fun GenericEditorSheet(
                         Text(
                             L.str(context, "Separate multiple users with space."),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
                 }
@@ -313,13 +328,13 @@ private fun GenericEditorSheet(
                 if (c.subject != null) {
                     var subjectState by
                         remember(c.seed) { mutableStateOf(TextFieldValue(c.subject ?: "")) }
-                    OutlinedTextField(
+                    TextField(
                         value = subjectState,
                         onValueChange = {
                             subjectState = it
                             update { ctx0 -> ctx0.copy(subject = it.text) }
                         },
-                        label = { Text(L.str(context, "Subject")) },
+                        label = L.str(context, "Subject"),
                         singleLine = true,
                         modifier =
                             Modifier.fillMaxWidth().focusRequester(subjectFocus),
@@ -347,14 +362,14 @@ private fun GenericEditorSheet(
                     )
                 }
 
-                OutlinedTextField(
+                TextField(
                     value = TextFieldValue(text, selection),
                     onValueChange = { value ->
                         editor.text.value = value.text
                         editor.selection.value = value.selection
                         if (value.text != text) pushContent(value.text)
                     },
-                    label = { Text(L.str(context, "Content")) },
+                    label = L.str(context, "Content"),
                     minLines = 5,
                     maxLines = 12,
                     modifier =
@@ -377,7 +392,7 @@ private fun GenericEditorSheet(
                         Icon(
                             Icons.Outlined.TheaterComedy,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MiuixTheme.colorScheme.primary,
                         )
                         Text(
                             L.str(context, "Anonymous"),
@@ -413,7 +428,7 @@ private fun GenericEditorSheet(
                         Text(
                             L.str(context, "Upload Image"),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                         LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 4.dp))
                     }
@@ -429,27 +444,34 @@ private fun GenericEditorSheet(
     }
 
     if (showDiscardDialog) {
-        AlertDialog(
+        WindowDialog(
+            show = true,
+            title = L.str(context, "Discard the draft?"),
+            summary = L.str(context, "Save the draft by swiping down to dismiss the editor."),
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text(L.str(context, "Discard the draft?")) },
-            text = {
-                Text(L.str(context, "Save the draft by swiping down to dismiss the editor."))
-            },
-            confirmButton = {
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
                 TextButton(
+                    text = L.str(context, "Cancel"),
+                    onClick = { showDiscardDialog = false },
+                )
+                Spacer(Modifier.width(8.dp))
+                TextButton(
+                    text = L.str(context, "Discard"),
                     onClick = {
                         showDiscardDialog = false
                         model.discardCurrentContext()
                         onDismiss()
                     },
-                ) { Text(L.str(context, "Discard"), color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDiscardDialog = false }) {
-                    Text(L.str(context, "Cancel"))
-                }
-            },
-        )
+                    colors = ButtonDefaults.textButtonColors(
+                        textColor = MiuixTheme.colorScheme.error,
+                    ),
+                )
+            }
+        }
     }
 }
 
@@ -469,14 +491,14 @@ private fun EditorAlertBanner() {
             ToastModel.editorAlert.dismiss()
         }
         Surface(
-            shape = MaterialTheme.shapes.small,
-            color = MaterialTheme.colorScheme.errorContainer,
+            shape = RoundedCornerShape(8.dp),
+            color = MiuixTheme.colorScheme.errorContainer,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
                 context.errorLocalized(error.error),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                color = MiuixTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
@@ -528,6 +550,9 @@ private fun EditorToolbar(
             IconButton(onClick = { colorMenu = true }) {
                 Icon(Icons.Outlined.Palette, contentDescription = "color")
             }
+            // Retained Material DropdownMenu: each item carries a color
+            // swatch leading icon, which Miuix DropdownImpl (text + selected
+            // check only) cannot express. Inner Text/Icon are Miuix.
             DropdownMenu(expanded = colorMenu, onDismissRequest = { colorMenu = false }) {
                 COLOR_PALETTE.forEach { (name, hex) ->
                     DropdownMenuItem(
@@ -550,15 +575,26 @@ private fun EditorToolbar(
             IconButton(onClick = { sizeMenu = true }) {
                 Icon(Icons.Outlined.FormatSize, contentDescription = "size")
             }
-            DropdownMenu(expanded = sizeMenu, onDismissRequest = { sizeMenu = false }) {
-                (SMALL_SIZES + LARGE_SIZES).forEach { size ->
-                    DropdownMenuItem(
-                        text = { Text(size) },
-                        onClick = {
-                            editor.appendSize(size)
-                            sizeMenu = false
-                        },
-                    )
+            // Flat text-only menu: expressed with Miuix SuperListPopup +
+            // DropdownImpl (the same combo SuperDropdown uses internally).
+            SuperListPopup(
+                show = sizeMenu,
+                onDismissRequest = { sizeMenu = false },
+            ) {
+                ListPopupColumn {
+                    val sizes = SMALL_SIZES + LARGE_SIZES
+                    sizes.forEachIndexed { index, size ->
+                        DropdownImpl(
+                            text = size,
+                            optionSize = sizes.size,
+                            isSelected = false,
+                            index = index,
+                            onSelectedIndexChange = { selected ->
+                                editor.appendSize(sizes[selected])
+                                sizeMenu = false
+                            },
+                        )
+                    }
                 }
             }
         }

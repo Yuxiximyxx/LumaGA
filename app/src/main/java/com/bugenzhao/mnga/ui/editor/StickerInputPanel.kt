@@ -18,9 +18,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,6 +87,8 @@ fun StickerInputPanel(model: ContentEditorModel, modifier: Modifier = Modifier) 
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Category picker: clock icon for recents, upper-cased family names.
+        // Miuix 0.8.8 has no chip component, so the Material3 FilterChip is
+        // retained for the category picker; its label Icon/Text are Miuix.
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -119,7 +121,7 @@ fun StickerInputPanel(model: ContentEditorModel, modifier: Modifier = Modifier) 
             if (stickers.isEmpty()) {
                 Text(
                     L.str(context, "Empty"),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             } else {
                 LazyVerticalGrid(

@@ -37,21 +37,25 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import top.yukonga.miuix.kmp.basic.Checkbox
+import top.yukonga.miuix.kmp.basic.HorizontalDivider
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.RadioButton
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,6 +76,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -267,9 +272,17 @@ fun SearchScreen(
     // Data sources are rebuilt whenever the committed text or an option
     // changes, like `SearchModel`'s `commitedText -> dataSource` mapping.
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
+            // Miuix 0.8.8 SmallTopAppBar takes a String title only — there is
+            // no slot for the SearchCapsule field — so the Material TopAppBar
+            // stays as the capsule's host; its colors are pinned to the Miuix
+            // surface so the bar and the tab strip below stay one zone.
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MiuixTheme.colorScheme.surface,
+                ),
                 title = {
                     SearchCapsule(
                         text = text,
@@ -299,7 +312,7 @@ fun SearchScreen(
         ) {
             // Continues the app bar's surface so the strip belongs to the
             // chrome, not to the page.
-            Surface(color = MaterialTheme.colorScheme.surface) {
+            Surface(color = MiuixTheme.colorScheme.surface) {
                 SegmentedTabs(
                     titles = SearchTab.entries.map { L.str(context, it.titleKey) },
                     // Follows the swipe itself, not just the settled page.
@@ -362,13 +375,19 @@ fun SearchScreen(
 /** True while the light-on-dark scheme is in effect. */
 @Composable
 private fun isDarkScheme(): Boolean =
-    MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    MiuixTheme.colorScheme.surface.luminance() < 0.5f
 
 // region App bar field
 
 /**
  * FluxDo's app bar field: a rounded capsule holding the query, drawing its own
  * hint (a `TextField` placeholder cannot be aligned inside a fixed height).
+ *
+ * Miuix 0.8.8's `SearchBar`/`InputField` do not fit this slot: `InputField`
+ * owns its `FocusRequester` (this screen requests focus once, on first entry
+ * only), and `SearchBar`'s expanded state installs its own back handler and
+ * hosts the results itself, while here the results live in the pager below.
+ * So the capsule structure stays, restyled with Miuix colors and components.
  */
 @Composable
 private fun SearchCapsule(
@@ -380,13 +399,13 @@ private fun SearchCapsule(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val muted = MiuixTheme.colorScheme.onSurfaceVariantSummary
     Row(
         modifier
             .fillMaxWidth()
             .height(36.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(MiuixTheme.colorScheme.surfaceContainerHigh)
             .padding(start = 10.dp, end = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -413,10 +432,10 @@ private fun SearchCapsule(
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MiuixTheme.colorScheme.onSurface,
                 ),
                 singleLine = true,
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { onCommit() }),
             )
@@ -465,7 +484,7 @@ private fun SegmentedTabs(
             .fillMaxWidth()
             .height(height)
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            .background(MiuixTheme.colorScheme.surfaceContainerHigh),
     ) {
         val segmentWidth: Dp = (maxWidth - inset * 2) / titles.size
         val clamped = position.coerceIn(0f, (titles.size - 1).toFloat())
@@ -485,9 +504,9 @@ private fun SegmentedTabs(
                 .clip(RoundedCornerShape(8.dp))
                 .background(
                     if (dark) {
-                        MaterialTheme.colorScheme.surfaceContainerHighest
+                        MiuixTheme.colorScheme.surfaceContainerHighest
                     } else {
-                        MaterialTheme.colorScheme.surface
+                        MiuixTheme.colorScheme.surface
                     }
                 ),
         )
@@ -496,9 +515,9 @@ private fun SegmentedTabs(
                 val isSelected = index == selected
                 val color by animateColorAsState(
                     if (isSelected) {
-                        MaterialTheme.colorScheme.onSurface
+                        MiuixTheme.colorScheme.onSurface
                     } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                        MiuixTheme.colorScheme.onSurfaceVariantSummary
                     },
                     label = "tabLabel",
                 )
@@ -548,7 +567,7 @@ private fun TopicSearchOptions(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MiuixTheme.colorScheme.surface,
     ) {
         Column(Modifier.padding(horizontal = 12.dp)) {
             if (hasCurrentForum) {
@@ -570,7 +589,7 @@ private fun TopicSearchOptions(
                     // Inset past the controls, the way a grouped list divides.
                     Modifier.padding(start = 28.dp),
                     thickness = Dp.Hairline,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    color = MiuixTheme.colorScheme.dividerLine,
                 )
             }
             OptionCheckbox(
@@ -624,7 +643,13 @@ private fun OptionCheckbox(
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked = checked, onCheckedChange = null, modifier = Modifier.size(20.dp))
+        // Miuix Checkbox's primary API is state-based (the Boolean overload
+        // is deprecated in 0.8.8); the row owns the click, as before.
+        Checkbox(
+            state = ToggleableState(checked),
+            onClick = null,
+            modifier = Modifier.size(20.dp),
+        )
         Spacer(Modifier.width(8.dp))
         OptionLabel(label, checked)
     }
@@ -638,9 +663,9 @@ private fun OptionLabel(label: String, active: Boolean) {
         style = MaterialTheme.typography.bodyMedium,
         fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
         color = if (active) {
-            MaterialTheme.colorScheme.onSurface
+            MiuixTheme.colorScheme.onSurface
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+            MiuixTheme.colorScheme.onSurfaceVariantSummary
         },
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -686,7 +711,7 @@ private fun SearchHistorySection(
             Text(
                 L.str(context, "Clear"),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MiuixTheme.colorScheme.primary,
                 modifier = Modifier
                     .clip(CircleShape)
                     .clickable { storage.clear(historyScope) }
@@ -719,12 +744,12 @@ private fun SearchHistorySection(
 @Composable
 private fun SearchHistoryChip(query: String, onClick: () -> Unit, onDelete: () -> Unit) {
     val context = LocalContext.current
-    val outline = MaterialTheme.colorScheme.outline
+    val outline = MiuixTheme.colorScheme.outline
     Row(
         Modifier
             .height(32.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MiuixTheme.colorScheme.surface)
             // A hairline keeps the pill legible where the page is nearly as
             // light as the chip itself.
             .border(Dp.Hairline, outline.copy(alpha = 0.55f), CircleShape)
@@ -735,7 +760,7 @@ private fun SearchHistoryChip(query: String, onClick: () -> Unit, onDelete: () -
         Text(
             query,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MiuixTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             // A long query must not claim more than a line of its own.

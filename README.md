@@ -1,3 +1,5 @@
+> **本仓库是 [Duzc01/LumaGA](https://github.com/Duzc01/LumaGA) 的个人 fork。** 在上游基础上做 MIUIX（HyperOS 风格）定制：接入 Miuix-KMP 真组件全局换装、底部导航栏只留「主页 / 我的」、个人中心移入「我的」页、预测式返回（单 Activity + NavHost 手势跟随）。正式签名安装包见 [本仓库 Releases](https://github.com/Yuxiximyxx/LumaGA/releases)（当前版本 v1.3.0），下方为上游 README 原文。
+
 # LumaGA
 
 <p align="center">

@@ -18,18 +18,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.PullToRefresh
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -90,23 +94,14 @@ fun ShortMessageDetailsScreen(
         ShortMessage.newBuilder().setId(id).build()
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            L.str(context, "Short Message Details"),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            "#$id",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
+            // Miuix 0.8.8 SmallTopAppBar has no subtitle slot; the "#id"
+            // subtitle is folded into the list header below (same approach
+            // as TopicListScreen).
+            SmallTopAppBar(
+                title = L.str(context, "Short Message Details"),
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -141,7 +136,7 @@ fun ShortMessageDetailsScreen(
             }
         }
 
-        PullToRefreshBox(
+        PullToRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = { dataSource.refreshAsync(sleepMillis = 500) },
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -149,7 +144,7 @@ fun ShortMessageDetailsScreen(
             when {
                 dataSource.isInitialLoading || dataSource.notLoaded ->
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        androidx.compose.material3.CircularProgressIndicator()
+                        CircularProgressIndicator()
                     }
                 else -> LazyColumn(
                     state = listState,
@@ -157,19 +152,26 @@ fun ShortMessageDetailsScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    item(key = "message-id") {
+                        Text(
+                            "#$id",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
                     val participants = dataSource.latestResponse?.usersList.orEmpty()
                     if (participants.isNotEmpty()) {
                         item(key = "participants-label") {
                             Text(
                                 L.str(context, "Participants"),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
                         }
                         item(key = "participants") {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surface,
+                                color = MiuixTheme.colorScheme.surface,
                             ) {
                                 LazyRow(
                                     Modifier.fillMaxWidth().padding(12.dp),
@@ -222,7 +224,7 @@ internal fun ShortMessagePostRow(
 
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MiuixTheme.colorScheme.surface,
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
@@ -244,7 +246,7 @@ internal fun ShortMessagePostRow(
                 Text(
                     post.subject,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -266,7 +268,7 @@ internal fun ShortMessagePostRow(
                         DateFormatters.automatic(context, Date(post.postDate * 1000))
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
         }

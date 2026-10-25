@@ -22,25 +22,26 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.FrontHand
 import androidx.compose.material.icons.outlined.OpenInBrowser
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.PullToRefresh
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.TabRow
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -124,7 +125,7 @@ fun UserProfileScreen(
             if (loading) CircularProgressIndicator()
             else Text(
                 L.str(context, "Empty"),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
         }
         return
@@ -172,23 +173,15 @@ fun UserProfileScreen(
         else displayName.ifEmpty { L.str(context, "User Profile") }
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        if (shouldShowList) {
-                            Text(
-                                if (tab.value == ProfileTab.TOPICS)
-                                    L.str(context, "%@'s Topics", displayName)
-                                else L.str(context, "%@'s Posts", displayName),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                },
+            // Miuix 0.8.8 SmallTopAppBar takes a plain String title and has
+            // no subtitle slot; the per-tab subtitle ("%@'s Topics/Posts")
+            // is not lost - the same string is already rendered in the list
+            // as the SectionHeader below.
+            SmallTopAppBar(
+                title = title,
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -240,7 +233,7 @@ fun UserProfileScreen(
             }
         }
 
-        PullToRefreshBox(
+        PullToRefresh(
             isRefreshing = topicState.isRefreshing || postState.isRefreshing,
             onRefresh = { refresh() },
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -284,18 +277,12 @@ fun UserProfileScreen(
                     }
                 } else {
                     item(key = "tabs") {
-                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                            ProfileTab.entries.forEachIndexed { index, entry ->
-                                SegmentedButton(
-                                    selected = tab.value == entry,
-                                    onClick = { tab.value = entry },
-                                    shape = SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = ProfileTab.entries.size,
-                                    ),
-                                ) { Text(L.str(context, entry.labelKey)) }
-                            }
-                        }
+                        TabRow(
+                            tabs = ProfileTab.entries.map { L.str(context, it.labelKey) },
+                            selectedTabIndex = ProfileTab.entries.indexOf(tab.value),
+                            onTabSelected = { tab.value = ProfileTab.entries[it] },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
 
                     if (tab.value == ProfileTab.TOPICS) {
@@ -421,6 +408,11 @@ private fun ProfileOverflowMenu(
     IconButton(onClick = { expanded = true }) {
         Icon(Icons.Filled.MoreHoriz, contentDescription = L.str(context, "More"))
     }
+    // Kept as Material DropdownMenu: Miuix 0.8.8's SuperListPopup is only a
+    // popup container (plus ListPopupColumn) with no menu-item composable
+    // carrying text/leadingIcon/onClick, so the flat menu cannot be
+    // expressed without hand-rolled items; same call as in TopicListScreen.
+    // The items' Text/Icon are the Miuix ones.
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
         if (isMyself) {
             DropdownMenuItem(
@@ -441,8 +433,8 @@ private fun ProfileOverflowMenu(
                 text = {
                     Text(
                         L.str(context, if (blocked) "Unblock This User" else "Block This User"),
-                        color = if (blocked) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.error,
+                        color = if (blocked) MiuixTheme.colorScheme.onSurface
+                        else MiuixTheme.colorScheme.error,
                     )
                 },
                 leadingIcon = { Icon(Icons.Outlined.FrontHand, null) },
@@ -499,7 +491,7 @@ private fun UserPostRow(tp: TopicWithLightPost, onClick: () -> Unit) {
         RawPostContent(
             tp.post.content,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
         )
@@ -512,7 +504,7 @@ internal fun SectionCard(content: @Composable () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MiuixTheme.colorScheme.surface,
     ) { Column { content() } }
 }
 
@@ -521,7 +513,7 @@ internal fun SectionHeader(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
     )
 }
 

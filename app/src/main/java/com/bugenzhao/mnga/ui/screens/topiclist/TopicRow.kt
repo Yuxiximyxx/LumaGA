@@ -24,9 +24,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -136,7 +137,7 @@ fun TopicSubjectView(
                         Icons.Outlined.Bookmark,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MiuixTheme.colorScheme.primary,
                     )
                 }
                 if (topic.hasParentForum()) {
@@ -144,7 +145,7 @@ fun TopicSubjectView(
                         topic.parentForum.name,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MiuixTheme.colorScheme.primary,
                         maxLines = 1,
                     )
                 }
@@ -152,7 +153,7 @@ fun TopicSubjectView(
                     Text(
                         tag,
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MiuixTheme.colorScheme.primary,
                         maxLines = 1,
                     )
                 }
@@ -165,7 +166,7 @@ fun TopicSubjectView(
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 fontStyle = FontStyle.Italic,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 maxLines = maxLines,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -221,8 +222,8 @@ private fun SubjectContentText(
             textDecoration = if (underline) TextDecoration.Underline else null,
         ),
         color = color
-            ?: if (dimmed) MaterialTheme.colorScheme.onSurfaceVariant
-            else MaterialTheme.colorScheme.onSurface,
+            ?: if (dimmed) MiuixTheme.colorScheme.onSurfaceVariantSummary
+            else MiuixTheme.colorScheme.onSurface,
         maxLines = maxLines,
         overflow = TextOverflow.Ellipsis,
     )
@@ -231,7 +232,7 @@ private fun SubjectContentText(
 /** Redacted placeholder bars shown for subjects matched by block words. */
 @Composable
 fun BlockedSubjectView(modifier: Modifier = Modifier) {
-    val barColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+    val barColor = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.3f)
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
             Modifier.fillMaxWidth(0.8f).height(14.dp)
@@ -319,7 +320,7 @@ fun TopicRow(
                                 display,
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f, fill = false),
@@ -418,7 +419,7 @@ private fun TopicMetaBlock(
                         display,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
@@ -474,7 +475,7 @@ private fun TopicOriginLine(
                 Icons.Outlined.Bookmark,
                 contentDescription = null,
                 modifier = Modifier.size(13.dp),
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MiuixTheme.colorScheme.primary,
             )
         }
         if (forumName.isNotEmpty()) {
@@ -489,7 +490,7 @@ private fun TopicOriginLine(
                 name = OriginPlaceholder,
                 // The accent, not a name-seeded color: the placeholder stands
                 // for the app rather than for some forum.
-                chipColor = MaterialTheme.colorScheme.primary,
+                chipColor = MiuixTheme.colorScheme.primary,
                 textColor = color,
                 modifier = Modifier.weight(1f, fill = false),
             )
@@ -534,7 +535,7 @@ private fun ForumChip(
 /** The chip color a forum keeps across sessions, seeded by its own name. */
 @Composable
 private fun forumChipColor(seed: String): Color {
-    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val dark = MiuixTheme.colorScheme.surface.luminance() < 0.5f
     return remember(seed, dark) { avatarPalette(seed, dark).fill }
 }
 

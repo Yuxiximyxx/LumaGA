@@ -20,17 +20,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.VerifiedUser
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,9 +81,11 @@ fun BlockedUsersScreen(navigator: Navigator) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = { Text(L.str(context, "Block Management")) },
+            SmallTopAppBar(
+                title = L.str(context, "Block Management"),
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
@@ -107,7 +115,7 @@ fun BlockedUsersScreen(navigator: Navigator) {
                     Text(
                         L.str(context, "Blocked Users"),
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                     )
                 }
@@ -122,28 +130,35 @@ fun BlockedUsersScreen(navigator: Navigator) {
     }
 
     if (confirmUnblockAll) {
-        AlertDialog(
+        // Miuix WindowDialog has no icon slot; the shield icon moves into
+        // the content, and title/summary carry the old title/text.
+        WindowDialog(
+            show = true,
+            title = L.str(context, "Unblock All Users?"),
+            summary = L.str(context, "Their topics and replies will be visible again."),
             onDismissRequest = { confirmUnblockAll = false },
-            icon = { Icon(Icons.Outlined.Shield, contentDescription = null) },
-            title = { Text(L.str(context, "Unblock All Users?")) },
-            text = { Text(L.str(context, "Their topics and replies will be visible again.")) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        blockedUsers.forEach { storage.remove(it.word) }
-                        Haptics.play(view, Haptics.NotificationType.SUCCESS)
-                        confirmUnblockAll = false
-                    },
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(Icons.Outlined.Shield, contentDescription = null)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
                 ) {
-                    Text(L.str(context, "Unblock All"))
+                    TextButton(
+                        text = L.str(context, "Cancel"),
+                        onClick = { confirmUnblockAll = false },
+                    )
+                    TextButton(
+                        text = L.str(context, "Unblock All"),
+                        onClick = {
+                            blockedUsers.forEach { storage.remove(it.word) }
+                            Haptics.play(view, Haptics.NotificationType.SUCCESS)
+                            confirmUnblockAll = false
+                        },
+                    )
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmUnblockAll = false }) {
-                    Text(L.str(context, "Cancel"))
-                }
-            },
-        )
+            }
+        }
     }
 }
 
@@ -153,8 +168,8 @@ private data class BlockedUser(val word: BlockWord, val name: String)
 private fun BlockedUsersSummary(count: Int, onUnblockAll: (() -> Unit)?) {
     val context = LocalContext.current
     Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        color = MiuixTheme.colorScheme.primaryContainer,
+        contentColor = MiuixTheme.colorScheme.onPrimaryContainer,
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -165,7 +180,7 @@ private fun BlockedUsersSummary(count: Int, onUnblockAll: (() -> Unit)?) {
         ) {
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.10f),
+                color = MiuixTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.10f),
             ) {
                 Box(Modifier.size(52.dp), contentAlignment = Alignment.Center) {
                     Icon(
@@ -184,13 +199,14 @@ private fun BlockedUsersSummary(count: Int, onUnblockAll: (() -> Unit)?) {
                 Text(
                     L.str(context, "Topics and replies from these users are hidden."),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.76f),
+                    color = MiuixTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.76f),
                 )
             }
             if (onUnblockAll != null) {
-                TextButton(onClick = onUnblockAll) {
-                    Text(L.str(context, "Unblock All"))
-                }
+                TextButton(
+                    text = L.str(context, "Unblock All"),
+                    onClick = onUnblockAll,
+                )
             }
         }
     }
@@ -201,8 +217,7 @@ private fun BlockedUserRow(name: String, onUnblock: () -> Unit) {
     val context = LocalContext.current
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        color = MiuixTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -220,16 +235,16 @@ private fun BlockedUserRow(name: String, onUnblock: () -> Unit) {
                 Text(
                     L.str(context, "Topics and replies hidden"),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
-            OutlinedButton(
+            // Miuix has no OutlinedButton; the low-weight TextButton is the
+            // closest equivalent for this small row action.
+            TextButton(
+                text = L.str(context, "Unblock"),
                 onClick = onUnblock,
-                contentPadding = PaddingValues(horizontal = 12.dp),
                 modifier = Modifier.height(36.dp),
-            ) {
-                Text(L.str(context, "Unblock"))
-            }
+            )
         }
     }
 }
@@ -240,8 +255,8 @@ private fun BlockedUsersEmptyState() {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MiuixTheme.colorScheme.dividerLine),
+        color = MiuixTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 40.dp),
@@ -250,7 +265,7 @@ private fun BlockedUsersEmptyState() {
             Icon(
                 Icons.Outlined.VerifiedUser,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MiuixTheme.colorScheme.primary,
                 modifier = Modifier.size(44.dp),
             )
             Spacer(Modifier.height(12.dp))
@@ -263,7 +278,7 @@ private fun BlockedUsersEmptyState() {
             Text(
                 L.str(context, "People you block will appear here."),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
         }
     }

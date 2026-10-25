@@ -41,6 +41,10 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.DropdownImpl
+import top.yukonga.miuix.kmp.basic.ListPopupColumn
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
+import top.yukonga.miuix.kmp.extra.SuperListPopup
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -53,6 +57,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -278,30 +283,33 @@ fun TopicListScreen(
                                     contentDescription = L.str(context, "Range"),
                                 )
                             }
-                            DropdownMenu(
-                                expanded = rangeMenuExpanded,
+                            // Flat single-choice menu (text + check only):
+                            // natively expressible with Miuix ListPopup.
+                            SuperListPopup(
+                                show = rangeMenuExpanded,
+                                alignment = PopupPositionProvider.Align.End,
                                 onDismissRequest = { rangeMenuExpanded = false },
                             ) {
-                                listOf(
-                                    HotTopicListRequest.DateRange.DAY to "Last 24 hours",
-                                    HotTopicListRequest.DateRange.WEEK to "Last week",
-                                    HotTopicListRequest.DateRange.MONTH to "Last month",
-                                ).forEach { (range, label) ->
-                                    DropdownMenuItem(
-                                        text = { Text(L.str(context, label)) },
-                                        trailingIcon = {
-                                            if (range == hotRange) {
-                                                Icon(
-                                                    Icons.Outlined.Check,
-                                                    contentDescription = null,
-                                                )
-                                            }
-                                        },
-                                        onClick = {
-                                            hotRange = range
-                                            rangeMenuExpanded = false
-                                        },
+                                ListPopupColumn {
+                                    val ranges = listOf(
+                                        HotTopicListRequest.DateRange.DAY to "Last 24 hours",
+                                        HotTopicListRequest.DateRange.WEEK to "Last week",
+                                        HotTopicListRequest.DateRange.MONTH to "Last month",
                                     )
+                                    ranges.forEachIndexed { index, (range, label) ->
+                                        key(index) {
+                                            DropdownImpl(
+                                                text = L.str(context, label),
+                                                optionSize = ranges.size,
+                                                isSelected = range == hotRange,
+                                                index = index,
+                                                onSelectedIndexChange = {
+                                                    hotRange = ranges[it].first
+                                                    rangeMenuExpanded = false
+                                                },
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -24,6 +22,8 @@ import com.bugenzhao.mnga.protos.service.TopicFavorRequest
 import com.bugenzhao.mnga.protos.service.TopicFavorResponse
 import com.bugenzhao.mnga.util.Haptics
 import com.bugenzhao.mnga.util.L
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -76,6 +76,10 @@ fun toggleTopicFavor(
 /**
  * The swipe-to-favorite row wrapper: a swipe from the start edge triggers
  * [onFavor] and the row snaps back — favoriting keeps the row.
+ *
+ * Miuix 0.8.8 has no swipe-to-dismiss equivalent, so the Material3
+ * [SwipeToDismissBox] is retained; only the background [Icon] and its tint
+ * are Miuix.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,7 +109,7 @@ fun SwipeToFavorBox(
                 Icon(
                     Icons.Outlined.Star,
                     contentDescription = L.str(context, "Mark as Favorite"),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MiuixTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 32.dp),
                 )
             }

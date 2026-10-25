@@ -1,16 +1,20 @@
 package com.bugenzhao.mnga.ui.root
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +57,11 @@ import com.bugenzhao.mnga.ui.screens.user.BlockedUsersScreen
 import com.bugenzhao.mnga.ui.theme.LumaGATheme
 import com.bugenzhao.mnga.model.appScope
 import kotlinx.coroutines.flow.filter
+import top.yukonga.miuix.kmp.basic.NavigationBar
+import top.yukonga.miuix.kmp.basic.NavigationBarItem
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** Root composable: theme, navigation stack and global overlays. */
 @Composable
@@ -73,8 +82,13 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         // push/pop fade+slide transitions both pages are partially transparent,
         // and without a solid layer beneath them the (always light) window
         // background flashes white in dark mode.
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            NavigationHost(navigator, editor)
+        Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
+            Column(Modifier.fillMaxSize()) {
+                Box(Modifier.weight(1f)) {
+                    NavigationHost(navigator, editor)
+                }
+                MainTabBar(navigator)
+            }
         }
         GlobalOverlays(navigator, editor)
 
@@ -107,6 +121,43 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
                     kotlinx.coroutines.delay(350)
                     maybeNavigateToPasteboardLink(navigator)
                 }
+        }
+    }
+}
+
+/**
+ * Bottom tab bar of the main shell (MIUIX phase 2): two tabs, Home and Mine.
+ * The Mine tab is the personal-center page, now a root destination instead of
+ * a drawer-style page pushed over Home. The bar only shows while a tab root
+ * is on top; tab switches never grow the stack (Mine is pushed over Home,
+ * Home pops back to it), so back behavior and the predictive preview stay
+ * exactly the NavHost semantics used everywhere else.
+ */
+@Composable
+private fun MainTabBar(navigator: Navigator) {
+    val stack by navigator.stack.collectAsState()
+    val current = stack.lastOrNull()
+    val onTabRoot = current is Route.ForumList || current is Route.PersonalCenter
+    AnimatedVisibility(
+        visible = onTabRoot,
+        enter = slideInVertically { it } + fadeIn(),
+        exit = slideOutVertically { it } + fadeOut(),
+    ) {
+        NavigationBar {
+            NavigationBarItem(
+                selected = current is Route.ForumList,
+                onClick = { if (current is Route.PersonalCenter) navigator.pop() },
+                icon = Icons.Filled.Home,
+                label = "主页",
+            )
+            NavigationBarItem(
+                selected = current is Route.PersonalCenter,
+                onClick = {
+                    if (current is Route.ForumList) navigator.push(Route.PersonalCenter)
+                },
+                icon = Icons.Filled.Person,
+                label = "我的",
+            )
         }
     }
 }
@@ -165,21 +216,21 @@ internal fun NavigationHost(
         modifier = Modifier.fillMaxSize(),
         // Forward (push): the new page slides in from the right while the old
         // one exits to the left. Backward (pop): mirrored.
-        // Exception: PersonalCenter slides in from the left (drawer-style),
-        // so the page it covers must exit to the right, and vice versa on pop.
-        // The outgoing transition belongs to the *old* destination, hence the
-        // target/initial-state checks here.
+        // Exception: the PersonalCenter (Mine tab) crossfades instead of
+        // sliding, since switching bottom-bar tabs is not a push in spirit;
+        // the page it covers fades with it. The outgoing transition belongs
+        // to the *old* destination, hence the target/initial-state checks.
         enterTransition = { slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280)) },
         exitTransition = {
             if (targetState.destination.route == RouteCodec.ROUTE_PERSONAL_CENTER) {
-                slideOutHorizontally(tween(280)) { it / 4 } + fadeOut(tween(280))
+                fadeOut(tween(280))
             } else {
                 slideOutHorizontally(tween(280)) { -it / 4 } + fadeOut(tween(280))
             }
         },
         popEnterTransition = {
             if (initialState.destination.route == RouteCodec.ROUTE_PERSONAL_CENTER) {
-                slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280))
+                fadeIn(tween(280))
             } else {
                 slideInHorizontally(tween(280)) { -it / 3 } + fadeIn(tween(280))
             }
@@ -260,14 +311,14 @@ internal fun NavigationHost(
         composable(RouteCodec.ROUTE_QR_SCANNER) {
             RouteDispatcher(navigator, Route.QrScanner, editor)
         }
-        // Personal center: slides in from the left (drawer-style page),
-        // mirroring the exit when popped.
+        // Personal center: the bottom-bar Mine tab root, crossfading with
+        // the Home tab instead of sliding like a pushed page.
         composable(
             RouteCodec.ROUTE_PERSONAL_CENTER,
-            enterTransition = { slideInHorizontally(tween(280)) { -it } + fadeIn(tween(280)) },
-            exitTransition = { slideOutHorizontally(tween(280)) { -it } + fadeOut(tween(280)) },
-            popEnterTransition = { slideInHorizontally(tween(280)) { -it } + fadeIn(tween(280)) },
-            popExitTransition = { slideOutHorizontally(tween(280)) { -it } + fadeOut(tween(280)) },
+            enterTransition = { fadeIn(tween(280)) },
+            exitTransition = { fadeOut(tween(280)) },
+            popEnterTransition = { fadeIn(tween(280)) },
+            popExitTransition = { fadeOut(tween(280)) },
         ) {
             RouteDispatcher(navigator, Route.PersonalCenter, editor)
         }
@@ -287,7 +338,7 @@ fun RouteDispatcher(
 ) {
     when (route) {
         is Route.ForumList ->
-            ForumListScreen(navigator, onShowUserMenu = { navigator.push(Route.PersonalCenter) })
+            ForumListScreen(navigator)
         is Route.TopicList ->
             TopicListScreen(
                 navigator,
@@ -341,8 +392,8 @@ private fun RoutePlaceholderScreen(navigator: Navigator, route: Route) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
             text = route.javaClass.simpleName,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
+            style = MiuixTheme.textStyles.title4,
+            color = MiuixTheme.colorScheme.onBackground,
         )
     }
 }

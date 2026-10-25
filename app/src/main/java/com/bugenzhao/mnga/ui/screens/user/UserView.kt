@@ -26,10 +26,11 @@ import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.FrontHand
 import androidx.compose.material.icons.outlined.TheaterComedy
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -246,7 +247,7 @@ private fun UserViewImpl(
                     icon,
                     contentDescription = null,
                     modifier = Modifier.size(size),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MiuixTheme.colorScheme.primary,
                 )
             }
             AvatarImage(
@@ -296,14 +297,14 @@ private fun UserViewImpl(
                         Icons.Filled.MicOff,
                         contentDescription = null,
                         modifier = Modifier.size(nameStyle.fontSize.value.dp * 0.9f),
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = MiuixTheme.colorScheme.error,
                     )
                 }
                 if (isAuthor && showAuthorIndicator) {
                     Text(
                         L.str(context, "(OP)"),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MiuixTheme.colorScheme.primary,
                         maxLines = 1,
                     )
                 }
@@ -360,8 +361,8 @@ private fun StatsFlow(
     showIpLocation: Boolean,
 ) {
     val context = LocalContext.current
-    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val red = MaterialTheme.colorScheme.error
+    val secondary = MiuixTheme.colorScheme.onSurfaceVariantSummary
+    val red = MiuixTheme.colorScheme.error
     val footnote = MaterialTheme.typography.bodySmall
 
     FlowRow(
@@ -440,7 +441,7 @@ fun UserProfileHeader(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MiuixTheme.colorScheme.surface,
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             UserView(
@@ -481,7 +482,7 @@ private fun ActionRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        val tint = MaterialTheme.colorScheme.onSurfaceVariant
+        val tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
         if (isMyself) {
             HeaderAction(Icons.Outlined.EditNote, "Edit Signature", tint, onEditSignature)
         }

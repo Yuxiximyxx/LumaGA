@@ -3,17 +3,14 @@ package com.bugenzhao.mnga.ui.screens.misc
 import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -27,6 +24,12 @@ import com.bugenzhao.mnga.ui.components.GroupedRow
 import com.bugenzhao.mnga.ui.components.RowChevron
 import com.bugenzhao.mnga.util.AppUpdate
 import com.bugenzhao.mnga.util.L
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * The "Check for Updates" row. Tapping it starts a check; [UpdateFlowDialogs]
@@ -62,6 +65,18 @@ fun CheckForUpdatesRow() {
     )
 }
 
+/** Buttons row at the bottom of an update [WindowDialog], end-aligned. */
+@Composable
+private fun DialogButtonRow(
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 8.dp),
+        horizontalArrangement = Arrangement.End,
+        content = content,
+    )
+}
+
 /**
  * Hosts every dialog of the update flow. Mount it once per screen that offers
  * [CheckForUpdatesRow]; it draws nothing while the flow is idle.
@@ -78,60 +93,74 @@ fun UpdateFlowDialogs() {
         is UpdateState.Idle, is UpdateState.Checking -> {}
 
         is UpdateState.UpToDate ->
-            AlertDialog(
+            WindowDialog(
+                show = true,
+                title = L.str(context, "You're up to date"),
                 onDismissRequest = { model.reset() },
-                title = { Text(L.str(context, "You're up to date")) },
-                text = { Text("LumaGA ${current.version}") },
-                confirmButton = {
-                    TextButton(onClick = { model.reset() }) { Text(L.str(context, "OK")) }
-                },
-            )
+            ) {
+                Column {
+                    Text("LumaGA ${current.version}")
+                    DialogButtonRow {
+                        TextButton(
+                            text = L.str(context, "OK"),
+                            onClick = { model.reset() },
+                        )
+                    }
+                }
+            }
 
         is UpdateState.Available ->
-            AlertDialog(
+            WindowDialog(
+                show = true,
+                title = L.str(context, "New Version Available"),
                 onDismissRequest = { model.reset() },
-                title = { Text(L.str(context, "New Version Available")) },
-                text = {
+            ) {
+                Column {
                     Column(
                         Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
                             "${current.release.version}  ←  ${AppUpdate.currentVersion}",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MiuixTheme.textStyles.headline1,
                         )
                         if (current.release.notes.isNotBlank()) {
                             Text(
                                 current.release.notes,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
                         }
                         if (current.release.apkSize > 0) {
                             Text(
                                 bytes(current.release.apkSize),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MiuixTheme.textStyles.footnote1,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
                         }
                     }
-                },
-                confirmButton = {
-                    TextButton(onClick = { model.download(current.release) }) {
-                        Text(L.str(context, "Download & Install"))
+                    DialogButtonRow {
+                        TextButton(
+                            text = L.str(context, "Later"),
+                            onClick = { model.reset() },
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        TextButton(
+                            text = L.str(context, "Download & Install"),
+                            onClick = { model.download(current.release) },
+                        )
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { model.reset() }) { Text(L.str(context, "Later")) }
-                },
-            )
+                }
+            }
 
         is UpdateState.Downloading ->
-            AlertDialog(
+            WindowDialog(
+                show = true,
+                title = L.str(context, "Downloading Update"),
                 // Only the explicit Cancel button aborts the download.
                 onDismissRequest = {},
-                title = { Text(L.str(context, "Downloading Update")) },
-                text = {
+            ) {
+                Column {
                     Column(
                         Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -139,107 +168,128 @@ fun UpdateFlowDialogs() {
                         val fraction = current.fraction
                         if (fraction != null) {
                             LinearProgressIndicator(
-                                progress = { fraction },
+                                progress = fraction,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             Text(
                                 "${(fraction * 100).toInt()}%  ·  " +
                                     "${bytes(current.downloaded)} / ${bytes(current.total)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MiuixTheme.textStyles.footnote1,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
                         } else {
                             LinearProgressIndicator(Modifier.fillMaxWidth())
                             Text(
                                 bytes(current.downloaded),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MiuixTheme.textStyles.footnote1,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
                         }
                     }
-                },
-                confirmButton = {
-                    TextButton(onClick = { model.reset() }) { Text(L.str(context, "Cancel")) }
-                },
-            )
+                    DialogButtonRow {
+                        TextButton(
+                            text = L.str(context, "Cancel"),
+                            onClick = { model.reset() },
+                        )
+                    }
+                }
+            }
 
         is UpdateState.Downloaded ->
-            AlertDialog(
+            WindowDialog(
+                show = true,
+                title = L.str(context, "Download Complete"),
                 onDismissRequest = { model.reset() },
-                title = { Text(L.str(context, "Download Complete")) },
-                text = { Text("LumaGA ${current.release.version}") },
-                confirmButton = {
-                    TextButton(onClick = { model.install(current.release, current.file) }) {
-                        Text(L.str(context, "Install"))
+            ) {
+                Column {
+                    Text("LumaGA ${current.release.version}")
+                    DialogButtonRow {
+                        TextButton(
+                            text = L.str(context, "Later"),
+                            onClick = { model.reset() },
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        TextButton(
+                            text = L.str(context, "Install"),
+                            onClick = { model.install(current.release, current.file) },
+                        )
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { model.reset() }) { Text(L.str(context, "Later")) }
-                },
-            )
+                }
+            }
 
         is UpdateState.NeedsInstallPermission ->
-            AlertDialog(
+            WindowDialog(
+                show = true,
+                title = L.str(context, "Permission Required"),
                 onDismissRequest = { model.reset() },
-                title = { Text(L.str(context, "Permission Required")) },
-                text = { Text(L.str(context, "Allow LumaGA to install apps, then tap Install again.")) },
-                confirmButton = {
-                    TextButton(onClick = { model.openInstallPermissionSettings() }) {
-                        Text(L.str(context, "Open Settings"))
+            ) {
+                Column {
+                    Text(L.str(context, "Allow LumaGA to install apps, then tap Install again."))
+                    DialogButtonRow {
+                        TextButton(
+                            text = L.str(context, "Install"),
+                            onClick = { model.install(current.release, current.file) },
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        TextButton(
+                            text = L.str(context, "Open Settings"),
+                            onClick = { model.openInstallPermissionSettings() },
+                        )
                     }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { model.install(current.release, current.file) },
-                    ) { Text(L.str(context, "Install")) }
-                },
-            )
+                }
+            }
 
         is UpdateState.Failed -> {
             val release = current.release
             val noAsset = current.message == UpdateModel.NO_ASSET
-            AlertDialog(
-                onDismissRequest = { model.reset() },
-                title = {
-                    Text(
-                        if (release == null) L.str(context, "Update Check Failed")
-                        else L.str(context, "Download Failed")
-                    )
+            WindowDialog(
+                show = true,
+                title = if (release == null) {
+                    L.str(context, "Update Check Failed")
+                } else {
+                    L.str(context, "Download Failed")
                 },
-                text = {
+                onDismissRequest = { model.reset() },
+            ) {
+                Column {
                     Text(
                         if (noAsset) L.str(context, "This release has no APK to download.")
                         else current.message
                     )
-                },
-                confirmButton = {
-                    when {
-                        // No APK asset: the release page is the only way forward.
-                        noAsset && release != null ->
-                            TextButton(
-                                onClick = {
-                                    model.reset()
-                                    App.openURL.open(
-                                        android.net.Uri.parse(release.pageUrl),
-                                        inApp = false,
-                                        prefs = App.prefs,
+                    DialogButtonRow {
+                        TextButton(
+                            text = L.str(context, "Close"),
+                            onClick = { model.reset() },
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        when {
+                                // No APK asset: the release page is the only way forward.
+                                noAsset && release != null ->
+                                    TextButton(
+                                        text = L.str(context, "Release Page"),
+                                        onClick = {
+                                            model.reset()
+                                            App.openURL.open(
+                                                android.net.Uri.parse(release.pageUrl),
+                                                inApp = false,
+                                                prefs = App.prefs,
+                                            )
+                                        },
                                     )
-                                },
-                            ) { Text(L.str(context, "Release Page")) }
-                        release != null ->
-                            TextButton(onClick = { model.download(release) }) {
-                                Text(L.str(context, "Retry"))
-                            }
-                        else ->
-                            TextButton(onClick = { model.check() }) {
-                                Text(L.str(context, "Retry"))
-                            }
+                                release != null ->
+                                    TextButton(
+                                        text = L.str(context, "Retry"),
+                                        onClick = { model.download(release) },
+                                    )
+                                else ->
+                                    TextButton(
+                                        text = L.str(context, "Retry"),
+                                        onClick = { model.check() },
+                                    )
+                        }
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { model.reset() }) { Text(L.str(context, "Close")) }
-                },
-            )
+                }
+            }
         }
     }
 }

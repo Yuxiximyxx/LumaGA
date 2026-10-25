@@ -3,7 +3,6 @@ package com.bugenzhao.mnga.ui.screens.forumlist
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +21,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.outlined.Check
@@ -72,7 +70,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -87,11 +84,9 @@ import com.bugenzhao.mnga.model.PlusFeature
 import com.bugenzhao.mnga.model.PlusModel
 import com.bugenzhao.mnga.protos.datamodel.Forum
 import com.bugenzhao.mnga.protos.service.AsyncRequest
-import com.bugenzhao.mnga.ui.components.Avatar
 import com.bugenzhao.mnga.ui.components.LoadingRow
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
-import com.bugenzhao.mnga.ui.screens.user.nameDisplayCompat
 import com.bugenzhao.mnga.ui.screens.topiclist.copyToClipboard
 import com.bugenzhao.mnga.ui.screens.topiclist.openInBrowser
 import com.bugenzhao.mnga.ui.screens.topiclist.shareText
@@ -109,14 +104,14 @@ private fun favoriteGridKey(forum: Forum): String = "fav-${forumIdKey(forum.id)}
 
 /**
  * The root forum sidebar, a port of `ForumListView`: favorite forums on top,
- * collapsible per-category sections below, plus the root toolbar (user menu,
- * notifications, paywall, search, filter, settings).
+ * collapsible per-category sections below, plus the root toolbar
+ * (notifications, search, filter). The personal center lives in the
+ * bottom-bar "Mine" tab since the MIUIX phase-2 shell.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ForumListScreen(
     navigator: Navigator,
-    onShowUserMenu: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -168,7 +163,6 @@ fun ForumListScreen(
     }
 
     // -- Toolbar state.
-    val currentUser by App.currentUser.user.collectAsState()
     val unreadCount by App.notis.unreadCountAnimated.collectAsState()
     var editMode by remember { mutableStateOf(false) }
     var moreMenuExpanded by remember { mutableStateOf(false) }
@@ -203,37 +197,6 @@ fun ForumListScreen(
         topBar = {
             TopAppBar(
                 title = "LumaGA",
-                navigationIcon = {
-                    // User menu avatar button with a 1dp accent ring. The start
-                    // padding mirrors the visual gap of the trailing MoreVert
-                    // icon so the avatar and the "More" icon sit symmetrically.
-                    IconButton(
-                        onClick = onShowUserMenu,
-                        modifier = Modifier.padding(start = 14.dp),
-                    ) {
-                        Box(
-                            Modifier
-                                .size(30.dp)
-                                .clip(CircleShape)
-                                .background(MiuixTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(MiuixTheme.colorScheme.surface),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Avatar(
-                                    url = currentUser?.avatarUrl,
-                                    name = currentUser?.nameDisplayCompat,
-                                    size = 26,
-                                )
-                            }
-                        }
-                    }
-                },
                 actions = {
                     if (editMode) {
                         // Edit-favorites mode: hide every other action and show
