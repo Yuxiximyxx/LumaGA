@@ -168,6 +168,10 @@
     <string name="goto_s">前往 %1$s</string>
     <string name="goto_forum">前往版块</string>
     <string name="color_scheme">配色方案</string>
+    <string name="dock_glass_material">底栏玻璃材质</string>
+    <string name="glass_clear">毛玻璃</string>
+    <string name="glass_frosted">磨砂玻璃</string>
+    <string name="glass_liquid">液态玻璃</string>
     <string name="auto">自动</string>
     <string name="light">浅色</string>
     <string name="dark">深色</string>

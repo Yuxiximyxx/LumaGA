@@ -66,6 +66,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
     val prefs = App.prefs
     val themeColor by prefs.themeColorRaw.flow.collectAsState()
     val colorScheme by prefs.colorSchemeRaw.flow.collectAsState()
+    val tabDockGlassRaw by prefs.tabDockGlassMaterialRaw.flow.collectAsState()
 
     LumaGATheme(
         themeColor = com.bugenzhao.mnga.storage.ThemeColor.fromRaw(themeColor),
@@ -126,11 +127,13 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         // tabDockContentBottomPadding) so their last item can scroll clear
         // of the dock.
         val colorSchemeMode = com.bugenzhao.mnga.storage.ColorSchemeMode.fromRaw(colorScheme)
+        val tabDockGlassMaterial =
+            com.bugenzhao.mnga.storage.DockGlassMaterial.fromRaw(tabDockGlassRaw)
         Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
             CompositionLocalProvider(LocalNavigator provides navigator) {
                 Box(Modifier.fillMaxSize()) {
                     NavigationHost(navigator, editor)
-                    MainTabBar(navigator, colorSchemeMode)
+                    MainTabBar(navigator, colorSchemeMode, tabDockGlassMaterial)
                 }
             }
         }
@@ -184,6 +187,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
 private fun BoxScope.MainTabBar(
     navigator: Navigator,
     colorSchemeMode: com.bugenzhao.mnga.storage.ColorSchemeMode,
+    glassMaterial: com.bugenzhao.mnga.storage.DockGlassMaterial,
 ) {
     val stack by navigator.stack.collectAsState()
     val current = stack.lastOrNull()
@@ -204,6 +208,7 @@ private fun BoxScope.MainTabBar(
                 if (current is Route.ForumList) navigator.push(Route.PersonalCenter)
             },
             colorSchemeMode = colorSchemeMode,
+            glassMaterial = glassMaterial,
         )
     }
 }

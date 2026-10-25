@@ -68,6 +68,7 @@ import com.bugenzhao.mnga.BuildConfig
 import com.bugenzhao.mnga.protos.datamodel.Device
 import com.bugenzhao.mnga.storage.ColorSchemeMode
 import com.bugenzhao.mnga.storage.DateTimeStrategy
+import com.bugenzhao.mnga.storage.DockGlassMaterial
 import com.bugenzhao.mnga.storage.ThemeColor
 import com.bugenzhao.mnga.storage.TopicListOrder
 import com.bugenzhao.mnga.storage.TopicResumeFrom
@@ -85,6 +86,7 @@ import kotlinx.coroutines.launch
 private enum class PickerKind {
     COLOR_SCHEME,
     THEME_COLOR,
+    DOCK_GLASS,
     ORDER,
     HIDE_BLOCKED,
     WEB_API,
@@ -119,6 +121,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
 
     val colorSchemeRaw by prefs.colorSchemeRaw.flow.collectAsState()
     val themeColorRaw by prefs.themeColorRaw.flow.collectAsState()
+    val dockGlassRaw by prefs.tabDockGlassMaterialRaw.flow.collectAsState()
     val alwaysPortrait by prefs.alwaysPortraitOnPhone.flow.collectAsState()
     val useInAppSafari by prefs.useInAppSafari.flow.collectAsState()
     val alwaysShareImageAsFile by prefs.alwaysShareImageAsFile.flow.collectAsState()
@@ -201,6 +204,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
 
     val themeColor = ThemeColor.fromRaw(themeColorRaw)
     val colorScheme = ColorSchemeMode.fromRaw(colorSchemeRaw)
+    val dockGlass = DockGlassMaterial.fromRaw(dockGlassRaw)
     val defaultOrder = TopicListOrder.fromRaw(defaultOrderRaw)
     val webApiStrategy = WebApiStrategy.fromRaw(webApiStrategyRaw)
     val resumeFrom = TopicResumeFrom.fromRaw(resumeFromRaw)
@@ -241,6 +245,11 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
                         title = L.str(context, "Theme Color"),
                         valueLabel = L.str(context, themeColor.label),
                         onClick = { picker = PickerKind.THEME_COLOR },
+                    )
+                    PickerRow(
+                        title = L.str(context, "Dock Glass Material"),
+                        valueLabel = dockGlassLabel(context, dockGlass),
+                        onClick = { picker = PickerKind.DOCK_GLASS },
                     )
                     SwitchRow(
                         title = L.str(context, "Lock Screen Rotation"),
@@ -500,6 +509,16 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
                 onSelect = { prefs.themeColorRaw.value = it.raw },
                 onDismiss = { picker = null },
             )
+        PickerKind.DOCK_GLASS ->
+            PickerDialog(
+                title = L.str(context, "Dock Glass Material"),
+                options = DockGlassMaterial.entries.map {
+                    PickerOption(it, dockGlassLabel(context, it))
+                },
+                selected = dockGlass,
+                onSelect = { prefs.tabDockGlassMaterialRaw.value = it.raw },
+                onDismiss = { picker = null },
+            )
         PickerKind.ORDER ->
             PickerDialog(
                 title = L.str(context, "Default Order"),
@@ -733,6 +752,13 @@ private fun colorSchemeLabel(context: android.content.Context, mode: ColorScheme
         ColorSchemeMode.LIGHT -> L.str(context, "Light")
         ColorSchemeMode.DARK -> L.str(context, "Dark")
         ColorSchemeMode.CLASSIC -> "经典屎黄色"
+    }
+
+private fun dockGlassLabel(context: android.content.Context, material: DockGlassMaterial): String =
+    when (material) {
+        DockGlassMaterial.CLEAR -> L.str(context, "Clear Glass")
+        DockGlassMaterial.FROSTED -> L.str(context, "Frosted Glass")
+        DockGlassMaterial.LIQUID -> L.str(context, "Liquid Glass")
     }
 
 private fun orderLabel(context: android.content.Context, order: TopicListOrder): String =

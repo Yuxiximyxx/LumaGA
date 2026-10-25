@@ -63,53 +63,135 @@ fun tabDockContentBottomPadding(): Dp =
     TabDockHeight + TabDockBottomGap + 16.dp +
         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-private enum class DockScheme { Dark, Light, Classic }
+internal enum class DockScheme { Dark, Light, Classic }
 
-private data class DockColors(
+internal data class DockColors(
     val glass: Color,
     val border: Color,
     val pill: Color,
     val unselected: Color,
+    /** Top inset highlight (brightest right at the capsule's top edge). */
     val highlight: Color,
+    /** Height of the top highlight band; narrower reads as sharper. */
+    val highlightHeight: Dp = 14.dp,
+    /** Brightest color of the bottom-edge highlight line; Transparent = off. */
+    val bottomHighlight: Color = Color.Transparent,
+    /** Tint of the diagonal sheen wash (top-left); Transparent = off. */
+    val sheen: Color = Color.Transparent,
 )
 
 /**
- * Palette of the dock per scheme, following the "frosted glass" recipe
- * (thick milky veil, bright rim, soft shadow, inset top highlight). There
- * is no backdrop-blur module available in the pinned Miuix 0.8.8, and Haze
- * 2.0.1/1.7.3 both resolve to JetBrains Compose 1.12 artifacts
- * (org.jetbrains.compose.ui, no capability metadata to dedupe against this
- * AndroidX-Compose build) plus a newer Kotlin stdlib than the project's —
- * a duplicate-class/linkage risk that cannot be compile-verified locally,
- * so the veil is an opaque-ish milky fill instead of a sampled blur. Two
- * recipe knobs therefore have no equivalent in this pass and are noted as
- * gaps: the backdrop blur radius (recipe ≈ CSS 18–26px, i.e. ~20–24dp —
- * the value to use if a real blur lands later) and the ~1.5x saturation
- * boost of the sampled backdrop (the recipe's key "premium glass" knob;
- * with no sampling there is nothing to saturate).
+ * Palette of the dock per color scheme × glass material, following the
+ * three recipes of wave2234/liquid-glass-recipes as far as this route
+ * allows. There is no backdrop-blur module available in the pinned Miuix
+ * 0.8.8, and Haze 2.0.1/1.7.3 both resolve to JetBrains Compose 1.12
+ * artifacts (org.jetbrains.compose.ui, no capability metadata to dedupe
+ * against this AndroidX-Compose build) plus a newer Kotlin stdlib than the
+ * project's — a duplicate-class/linkage risk that cannot be
+ * compile-verified locally — so the veil is an opaque-ish milky fill
+ * instead of a sampled blur, and the materials differ in the knobs that
+ * remain: veil thickness, rim brightness and edge highlights.
+ *
+ * - FROSTED （磨砂玻璃， the default): the thick milky veil and soft, wide
+ *   top highlight the dock shipped with in v1.7.0 — its values below are
+ *   that baseline, unchanged.
+ * - CLEAR （毛玻璃）: veil thinned to about half of frosted, a brighter and
+ *   narrower (sharper) top highlight and a more luminous rim — airier.
+ * - LIQUID （液态玻璃）: veil thinned to about half of clear again, the
+ *   strongest rim, highlight lines on BOTH the top and bottom edges and a
+ *   faint diagonal sheen wash, mimicking the recipe's wet, reflective
+ *   surface. NOT the real thing: the recipe's signature refraction (SVG
+ *   displacement) and the ~1.5x saturation boost of the sampled backdrop
+ *   have no equivalent without backdrop sampling, so LIQUID here is
+ *   "thinnest veil + strongest edge light", not refractive glass. The
+ *   backdrop blur radius (recipe ≈ CSS 18–26px, i.e. ~20–24dp) is likewise
+ *   still missing for all three — the value to use if a real blur lands.
  */
-private fun dockColors(scheme: DockScheme): DockColors = when (scheme) {
-    DockScheme.Dark -> DockColors(
-        glass = Color(0xFFD4D5DB).copy(alpha = 0.48f),
-        border = Color.White.copy(alpha = 0.28f),
-        pill = Color.Black.copy(alpha = 0.18f),
-        unselected = Color(0xFFF2F2F7),
-        highlight = Color.White.copy(alpha = 0.30f),
-    )
-    DockScheme.Light -> DockColors(
-        glass = Color.White.copy(alpha = 0.62f),
-        border = Color.Black.copy(alpha = 0.07f),
-        pill = Color.Black.copy(alpha = 0.10f),
-        unselected = Color(0xFF3A3A3C),
-        highlight = Color.White.copy(alpha = 0.50f),
-    )
-    DockScheme.Classic -> DockColors(
-        glass = Color(0xFFFFF6DF).copy(alpha = 0.88f),
-        border = Color(0xFFD9C48F).copy(alpha = 0.8f),
-        pill = Color(0xFF4A3B18).copy(alpha = 0.14f),
-        unselected = Color(0xFF6B5D3E),
-        highlight = Color.White.copy(alpha = 0.45f),
-    )
+internal fun dockColors(
+    scheme: DockScheme,
+    material: com.bugenzhao.mnga.storage.DockGlassMaterial,
+): DockColors = when (scheme) {
+    DockScheme.Dark -> when (material) {
+        com.bugenzhao.mnga.storage.DockGlassMaterial.FROSTED -> DockColors(
+            glass = Color(0xFFD4D5DB).copy(alpha = 0.48f),
+            border = Color.White.copy(alpha = 0.28f),
+            pill = Color.Black.copy(alpha = 0.18f),
+            unselected = Color(0xFFF2F2F7),
+            highlight = Color.White.copy(alpha = 0.30f),
+        )
+        com.bugenzhao.mnga.storage.DockGlassMaterial.CLEAR -> DockColors(
+            glass = Color(0xFFD4D5DB).copy(alpha = 0.24f),
+            border = Color.White.copy(alpha = 0.45f),
+            pill = Color.Black.copy(alpha = 0.14f),
+            unselected = Color(0xFFF2F2F7),
+            highlight = Color.White.copy(alpha = 0.55f),
+            highlightHeight = 9.dp,
+        )
+        com.bugenzhao.mnga.storage.DockGlassMaterial.LIQUID -> DockColors(
+            glass = Color(0xFFD4D5DB).copy(alpha = 0.13f),
+            border = Color.White.copy(alpha = 0.60f),
+            pill = Color.Black.copy(alpha = 0.12f),
+            unselected = Color(0xFFF2F2F7),
+            highlight = Color.White.copy(alpha = 0.65f),
+            highlightHeight = 8.dp,
+            bottomHighlight = Color.White.copy(alpha = 0.35f),
+            sheen = Color.White.copy(alpha = 0.10f),
+        )
+    }
+    DockScheme.Light -> when (material) {
+        com.bugenzhao.mnga.storage.DockGlassMaterial.FROSTED -> DockColors(
+            glass = Color.White.copy(alpha = 0.62f),
+            border = Color.Black.copy(alpha = 0.07f),
+            pill = Color.Black.copy(alpha = 0.10f),
+            unselected = Color(0xFF3A3A3C),
+            highlight = Color.White.copy(alpha = 0.50f),
+        )
+        com.bugenzhao.mnga.storage.DockGlassMaterial.CLEAR -> DockColors(
+            glass = Color.White.copy(alpha = 0.32f),
+            border = Color.Black.copy(alpha = 0.12f),
+            pill = Color.Black.copy(alpha = 0.08f),
+            unselected = Color(0xFF3A3A3C),
+            highlight = Color.White.copy(alpha = 0.80f),
+            highlightHeight = 9.dp,
+        )
+        com.bugenzhao.mnga.storage.DockGlassMaterial.LIQUID -> DockColors(
+            glass = Color.White.copy(alpha = 0.16f),
+            border = Color.White.copy(alpha = 0.55f),
+            pill = Color.Black.copy(alpha = 0.08f),
+            unselected = Color(0xFF3A3A3C),
+            highlight = Color.White.copy(alpha = 0.90f),
+            highlightHeight = 8.dp,
+            bottomHighlight = Color.White.copy(alpha = 0.50f),
+            sheen = Color.White.copy(alpha = 0.18f),
+        )
+    }
+    DockScheme.Classic -> when (material) {
+        com.bugenzhao.mnga.storage.DockGlassMaterial.FROSTED -> DockColors(
+            glass = Color(0xFFFFF6DF).copy(alpha = 0.88f),
+            border = Color(0xFFD9C48F).copy(alpha = 0.8f),
+            pill = Color(0xFF4A3B18).copy(alpha = 0.14f),
+            unselected = Color(0xFF6B5D3E),
+            highlight = Color.White.copy(alpha = 0.45f),
+        )
+        com.bugenzhao.mnga.storage.DockGlassMaterial.CLEAR -> DockColors(
+            glass = Color(0xFFFFF6DF).copy(alpha = 0.45f),
+            border = Color(0xFFD9C48F).copy(alpha = 0.95f),
+            pill = Color(0xFF4A3B18).copy(alpha = 0.12f),
+            unselected = Color(0xFF6B5D3E),
+            highlight = Color.White.copy(alpha = 0.65f),
+            highlightHeight = 9.dp,
+        )
+        com.bugenzhao.mnga.storage.DockGlassMaterial.LIQUID -> DockColors(
+            glass = Color(0xFFFFF6DF).copy(alpha = 0.22f),
+            border = Color(0xFFE9D9A8).copy(alpha = 0.95f),
+            pill = Color(0xFF4A3B18).copy(alpha = 0.10f),
+            unselected = Color(0xFF6B5D3E),
+            highlight = Color.White.copy(alpha = 0.75f),
+            highlightHeight = 8.dp,
+            bottomHighlight = Color.White.copy(alpha = 0.40f),
+            sheen = Color.White.copy(alpha = 0.14f),
+        )
+    }
 }
 
 /**
@@ -128,6 +210,7 @@ fun FloatingTabDock(
     onHomeClick: () -> Unit,
     onMineClick: () -> Unit,
     colorSchemeMode: ColorSchemeMode,
+    glassMaterial: com.bugenzhao.mnga.storage.DockGlassMaterial,
     modifier: Modifier = Modifier,
 ) {
     val scheme = when (colorSchemeMode) {
@@ -137,7 +220,7 @@ fun FloatingTabDock(
         ColorSchemeMode.AUTO ->
             if (isSystemInDarkTheme()) DockScheme.Dark else DockScheme.Light
     }
-    val colors = dockColors(scheme)
+    val colors = dockColors(scheme, glassMaterial)
     val accent = androidx.compose.material3.MaterialTheme.colorScheme.primary
     val shape = RoundedCornerShape(percent = 50)
     val pillFraction by animateFloatAsState(
@@ -155,19 +238,50 @@ fun FloatingTabDock(
             .background(colors.glass)
             .border(1.dp, colors.border, shape),
     ) {
+        // Diagonal sheen wash (liquid glass only; Transparent otherwise):
+        // a faint gloss running from the top-left corner, the static stand-in
+        // for the liquid recipe's reflective surface.
+        if (colors.sheen.alpha > 0f) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            listOf(colors.sheen, Color.Transparent),
+                        ),
+                    ),
+            )
+        }
         // Inset top highlight: a soft light band just inside the capsule's
-        // top edge, fading down — the frosted-glass recipe's rim light.
+        // top edge, fading down — the glass recipes' rim light. Its height
+        // and brightness are part of the material (see dockColors).
         Box(
             Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .height(14.dp)
+                .height(colors.highlightHeight)
                 .background(
                     Brush.verticalGradient(
                         listOf(colors.highlight, Color.Transparent),
                     ),
                 ),
         )
+        // Bottom-edge highlight line (liquid glass only; Transparent
+        // otherwise): brightest right at the capsule's bottom edge, the
+        // second rim light that makes the liquid surface read as wet.
+        if (colors.bottomHighlight.alpha > 0f) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, colors.bottomHighlight),
+                        ),
+                    ),
+            )
+        }
         BoxWithConstraints(Modifier.fillMaxSize().padding(6.dp)) {
             val itemWidth = maxWidth / 2
             // Sliding selection oval, drawn under the items.

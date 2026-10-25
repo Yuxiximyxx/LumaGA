@@ -52,6 +52,23 @@ enum class ColorSchemeMode(val raw: Int) {
     }
 }
 
+/**
+ * Glass material of the floating tab dock (liquid-glass-recipes' three
+ * glasses). FROSTED is the default — it is the look the dock shipped with
+ * in v1.7.0 (thick milky veil). All three are approximations on the dock's
+ * no-backdrop-sampling route; see MainTabDock.kt for what each one varies.
+ */
+enum class DockGlassMaterial(val raw: Int) {
+    CLEAR(0),
+    FROSTED(1),
+    LIQUID(2);
+
+    companion object {
+        fun fromRaw(raw: Int): DockGlassMaterial =
+            entries.firstOrNull { it.raw == raw } ?: FROSTED
+    }
+}
+
 enum class DateTimeStrategy(val raw: Int, val label: String) {
     AUTOMATIC(0, "Automatic"),
     DETAILED(1, "Detailed"),
@@ -168,6 +185,7 @@ class PreferencesStorage(private val prefs: SharedPreferences) {
     val defaultTopicListOrderRaw = intPref("defaultTopicListOrder", 0)
     val themeColorRaw = intPref("themeColorNew", 0)
     val colorSchemeRaw = intPref("colorScheme", 0)
+    val tabDockGlassMaterialRaw = intPref("tabDockGlassMaterial", DockGlassMaterial.FROSTED.raw)
     val postRowDateTimeStrategyRaw = intPref("postRowDateTimeStrategy", 0)
     val topicDetailsWebApiStrategyRaw = intPref("topicDetailsWebApiStrategyNew", 1)
 
@@ -178,6 +196,8 @@ class PreferencesStorage(private val prefs: SharedPreferences) {
         get() = ThemeColor.fromRaw(themeColorRaw.value)
     val colorScheme: ColorSchemeMode
         get() = ColorSchemeMode.fromRaw(colorSchemeRaw.value)
+    val tabDockGlassMaterial: DockGlassMaterial
+        get() = DockGlassMaterial.fromRaw(tabDockGlassMaterialRaw.value)
     val postRowDateTimeStrategy: DateTimeStrategy
         get() = DateTimeStrategy.fromRaw(postRowDateTimeStrategyRaw.value)
     val resumeTopicFrom: TopicResumeFrom

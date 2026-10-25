@@ -168,6 +168,10 @@
     <string name="goto_s">Goto %1$s</string>
     <string name="goto_forum">Goto Forum</string>
     <string name="color_scheme">Color Scheme</string>
+    <string name="dock_glass_material">Dock Glass Material</string>
+    <string name="glass_clear">Clear Glass</string>
+    <string name="glass_frosted">Frosted Glass</string>
+    <string name="glass_liquid">Liquid Glass</string>
     <string name="auto">Auto</string>
     <string name="light">Light</string>
     <string name="dark">Dark</string>
