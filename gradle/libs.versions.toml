@@ -13,6 +13,7 @@ navigationCompose = "2.9.0"
 buglyCrash = "4.1.9"
 buglyNative = "3.9.2"
 miuix = "0.8.8"
+sharedNav = "1.0.0-dev09300016"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,6 +39,7 @@ protobuf-kotlin = { group = "com.google.protobuf", name = "protobuf-kotlin", ver
 protobuf-util = { group = "com.google.protobuf", name = "protobuf-java-util", version.ref = "protobuf" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 miuix = { group = "top.yukonga.miuix.kmp", name = "miuix", version.ref = "miuix" }
+sharednav-navigation = { group = "com.github.Chiu-xaH.SharedNav", name = "navigation-android", version.ref = "sharedNav" }
 miuix-icons = { group = "top.yukonga.miuix.kmp", name = "miuix-icons", version.ref = "miuix" }
 
 [plugins]

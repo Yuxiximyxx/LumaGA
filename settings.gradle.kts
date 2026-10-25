@@ -17,6 +17,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // SharedNav (phase 4 navigation) is distributed via JitPack only.
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

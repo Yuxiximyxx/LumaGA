@@ -128,6 +128,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     // QR code scanning: CameraX + ML Kit Barcode
     implementation(libs.miuix)
+    implementation(libs.sharednav.navigation)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Instrumented tests (currently not run in CI; the emulator workflow was
