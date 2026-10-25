@@ -5,9 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -29,16 +28,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.model.NavigationIdentifier
+import com.bugenzhao.mnga.ui.nav.LocalNavigator
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
-import com.bugenzhao.mnga.ui.nav.RouteCodec
 import com.bugenzhao.mnga.ui.nav.TopicListMode
 import com.bugenzhao.mnga.ui.screens.favorites.FavoritesScreen
 import com.bugenzhao.mnga.ui.screens.forumlist.ForumListScreen
@@ -56,6 +50,11 @@ import com.bugenzhao.mnga.ui.screens.user.UserProfileScreen
 import com.bugenzhao.mnga.ui.screens.user.BlockedUsersScreen
 import com.bugenzhao.mnga.ui.theme.LumaGATheme
 import com.bugenzhao.mnga.model.appScope
+import com.xah.navigation.anim.effect.DefaultTransitionEffect
+import com.xah.navigation.anim.effect.FadeTransitionEffect
+import com.xah.navigation.anim.effect.rememberDefaultPageEffects
+import com.xah.navigation.component.SharedNavHost
+import com.xah.navigation.component.rememberNavController
 import kotlinx.coroutines.flow.filter
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
@@ -74,20 +73,59 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         themeColor = com.bugenzhao.mnga.storage.ThemeColor.fromRaw(themeColor),
         colorSchemeMode = com.bugenzhao.mnga.storage.ColorSchemeMode.fromRaw(colorScheme),
     ) {
-        val navController = rememberNavController()
-        val navigator = remember { Navigator(navController, listOf(Route.ForumList)) }
         val editor = remember { com.bugenzhao.mnga.ui.editor.EditorController(appScope) }
+        val navigator = remember { Navigator() }
+        val defaultPageEffects = rememberDefaultPageEffects()
+
+        // Page transitions (SharedNav): the Default effect is the library's
+        // card-style geometry — pages scale between 0.875 and 1 while their
+        // corner radius interpolates against the device screen corner, the
+        // covered page blurring and dimming behind. The same effect drives
+        // the predictive-back preview, so during the gesture the current
+        // page shrinks into a rounded card over the restored previous page,
+        // following the finger and snapping back when cancelled — the
+        // system Settings demo look the user asked for. (The old NavHost
+        // slide geometry is intentionally not reproduced: in SharedNav one
+        // effect drives both the transition and its predictive preview.)
+        // The Mine tab keeps its crossfade (tab switches are not pushes in
+        // spirit), via the per-push fade effect below; its back preview is
+        // therefore a fade as well.
+        val pushEffect = remember {
+            DefaultTransitionEffect(
+                pageEffect = defaultPageEffects,
+                pushAnimation = tween(280),
+                popAnimation = tween(280),
+            )
+        }
+        val tabEffect = remember {
+            FadeTransitionEffect(pushAnimation = tween(280), popAnimation = tween(280))
+        }
+        val navController = rememberNavController(
+            startDestination = navigator.startDestination,
+            sharedTransitionEffect = pushEffect,
+        )
+        remember(navController) {
+            navigator.controller = navController
+            navigator.pushEffect = pushEffect
+            navigator.tabEffect = tabEffect
+            navigator.editor = editor
+            // NavHost kept every back-stack entry composed; keepAlive does
+            // the same under SharedNav so covered screens resume in place.
+            navController.enableKeepAlive = true
+        }
 
         // Opaque theme background under the navigation stack: during the
-        // push/pop fade+slide transitions both pages are partially transparent,
-        // and without a solid layer beneath them the (always light) window
+        // push/pop transitions both pages are partially transparent, and
+        // without a solid layer beneath them the (always light) window
         // background flashes white in dark mode.
         Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
-            Column(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f)) {
-                    NavigationHost(navigator, editor)
+            CompositionLocalProvider(LocalNavigator provides navigator) {
+                Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f)) {
+                        NavigationHost(navigator, editor)
+                    }
+                    MainTabBar(navigator)
                 }
-                MainTabBar(navigator)
             }
         }
         GlobalOverlays(navigator, editor)
@@ -127,11 +165,11 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
 
 /**
  * Bottom tab bar of the main shell (MIUIX phase 2): two tabs, Home and Mine.
- * The Mine tab is the personal-center page, now a root destination instead of
- * a drawer-style page pushed over Home. The bar only shows while a tab root
- * is on top; tab switches never grow the stack (Mine is pushed over Home,
- * Home pops back to it), so back behavior and the predictive preview stay
- * exactly the NavHost semantics used everywhere else.
+ * The Mine tab is the personal-center page, now a root destination instead
+ * of a drawer-style page pushed over Home. The bar only shows while a tab
+ * root is on top; tab switches never grow the stack (Mine is pushed over
+ * Home, Home pops back to it), so back behavior and the predictive preview
+ * stay exactly the host semantics used everywhere else.
  */
 @Composable
 private fun MainTabBar(navigator: Navigator) {
@@ -191,15 +229,16 @@ internal fun NavigationHost(
         }
     }
 
-    // Derive the route stack from the NavController back stack (system back
+    // Derive the route stack from the SharedNav back stack (system back
     // presses included), keeping navigator.stack/size/lastOp in sync.
     LaunchedEffect(navigator) { navigator.observe(this) }
 
     // 实验室功能「启动自动签到」：任意页面打开/切换时补一次签到检查
     // （Rust 缓存判定当天已签则零网络开销）。配合回前台触发覆盖所有
-    // 应用活跃时机。
-    LaunchedEffect(navigator.navController) {
-        navigator.navController.addOnDestinationChangedListener { _, _, _ ->
+    // 应用活跃时机。(Was a NavController destination-changed listener;
+    // the derived route stack flow is its SharedNav equivalent.)
+    LaunchedEffect(navigator) {
+        navigator.stack.collect {
             if (App.prefs.clockInEnabled.value &&
                 App.prefs.autoClockInOnLaunch.value
             ) {
@@ -208,123 +247,13 @@ internal fun NavigationHost(
         }
     }
 
-    // NavHost owns predictive progress/cancellation; destinations must not
-    // intercept system back just to call navigator.pop().
-    NavHost(
-        navController = navigator.navController,
-        startDestination = RouteCodec.ROUTE_FORUM_LIST,
+    // SharedNavHost owns predictive progress/cancellation; destinations
+    // must not intercept system back just to call navigator.pop().
+    SharedNavHost(
+        navController = navigator.controller,
         modifier = Modifier.fillMaxSize(),
-        // Forward (push): the new page slides in from the right while the old
-        // one exits to the left. Backward (pop): mirrored.
-        // Exception: the PersonalCenter (Mine tab) crossfades instead of
-        // sliding, since switching bottom-bar tabs is not a push in spirit;
-        // the page it covers fades with it. The outgoing transition belongs
-        // to the *old* destination, hence the target/initial-state checks.
-        enterTransition = { slideInHorizontally(tween(280)) { it / 3 } + fadeIn(tween(280)) },
-        exitTransition = {
-            if (targetState.destination.route == RouteCodec.ROUTE_PERSONAL_CENTER) {
-                fadeOut(tween(280))
-            } else {
-                slideOutHorizontally(tween(280)) { -it / 4 } + fadeOut(tween(280))
-            }
-        },
-        popEnterTransition = {
-            if (initialState.destination.route == RouteCodec.ROUTE_PERSONAL_CENTER) {
-                fadeIn(tween(280))
-            } else {
-                slideInHorizontally(tween(280)) { -it / 3 } + fadeIn(tween(280))
-            }
-        },
-        popExitTransition = { slideOutHorizontally(tween(280)) { it / 4 } + fadeOut(tween(280)) },
-    ) {
-        composable(RouteCodec.ROUTE_FORUM_LIST) {
-            RouteDispatcher(navigator, Route.ForumList, editor)
-        }
-        composable(RouteCodec.ROUTE_TOPIC_LIST, arguments = payloadArgument) { entry ->
-            val route = remember(entry) { RouteCodec.decode(entry) }
-            if (route != null) RouteDispatcher(navigator, route, editor)
-        }
-        composable(RouteCodec.ROUTE_TOPIC_DETAILS, arguments = payloadArgument) { entry ->
-            val route = remember(entry) { RouteCodec.decode(entry) }
-            if (route != null) RouteDispatcher(navigator, route, editor)
-        }
-        composable(RouteCodec.ROUTE_USER_PROFILE, arguments = payloadArgument) { entry ->
-            val route = remember(entry) { RouteCodec.decode(entry) }
-            if (route != null) RouteDispatcher(navigator, route, editor)
-        }
-        composable(RouteCodec.ROUTE_GLOBAL_SEARCH, arguments = payloadArgument) { entry ->
-            val route = remember(entry) { RouteCodec.decode(entry) }
-            if (route != null) RouteDispatcher(navigator, route, editor)
-        }
-        composable(RouteCodec.ROUTE_TOPIC_SEARCH, arguments = payloadArgument) { entry ->
-            val route = remember(entry) { RouteCodec.decode(entry) }
-            if (route != null) RouteDispatcher(navigator, route, editor)
-        }
-        composable(RouteCodec.ROUTE_HOT_TOPICS) {
-            RouteDispatcher(navigator, Route.HotTopics, editor)
-        }
-        composable(RouteCodec.ROUTE_FAVORITES) {
-            RouteDispatcher(navigator, Route.Favorites, editor)
-        }
-        composable(RouteCodec.ROUTE_HISTORY) {
-            RouteDispatcher(navigator, Route.History, editor)
-        }
-        composable(RouteCodec.ROUTE_SHORT_MESSAGES) {
-            RouteDispatcher(navigator, Route.ShortMessages, editor)
-        }
-        composable(RouteCodec.ROUTE_SHORT_MESSAGE_DETAILS, arguments = payloadArgument) { entry ->
-            val route = remember(entry) { RouteCodec.decode(entry) }
-            if (route != null) RouteDispatcher(navigator, route, editor)
-        }
-        composable(RouteCodec.ROUTE_SUBFORUMS) {
-            RouteDispatcher(navigator, Route.Subforums, editor)
-        }
-        composable(RouteCodec.ROUTE_SUBFORUM_LIST, arguments = payloadArgument) { entry ->
-            val route = remember(entry) { RouteCodec.decode(entry) }
-            if (route != null) RouteDispatcher(navigator, route, editor)
-        }
-        composable(RouteCodec.ROUTE_UNKNOWN_FORUM, arguments = payloadArgument) { entry ->
-            val route = remember(entry) { RouteCodec.decode(entry) }
-            if (route != null) RouteDispatcher(navigator, route, editor)
-        }
-        composable(RouteCodec.ROUTE_CACHE_SETTINGS) {
-            RouteDispatcher(navigator, Route.CacheSettings, editor)
-        }
-        composable(RouteCodec.ROUTE_BLOCK_WORDS) {
-            RouteDispatcher(navigator, Route.BlockWords, editor)
-        }
-        composable(RouteCodec.ROUTE_BLOCKED_USERS) {
-            RouteDispatcher(navigator, Route.BlockedUsers, editor)
-        }
-        composable(RouteCodec.ROUTE_ABOUT) {
-            RouteDispatcher(navigator, Route.About, editor)
-        }
-        composable(RouteCodec.ROUTE_SETTINGS) {
-            RouteDispatcher(navigator, Route.Settings, editor)
-        }
-        composable(RouteCodec.ROUTE_NOTIFICATIONS) {
-            RouteDispatcher(navigator, Route.Notifications, editor)
-        }
-        composable(RouteCodec.ROUTE_CLOCK_IN) {
-            RouteDispatcher(navigator, Route.ClockIn, editor)
-        }
-        // Personal center: the bottom-bar Mine tab root, crossfading with
-        // the Home tab instead of sliding like a pushed page.
-        composable(
-            RouteCodec.ROUTE_PERSONAL_CENTER,
-            enterTransition = { fadeIn(tween(280)) },
-            exitTransition = { fadeOut(tween(280)) },
-            popEnterTransition = { fadeIn(tween(280)) },
-            popExitTransition = { fadeOut(tween(280)) },
-        ) {
-            RouteDispatcher(navigator, Route.PersonalCenter, editor)
-        }
-    }
+    )
 }
-
-/** Every argument-carrying route packs its fields into one JSON `payload` path arg. */
-private val payloadArgument =
-    listOf(navArgument("payload") { type = NavType.StringType })
 
 /** Maps a route to its screen. */
 @Composable

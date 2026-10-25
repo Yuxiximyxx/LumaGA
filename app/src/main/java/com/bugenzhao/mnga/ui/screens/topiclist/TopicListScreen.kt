@@ -538,6 +538,9 @@ private fun TopicListItem(
                     fallbackForumName = fallbackForumName,
                     onClick = onClick,
                     onLongClick = { onContextMenu(topic) },
+                    // Morph this card into the topic-details page (SharedNav
+                    // shared container; key must equal the destination's).
+                    sharedContainerKey = "topic-details/${topic.id}",
                 )
             }
 

@@ -54,6 +54,7 @@ import com.bugenzhao.mnga.protos.datamodel.Subject
 import com.bugenzhao.mnga.protos.datamodel.Topic
 import com.bugenzhao.mnga.protos.datamodel.UserName
 import com.bugenzhao.mnga.storage.BlockWordsStorage
+import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.ui.components.AvatarImage
 import com.bugenzhao.mnga.ui.components.DateTimeText
 import com.bugenzhao.mnga.ui.components.RepliesBadge
@@ -264,6 +265,14 @@ fun TopicRow(
     fallbackForumName: String? = null,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    /**
+     * SharedNav shared-container key (phase 4). When non-null the card
+     * registers as the shared element for the destination with the same
+     * key, so pushing that destination morphs this card into the page
+     * instead of running the plain push transition. Only the topic list
+     * passes it (`topic-details/<id>`, matching the details destination).
+     */
+    sharedContainerKey: String? = null,
 ) {
     val blockWords by App.blockWords.words.collectAsState()
     if (blockWords.contains(BlockWordsStorage.fromUser(topicAuthorName(topic)))) return
@@ -285,7 +294,19 @@ fun TopicRow(
 
     // Miuix Card container (row internals/subject rendering unchanged).
     top.yukonga.miuix.kmp.basic.Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (sharedContainerKey != null) {
+                    Modifier.sharedContainer(
+                        key = sharedContainerKey,
+                        shape = RoundedCornerShape(16.dp),
+                        containerColor = null,
+                    )
+                } else {
+                    Modifier
+                }
+            ),
         insideMargin = PaddingValues(0.dp),
         onClick = onClick,
         onLongPress = onLongClick,

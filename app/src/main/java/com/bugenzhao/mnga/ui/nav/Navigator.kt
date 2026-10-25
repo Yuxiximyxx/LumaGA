@@ -1,6 +1,17 @@
 package com.bugenzhao.mnga.ui.nav
 
-import androidx.navigation.NavHostController
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.snapshotFlow
+import com.bugenzhao.mnga.ui.editor.EditorController
+import com.bugenzhao.mnga.ui.root.RouteDispatcher
+import com.xah.navigation.anim.effect.DefaultTransitionEffect
+import com.xah.navigation.anim.effect.FadeTransitionEffect
+import com.xah.navigation.controller.NavigationController
+import com.xah.navigation.model.action.LaunchMode
+import com.xah.navigation.model.anim.TransitionEffect
+import com.xah.navigation.model.dest.Destination
+import java.util.Collections
+import java.util.IdentityHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -8,31 +19,58 @@ import kotlinx.coroutines.launch
 
 /**
  * A path-based navigation stack mirroring SwiftUI's `NavigationStack`
- * semantics, backed by Navigation Compose's [NavHostController].
+ * semantics, backed by SharedNav's [NavigationController] (phase 4;
+ * previously backed by Navigation Compose's NavHostController).
  *
  * The public surface (push/pop/popToRoot/popTo/replace/contains/stack/size/
- * lastOp) is unchanged; internally the route list is derived from the
- * NavController back stack, so programmatic navigation (deep links, context
- * menus) and system back presses stay in sync. NavHost keeps every entry's
- * composition and saveable state alive while it is off-screen, so popping back
- * to a screen resumes it instead of rebuilding and refetching.
+ * lastOp) is unchanged, so screens keep calling it exactly as before.
+ * Internally every [Route] is pushed as a [RouteDestination]; the route
+ * list exposed via [stack] is derived from the SharedNav back stack, so
+ * programmatic navigation (deep links, context menus) and system back
+ * presses stay in sync.
  *
- * System back is owned by NavHost: on Android 13+ its predictive callback
- * drives the pop transition with the gesture (and restores the screen when
- * the gesture is cancelled). Screens must therefore not intercept back with
- * their own BackHandler just to call [pop]; doing so wins over NavHost's
- * callback and silently disables the predictive preview.
+ * System back is owned by SharedNav's host (its predictive-back handler
+ * drives the pop transition with the gesture on Android 13+ and restores
+ * the screen when the gesture is cancelled). Screens must therefore not
+ * intercept back with their own BackHandler just to call [pop]; doing so
+ * wins over the host's callback and silently disables the predictive
+ * preview.
+ *
+ * Two NavHost behaviors are reproduced by the adapter because screens
+ * rely on them:
+ *  - entry-scoped ViewModels: each [RouteDestination] carries an
+ *    [EntryOwner] (ViewModelStore + Lifecycle) that is provided as the
+ *    composition locals while the destination is composed, RESUMED only
+ *    while on top, and cleared once the entry leaves the stack;
+ *  - covered entries stay composed: the root sets
+ *    `NavigationController.enableKeepAlive = true`, so popping back
+ *    resumes a screen instead of rebuilding and refetching it.
  */
-class Navigator(
-    val navController: NavHostController,
-    initial: List<Route> = emptyList(),
-) {
+class Navigator {
 
     /** How the top-most route most recently entered the stack; screens use it
      * to tell a fresh push from a pop-back (resume). */
     enum class Op { PUSH, POP }
 
-    private val _stack = MutableStateFlow(initial)
+    /** The SharedNav controller; attached by the root once remembered. */
+    lateinit var controller: NavigationController
+        internal set
+
+    /** Start destination instance handed to `rememberNavController`. */
+    val startDestination = RouteDestination(Route.ForumList)
+
+    /**
+     * Transition effects, configured by the root before the host composes
+     * (their page effects want composition). Defaults are the library's
+     * stock effects.
+     */
+    var pushEffect: TransitionEffect = DefaultTransitionEffect()
+    var tabEffect: TransitionEffect = FadeTransitionEffect()
+
+    /** Editor controller, provided by the root for [dispatch]. */
+    var editor: EditorController? = null
+
+    private val _stack = MutableStateFlow<List<Route>>(listOf(Route.ForumList))
     val stack: StateFlow<List<Route>> = _stack
 
     val current: Route? get() = _stack.value.lastOrNull()
@@ -42,51 +80,93 @@ class Navigator(
     var lastOp: Op = Op.PUSH
         private set
 
+    /** Destination instances currently in the SharedNav stack (identity). */
+    private val alive: MutableSet<RouteDestination> =
+        Collections.newSetFromMap(IdentityHashMap())
+
     fun push(route: Route) {
         lastOp = Op.PUSH
-        navController.navigate(RouteCodec.encode(route))
+        // reuse = false: NavHost's navigate() always created a fresh entry,
+        // even when pushing a route equal to the current top.
+        controller.push(
+            RouteDestination(route),
+            LaunchMode.Push(reuse = false),
+            effectFor(route),
+        )
     }
 
     fun pop() {
         lastOp = Op.POP
-        navController.popBackStack()
+        controller.pop()
     }
 
     fun popToRoot() {
-        navController.popBackStack(RouteCodec.ROUTE_FORUM_LIST, inclusive = false)
+        if (size <= 1) return
+        lastOp = Op.POP
+        // Clear(reuse = true) locates the existing ForumList entry (route
+        // equality) and drops everything above it — the SharedNav analogue
+        // of popBackStack(forum-list, inclusive = false).
+        controller.push(RouteDestination(Route.ForumList), LaunchMode.Clear(reuse = true))
     }
 
     fun popTo(index: Int) {
-        val entry = navController.currentBackStack.value.getOrNull(index) ?: return
-        navController.popBackStack(entry, inclusive = false)
+        val entry = controller.stack.getOrNull(index) ?: return
+        lastOp = Op.POP
+        controller.push(entry.destination, LaunchMode.PopToExisting(reuse = true))
     }
 
     fun replace(route: Route) {
-        navController.navigate(RouteCodec.encode(route)) {
-            popUpTo(navController.graph.id) { inclusive = true }
-        }
+        lastOp = Op.PUSH
+        controller.push(
+            RouteDestination(route),
+            LaunchMode.Replace(reuse = false),
+            effectFor(route),
+        )
     }
 
     fun contains(predicate: (Route) -> Boolean): Boolean = _stack.value.any(predicate)
 
+    private fun effectFor(route: Route): TransitionEffect =
+        if (route is Route.PersonalCenter) tabEffect else pushEffect
+
+    /** Renders [route]'s screen; called from [RouteDestination.Content]. */
+    @Composable
+    fun dispatch(route: Route) {
+        RouteDispatcher(this, route, editor)
+    }
+
     /**
-     * Keeps [stack] (and [lastOp]) in sync with the NavController back stack.
-     * Call once from composition:
+     * Keeps [stack]/[lastOp] and the per-entry owners in sync with the
+     * SharedNav back stack. Call once from composition:
      * `LaunchedEffect(navigator) { navigator.observe(this) }`.
      */
     fun observe(scope: CoroutineScope) {
         scope.launch {
-            navController.currentBackStack.collect { entries ->
-                val routes = entries.mapNotNull(RouteCodec::decode)
-                val previous = _stack.value
-                lastOp = when {
-                    routes.size > previous.size -> Op.PUSH
-                    routes.size < previous.size -> Op.POP
-                    else -> lastOp
-                }
-                _stack.value = routes
-            }
+            snapshotFlow { controller.stack.toList() }
+                .collect { entries -> sync(entries.map { it.destination }) }
         }
+    }
+
+    private fun sync(destinations: List<Destination>) {
+        val dests = destinations.filterIsInstance<RouteDestination>()
+        val now: MutableSet<RouteDestination> =
+            Collections.newSetFromMap(IdentityHashMap())
+        now.addAll(dests)
+        val removed = alive.filter { it !in now }
+        alive.clear()
+        alive.addAll(now)
+        removed.forEach { it.owner.destroy() }
+        dests.forEachIndexed { index, dest ->
+            dest.owner.setOnTop(index == dests.lastIndex)
+        }
+        val routes = dests.map { it.route }
+        val previous = _stack.value
+        lastOp = when {
+            routes.size > previous.size -> Op.PUSH
+            routes.size < previous.size -> Op.POP
+            else -> lastOp
+        }
+        _stack.value = routes
     }
 }
 
