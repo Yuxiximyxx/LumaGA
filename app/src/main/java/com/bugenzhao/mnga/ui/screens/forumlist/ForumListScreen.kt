@@ -89,6 +89,7 @@ import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.root.tabDockContentBottomPadding
 import com.bugenzhao.mnga.ui.nav.RouteDestination
 import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.ui.screens.topiclist.copyToClipboard
@@ -273,7 +274,14 @@ fun ForumListScreen(
                 columns = GridCells.Fixed(3),
                 state = gridState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                // Bottom clears the floating tab dock (tab-root screen):
+                // the grid scrolls underneath it, so pad the end.
+                contentPadding = PaddingValues(
+                    start = 12.dp,
+                    end = 12.dp,
+                    top = 8.dp,
+                    bottom = tabDockContentBottomPadding(),
+                ),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {

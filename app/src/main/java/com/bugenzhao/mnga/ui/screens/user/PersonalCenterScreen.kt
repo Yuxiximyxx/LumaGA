@@ -52,6 +52,7 @@ import com.bugenzhao.mnga.protos.datamodel.User
 import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.root.tabDockContentBottomPadding
 import com.bugenzhao.mnga.ui.nav.RouteDestination
 import com.xah.container.component.base.sharedContainer
 import com.bugenzhao.mnga.util.L
@@ -105,7 +106,8 @@ private fun PersonalCenterContent(
 
     LazyColumn(
         modifier.padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(top = 12.dp),
+        // Bottom clears the floating tab dock (tab-root screen).
+        contentPadding = PaddingValues(top = 12.dp, bottom = tabDockContentBottomPadding()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Current user card.

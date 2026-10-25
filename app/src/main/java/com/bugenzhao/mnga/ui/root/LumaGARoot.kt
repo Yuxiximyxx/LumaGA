@@ -8,11 +8,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -57,8 +56,6 @@ import com.xah.navigation.anim.effect.rememberDefaultPageEffects
 import com.xah.navigation.component.SharedNavHost
 import com.xah.navigation.component.rememberNavController
 import kotlinx.coroutines.flow.filter
-import top.yukonga.miuix.kmp.basic.NavigationBar
-import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -124,13 +121,16 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         // push/pop transitions both pages are partially transparent, and
         // without a solid layer beneath them the (always light) window
         // background flashes white in dark mode.
+        // The content fills the whole surface and the tab dock floats over
+        // it (v1.7.0): tab-root screens add bottom content padding (see
+        // tabDockContentBottomPadding) so their last item can scroll clear
+        // of the dock.
+        val colorSchemeMode = com.bugenzhao.mnga.storage.ColorSchemeMode.fromRaw(colorScheme)
         Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
             CompositionLocalProvider(LocalNavigator provides navigator) {
-                Column(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f)) {
-                        NavigationHost(navigator, editor)
-                    }
-                    MainTabBar(navigator)
+                Box(Modifier.fillMaxSize()) {
+                    NavigationHost(navigator, editor)
+                    MainTabBar(navigator, colorSchemeMode)
                 }
             }
         }
@@ -170,39 +170,41 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
 }
 
 /**
- * Bottom tab bar of the main shell (MIUIX phase 2): two tabs, Home and Mine.
- * The Mine tab is the personal-center page, now a root destination instead
- * of a drawer-style page pushed over Home. The bar only shows while a tab
- * root is on top; tab switches never grow the stack (Mine is pushed over
- * Home, Home pops back to it), so back behavior and the predictive preview
- * stay exactly the host semantics used everywhere else.
+ * Bottom tab bar of the main shell: two tabs, Home and Mine, presented as
+ * the floating dock in [FloatingTabDock] (v1.7.0, replacing the full-width
+ * Miuix NavigationBar of MIUIX phase 2). The Mine tab is the personal-center
+ * page, a root destination instead of a drawer-style page pushed over Home.
+ * The dock only shows while a tab root is on top, hovering over the content
+ * just above the system navigation area; tab switches never grow the stack
+ * (Mine is pushed over Home, Home pops back to it), so back behavior and
+ * the predictive preview stay exactly the host semantics used everywhere
+ * else.
  */
 @Composable
-private fun MainTabBar(navigator: Navigator) {
+private fun BoxScope.MainTabBar(
+    navigator: Navigator,
+    colorSchemeMode: com.bugenzhao.mnga.storage.ColorSchemeMode,
+) {
     val stack by navigator.stack.collectAsState()
     val current = stack.lastOrNull()
     val onTabRoot = current is Route.ForumList || current is Route.PersonalCenter
     AnimatedVisibility(
         visible = onTabRoot,
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .navigationBarsPadding()
+            .padding(bottom = TabDockBottomGap),
         enter = slideInVertically { it } + fadeIn(),
         exit = slideOutVertically { it } + fadeOut(),
     ) {
-        NavigationBar {
-            NavigationBarItem(
-                selected = current is Route.ForumList,
-                onClick = { if (current is Route.PersonalCenter) navigator.pop() },
-                icon = Icons.Filled.Home,
-                label = "主页",
-            )
-            NavigationBarItem(
-                selected = current is Route.PersonalCenter,
-                onClick = {
-                    if (current is Route.ForumList) navigator.push(Route.PersonalCenter)
-                },
-                icon = Icons.Filled.Person,
-                label = "我的",
-            )
-        }
+        FloatingTabDock(
+            homeSelected = current is Route.ForumList,
+            onHomeClick = { if (current is Route.PersonalCenter) navigator.pop() },
+            onMineClick = {
+                if (current is Route.ForumList) navigator.push(Route.PersonalCenter)
+            },
+            colorSchemeMode = colorSchemeMode,
+        )
     }
 }
 

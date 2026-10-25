@@ -1,4 +1,4 @@
-> **本仓库是 [Duzc01/LumaGA](https://github.com/Duzc01/LumaGA) 的个人 fork，应用名「泥坛」。** 在上游基础上做 MIUIX（HyperOS 风格）定制：接入 Miuix-KMP 真组件全局换装（含全部菜单/弹窗）、底部导航栏只留「主页 / 我的」、个人中心移入「我的」页、导航由 SharedNav 驱动（卡片式转场 + 可跟随手指的预测式返回）、点中元素展开成目标页的共享容器动画已推广到各列表与入口（帖子卡、版面格、搜索/收藏/历史行、私信与通知行等，进出对称）、移除扫码登录。正式签名安装包见 [本仓库 Releases](https://github.com/Yuxiximyxx/LumaGA/releases)（当前版本 v1.6.1），下方为上游 README 原文。
+> **本仓库是 [Duzc01/LumaGA](https://github.com/Duzc01/LumaGA) 的个人 fork，应用名「泥坛」。** 在上游基础上做 MIUIX（HyperOS 风格）定制：接入 Miuix-KMP 真组件全局换装（含全部菜单/弹窗）、底部导航栏只留「主页 / 我的」、个人中心移入「我的」页、导航由 SharedNav 驱动（卡片式转场 + 可跟随手指的预测式返回）、点中元素展开成目标页的共享容器动画已推广到各列表与入口（帖子卡、版面格、搜索/收藏/历史行、私信与通知行等，进出对称）、移除扫码登录。正式签名安装包见 [本仓库 Releases](https://github.com/Yuxiximyxx/LumaGA/releases)（当前版本 v1.7.0），下方为上游 README 原文。
 
 # LumaGA
 
