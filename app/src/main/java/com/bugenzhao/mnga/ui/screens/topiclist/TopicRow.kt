@@ -7,9 +7,9 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -26,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -283,16 +282,12 @@ fun TopicRow(
     // on the right — the classic forum-list vernacular.
     val avatarless by App.prefs.topicListRowStyle.flow.collectAsState()
 
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                enabled = true,
-                onClick = { onClick?.invoke() },
-                onLongClick = { onLongClick?.invoke() },
-            ),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+    // Miuix Card container (row internals/subject rendering unchanged).
+    top.yukonga.miuix.kmp.basic.Card(
+        modifier = modifier.fillMaxWidth(),
+        insideMargin = PaddingValues(0.dp),
+        onClick = onClick,
+        onLongPress = onLongClick,
     ) {
         if (avatarless) {
             Column(

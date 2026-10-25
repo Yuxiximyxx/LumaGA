@@ -1,21 +1,17 @@
 package com.bugenzhao.mnga.ui.screens.forumlist
 
-import androidx.compose.foundation.combinedClickable
-
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.SubdirectoryArrowRight
-import androidx.compose.material3.Icon
+import top.yukonga.miuix.kmp.basic.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -101,7 +97,7 @@ fun ForumRow(
                 Icons.Outlined.SubdirectoryArrowRight,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Spacer(Modifier.width(8.dp))
             ForumIcon(iconUrl = forum.iconUrl, name = forum.name)
@@ -113,7 +109,7 @@ fun ForumRow(
             Text(
                 forum.name,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -123,7 +119,7 @@ fun ForumRow(
                     Icons.Outlined.Layers,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
             Spacer(Modifier.weight(1f))
@@ -132,7 +128,7 @@ fun ForumRow(
                     Icons.Outlined.Star,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
                 Spacer(Modifier.width(4.dp))
             }
@@ -140,7 +136,7 @@ fun ForumRow(
                 Text(
                     forum.info,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     textAlign = TextAlign.End,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -162,19 +158,16 @@ fun ForumRowCard(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
-    Surface(
-        modifier = modifier
-            .combinedClickable(
-                enabled = true,
-                onClick = { onClick?.invoke() },
-                onLongClick = { onLongClick?.invoke() },
-            ),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+    // Miuix Card with its native click/long-press handling replacing the
+    // Material Surface + combinedClickable container.
+    top.yukonga.miuix.kmp.basic.Card(
+        modifier = modifier,
+        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        onClick = onClick,
+        onLongPress = onLongClick,
     ) {
         ForumRow(
             forum = forum,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             isFavorite = isFavorite,
             asTopicShortcut = asTopicShortcut,
         )

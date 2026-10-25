@@ -40,29 +40,30 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.exclude
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.pullToRefresh
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.HorizontalDivider
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.PullToRefresh
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -567,34 +568,20 @@ fun TopicDetailsScreen(
         if (forceLocalMode || onlyPostId != null) null else { post -> locatePostInCurrentTopic(post) }
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         // 正文用亮色背景（与 AppBar 默认色一致，滚动后 AppBar 变暗区分）。
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MiuixTheme.colorScheme.surface,
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (headerScrolledAway) {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    },
-                ),
-                title = {
-                    Column(Modifier.alpha(titleAlpha)) {
-                        Text(
-                            title,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        )
-                        if (subtitle != null) {
-                            Text(
-                                subtitle,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+            SmallTopAppBar(
+                title = title,
+                subtitle = subtitle ?: "",
+                // 标题随头部滚出淡入；滚出后顶栏底色变深与正文区分。
+                titleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = titleAlpha),
+                color = if (headerScrolledAway) {
+                    MiuixTheme.colorScheme.surfaceVariant
+                } else {
+                    MiuixTheme.colorScheme.surface
                 },
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {
@@ -604,7 +591,7 @@ fun TopicDetailsScreen(
                 actions = {
                     if (state.isLoading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
+                            size = 20.dp,
                             strokeWidth = 2.dp,
                         )
                         Spacer(Modifier.size(12.dp))
@@ -846,27 +833,19 @@ fun TopicDetailsScreen(
         // 失败时的兜底入口），无翻页动画、保持位置，与自动触发一致（顶部
         // 显示"正在加载上一页"提示）。
         val pullRefreshState = rememberPullToRefreshState()
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .pullToRefresh(
-                    state = pullRefreshState,
-                    isRefreshing = state.isRefreshing,
-                    onRefresh = {
-                        if ((dataSource.firstLoadedPage ?: 1) <= 1) {
-                            dataSource.refreshAsync(sleepMillis = 500)
-                        } else if (!dataSource.isLoading) {
-                            loadBack((dataSource.firstLoadedPage ?: 1) - 1)
-                        }
-                    },
-                ),
+        PullToRefresh(
+            isRefreshing = state.isRefreshing,
+            onRefresh = {
+                if ((dataSource.firstLoadedPage ?: 1) <= 1) {
+                    dataSource.refreshAsync(sleepMillis = 500)
+                } else if (!dataSource.isLoading) {
+                    loadBack((dataSource.firstLoadedPage ?: 1) - 1)
+                }
+            },
+            pullToRefreshState = pullRefreshState,
+            modifier = Modifier.fillMaxSize().padding(padding),
         ) {
-            PullToRefreshDefaults.Indicator(
-                state = pullRefreshState,
-                isRefreshing = state.isRefreshing,
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
+            Box(Modifier.fillMaxSize()) {
             if (localMode) {
                 LocalCacheBanner(
                     reason = response?.localReason ?: "",
@@ -949,7 +928,7 @@ fun TopicDetailsScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
+                                        size = 16.dp,
                                         strokeWidth = 2.dp,
                                     )
                                     Text(
@@ -992,7 +971,7 @@ fun TopicDetailsScreen(
                             if (index < rows.lastIndex && !bordersHotBand) {
                                 Spacer(Modifier.height(8.dp))
                                 HorizontalDivider(
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    color = MiuixTheme.colorScheme.dividerLine,
                                 )
                                 Spacer(Modifier.height(8.dp))
                             }
@@ -1032,6 +1011,7 @@ fun TopicDetailsScreen(
                     // 点击胶囊：打开与右上角菜单相同的跳转弹窗。
                     onTap = { showJumpSelector = true },
                 )
+            }
             }
         }
     }

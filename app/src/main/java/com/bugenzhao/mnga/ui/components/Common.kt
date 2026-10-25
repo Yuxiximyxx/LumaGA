@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -72,16 +73,17 @@ fun AdaptiveFooter(loading: Boolean, noMore: Boolean) {
     }
 }
 
-/** Grouped-list style container, approximating iOS inset grouped lists. */
+/** Grouped-list style container (Miuix card), approximating iOS inset grouped lists. */
 @Composable
 fun GroupedList(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    Surface(
+    // Miuix Card as the shared grouped container; rows keep their own inner
+    // padding, so the card itself adds none.
+    top.yukonga.miuix.kmp.basic.Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
+        insideMargin = PaddingValues(0.dp),
     ) {
         Column { content() }
     }

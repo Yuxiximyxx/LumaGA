@@ -27,22 +27,27 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lan
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.RadioButton
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.extra.SuperArrow
+import top.yukonga.miuix.kmp.extra.SuperSwitch
+import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -68,8 +73,6 @@ import com.bugenzhao.mnga.storage.TopicListOrder
 import com.bugenzhao.mnga.storage.TopicResumeFrom
 import com.bugenzhao.mnga.storage.WebApiStrategy
 import com.bugenzhao.mnga.ui.components.GroupedList
-import com.bugenzhao.mnga.ui.components.GroupedRow
-import com.bugenzhao.mnga.ui.components.RowChevron
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.ui.screens.misc.CheckForUpdatesRow
@@ -204,10 +207,11 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
     val dateTimeStrategy = DateTimeStrategy.fromRaw(dateTimeStrategyRaw)
 
     Scaffold(
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.navigationBars),
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+            .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = { Text(L.str(context, "Settings")) },
+            SmallTopAppBar(
+                title = L.str(context, "Settings"),
                 navigationIcon = {
                     IconButton(onClick = { dismiss() }) {
                         Icon(
@@ -404,17 +408,17 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
             item(key = "backend") {
                 Section(header = L.str(context, "Backend")) {
                     Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        OutlinedTextField(
+                        TextField(
                             value = baseURLText,
                             onValueChange = { baseURLText = it },
-                            label = { Text(L.str(context, "LumaGA Backend")) },
-                            singleLine = true,
+                            label = L.str(context, "LumaGA Backend"),
                             modifier = Modifier.fillMaxWidth(),
                         )
                         TextButton(
+                            text = L.str(context, "Apply"),
                             onClick = { prefs.setBaseURL(baseURLText.trim()) },
                             enabled = baseURLText.trim() != requestOption.baseUrlV2,
-                        ) { Text(L.str(context, "Apply")) }
+                        )
                     }
                     PickerRow(
                         title = L.str(context, "Device Identity"),
@@ -423,17 +427,17 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
                     )
                     if (device == Device.CUSTOM) {
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                            OutlinedTextField(
+                            TextField(
                                 value = customUAText,
                                 onValueChange = { customUAText = it },
-                                label = { Text(L.str(context, "Custom User-Agent")) },
-                                singleLine = true,
+                                label = L.str(context, "Custom User-Agent"),
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             TextButton(
+                                text = L.str(context, "Apply"),
                                 onClick = { prefs.setCustomUA(customUAText.trim()) },
                                 enabled = customUAText.trim() != requestOption.customUa,
-                            ) { Text(L.str(context, "Apply")) }
+                            )
                         }
                     }
                 }
@@ -524,7 +528,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
                         webApiStrategyLabel(context, it),
                         icon = webApiStrategyIcon(it),
                         iconTint = if (it == WebApiStrategy.ONLY) {
-                            MaterialTheme.colorScheme.error
+                            MiuixTheme.colorScheme.error
                         } else {
                             null
                         },
@@ -579,13 +583,11 @@ private fun Section(
 ) {
     Column(Modifier.fillMaxWidth()) {
         if (header != null) {
-            Text(
-                header,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                // Left edge aligned with the grouped card below (the list's
-                // 16dp content padding applies to both).
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+            // Miuix section title; left edge aligned with the grouped card
+            // below (the list's 16dp content padding applies to both).
+            SmallTitle(
+                text = header,
+                insideMargin = PaddingValues(start = 4.dp, bottom = 8.dp),
             )
         }
         GroupedList { Column { content() } }
@@ -593,7 +595,7 @@ private fun Section(
             Text(
                 footer,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 modifier = Modifier.padding(top = 6.dp, end = 16.dp),
             )
         }
@@ -606,24 +608,24 @@ private fun SwitchRow(
     checked: Boolean,
     onChange: (Boolean) -> Unit,
 ) {
-    GroupedRow(
+    SuperSwitch(
+        checked = checked,
+        onCheckedChange = onChange,
         title = title,
-        trailing = { Switch(checked = checked, onCheckedChange = onChange) },
     )
 }
 
-/** A row whose current value sits in the subtitle; tapping opens a picker. */
+/** A row whose current value sits in the summary; tapping opens a picker. */
 @Composable
 private fun PickerRow(
     title: String,
     valueLabel: String,
     onClick: () -> Unit,
 ) {
-    GroupedRow(
-        onClick = onClick,
+    SuperArrow(
         title = title,
-        subtitle = valueLabel,
-        trailing = { RowChevron() },
+        summary = valueLabel,
+        onClick = onClick,
     )
 }
 
@@ -636,18 +638,16 @@ private fun DownloadLocationRow(
     onUseDefault: () -> Unit,
 ) {
     val context = LocalContext.current
-    GroupedRow(
-        onClick = onChoose,
+    SuperArrow(
         title = title,
-        subtitle = valueLabel,
-        trailing = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (isCustom) {
-                    TextButton(onClick = onUseDefault) {
-                        Text(L.str(context, "Default"))
-                    }
-                }
-                RowChevron()
+        summary = valueLabel,
+        onClick = onChoose,
+        endActions = {
+            if (isCustom) {
+                TextButton(
+                    text = L.str(context, "Default"),
+                    onClick = onUseDefault,
+                )
             }
         },
     )
@@ -658,10 +658,9 @@ private fun NavigationRow(
     title: String,
     onClick: () -> Unit,
 ) {
-    GroupedRow(
-        onClick = onClick,
+    SuperArrow(
         title = title,
-        trailing = { RowChevron() },
+        onClick = onClick,
     )
 }
 
@@ -674,48 +673,54 @@ private fun <T> PickerDialog(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    AlertDialog(
+    WindowDialog(
+        show = true,
+        title = title,
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                options.forEach { option ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable {
-                                onSelect(option.value)
-                                onDismiss()
-                            }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        RadioButton(
-                            selected = option.value == selected,
-                            onClick = null,
-                        )
-                        if (option.dot != null) {
-                            Box(Modifier.size(16.dp).background(option.dot, CircleShape))
+    ) {
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+            options.forEach { option ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            onSelect(option.value)
+                            onDismiss()
                         }
-                        option.icon?.let { icon ->
-                            Icon(
-                                icon,
-                                contentDescription = null,
-                                tint = option.iconTint ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                        Text(option.label)
+                        .padding(vertical = 10.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    RadioButton(
+                        selected = option.value == selected,
+                        onClick = null,
+                    )
+                    if (option.dot != null) {
+                        Box(Modifier.size(16.dp).background(option.dot, CircleShape))
                     }
+                    option.icon?.let { icon ->
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = option.iconTint ?: MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    Text(option.label)
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(L.str(context, "Cancel")) }
-        },
-    )
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(top = 8.dp),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(
+                text = L.str(context, "Cancel"),
+                onClick = onDismiss,
+            )
+        }
+    }
 }
 
 // endregion

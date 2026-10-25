@@ -8,8 +8,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,7 +23,6 @@ import com.bugenzhao.mnga.model.PagingDataSource
  * Standard paged list scaffolding: pull-to-refresh, initial loading spinner,
  * empty/error placeholders, footer and last-3-items prefetch.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <Item : Any> PagedList(
     dataSource: PagingDataSource<*, Item>,
@@ -71,7 +68,7 @@ fun <Item : Any> PagedList(
         }
     }
 
-    PullToRefreshBox(
+    top.yukonga.miuix.kmp.basic.PullToRefresh(
         isRefreshing = state.isRefreshing,
         onRefresh = { dataSource.refreshAsync(sleepMillis = 500) },
         modifier = Modifier.fillMaxSize(),
