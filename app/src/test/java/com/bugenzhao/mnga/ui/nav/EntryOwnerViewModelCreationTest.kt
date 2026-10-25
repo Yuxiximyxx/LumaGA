@@ -1,15 +1,13 @@
 package com.bugenzhao.mnga.ui.nav
 
-import androidx.arch.core.executor.ArchTaskExecutor
-import androidx.arch.core.executor.TaskExecutor
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 /**
@@ -35,24 +33,10 @@ class EntryOwnerViewModelCreationTest {
 
     class PlainViewModel : ViewModel()
 
-    @Before
-    fun setUp() {
-        // LifecycleRegistry & friends demand a main thread; report this
-        // test thread as the main one (the InstantTaskExecutorRule
-        // mechanism, without the extra test artifact).
-        ArchTaskExecutor.getInstance().setDelegate(
-            object : TaskExecutor() {
-                override fun executeOnDiskIO(runnable: Runnable) = runnable.run()
-                override fun postToMainThread(runnable: Runnable) = runnable.run()
-                override fun isMainThread(): Boolean = true
-            },
-        )
-    }
-
-    @After
-    fun tearDown() {
-        ArchTaskExecutor.getInstance().setDelegate(null)
-    }
+    // LifecycleRegistry & friends demand a main thread; the rule makes
+    // the test thread report as the main one.
+    @get:Rule
+    val instantTaskExecutorRule = InstantTaskExecutorRule()
 
     private fun providerFor(owner: EntryOwner): ViewModelProvider =
         ViewModelProvider.create(

@@ -2,8 +2,8 @@ package com.bugenzhao.mnga.ui.nav
 
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.unit.dp
+import com.xah.navigation.anim.effect.DefaultPageEffects
 import com.xah.navigation.model.anim.EffectLevel
-import com.xah.navigation.model.anim.effect.DefaultPageEffects
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -42,7 +42,7 @@ class CardPageEffectsTest {
             assertEquals("progress=$p scale", stock.scale, frame.scale, 1e-4f)
             assertEquals("progress=$p alpha", stock.alpha, frame.alpha, 1e-4f)
             assertEquals("progress=$p blur", stock.blur, frame.blur)
-            assertEquals("progress=$p dim", stock.dimAmount, frame.dimAmount, 1e-4f)
+            assertEquals("progress=$p maskDark", stock.maskDark, frame.maskDark)
         }
     }
 
@@ -68,7 +68,7 @@ class CardPageEffectsTest {
             val frame = effects.background(p, EffectLevel.HIGH)
             assertEquals("progress=$p scale", stock.scale, frame.scale, 1e-4f)
             assertEquals("progress=$p blur", stock.blur, frame.blur)
-            assertEquals("progress=$p dim", stock.dimAmount, frame.dimAmount, 1e-4f)
+            assertEquals("progress=$p maskDark", stock.maskDark, frame.maskDark)
             assertEquals("progress=$p alpha", stock.alpha, frame.alpha, 1e-4f)
         }
     }
