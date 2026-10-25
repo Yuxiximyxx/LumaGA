@@ -10,14 +10,17 @@ import org.junit.Test
 /**
  * Contract of the tab dock's glass materials (v1.7.0).
  *
- * The dock renders without backdrop sampling (see MainTabDock.kt), so the
- * three materials of liquid-glass-recipes are distinguished by veil
- * thickness, rim brightness and edge highlights only. These tests pin the
- * mapping so the materials can never collapse into relabels of each other:
- * FROSTED must stay byte-identical to the look the dock shipped with,
- * CLEAR thins the veil to about half of frosted, LIQUID to about half of
- * clear again while turning on the bottom-edge highlight and the sheen
- * that the other two keep off.
+ * The three materials of liquid-glass-recipes are distinguished on two
+ * layers: the veil/rim colors drawn over the sample (dockColors) and the
+ * Prismal effect chain acting on the sampled backdrop itself
+ * (dockGlassEffectParams). These tests pin both mappings so the materials
+ * can never collapse into relabels of each other: FROSTED's veil must stay
+ * byte-identical to the look the dock shipped with, CLEAR thins the veil
+ * to about half of frosted, LIQUID to about half of clear again while
+ * turning on the bottom-edge highlight and the sheen the other two keep
+ * off; on the sample side the blur follows the recipes (frosted big,
+ * clear medium, liquid tiny), CLEAR carries the recipe's saturation 1.5,
+ * and refraction is liquid-only.
  */
 class DockGlassMaterialTest {
 
@@ -83,6 +86,42 @@ class DockGlassMaterialTest {
                     clear.highlightHeight > liquid.highlightHeight,
             )
         }
+    }
+
+    @Test
+    fun `sample blur follows the recipes - frosted big, clear medium, liquid tiny`() {
+        val frosted = dockGlassEffectParams(DockGlassMaterial.FROSTED)
+        val clear = dockGlassEffectParams(DockGlassMaterial.CLEAR)
+        val liquid = dockGlassEffectParams(DockGlassMaterial.LIQUID)
+        assertTrue(frosted.blurDp > clear.blurDp)
+        assertTrue(clear.blurDp > liquid.blurDp)
+        // Recipe bands: frosted CSS 18–26px, clear 12–18px, liquid 2–4px.
+        assertTrue(frosted.blurDp in 18.dp..26.dp)
+        assertTrue(clear.blurDp in 12.dp..18.dp)
+        assertTrue(liquid.blurDp in 2.dp..4.dp)
+    }
+
+    @Test
+    fun `saturation is the clear recipe knob and refraction is liquid-only`() {
+        val frosted = dockGlassEffectParams(DockGlassMaterial.FROSTED)
+        val clear = dockGlassEffectParams(DockGlassMaterial.CLEAR)
+        val liquid = dockGlassEffectParams(DockGlassMaterial.LIQUID)
+        assertEquals(1.0f, frosted.saturation, 0f)
+        assertEquals(1.5f, clear.saturation, 0f)
+        assertTrue(liquid.saturation > clear.saturation)
+        for (params in listOf(frosted, clear)) {
+            assertEquals(0.dp, params.refractionHeightDp)
+            assertEquals(0.dp, params.refractionAmountDp)
+            assertEquals(0f, params.chromaticAberration, 0f)
+        }
+        // PrismalLiquidGlass.applyBase's calibrated lens.
+        assertEquals(16.dp, liquid.refractionHeightDp)
+        assertEquals(32.dp, liquid.refractionAmountDp)
+        assertTrue(liquid.chromaticAberration > 0f)
+        // Matte frosted has no specular layer; clear and liquid do.
+        assertTrue(!frosted.specular)
+        assertTrue(clear.specular)
+        assertTrue(liquid.specular)
     }
 
     @Test
