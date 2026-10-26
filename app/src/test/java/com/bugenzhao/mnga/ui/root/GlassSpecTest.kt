@@ -200,4 +200,22 @@ class GlassSpecTest {
     fun `menu width cap is the agreed 280dp`() {
         assertEquals(280.dp, com.bugenzhao.mnga.ui.components.MiuixMenuMaxWidth)
     }
+
+    @Test
+    fun `lens variant scaling weakens big faces and caps the large band`() {
+        val liquid = glassPreset(DockGlassMaterial.LIQUID) // lens 24 / 24
+        // SMALL is the identity (same instance).
+        assertTrue(liquid.withLensScale(GlassVariantScale.SMALL) === liquid)
+        val medium = liquid.withLensScale(GlassVariantScale.MEDIUM)
+        assertEquals(24f * 0.6f, medium.refractionHeightDp, 0f)
+        assertEquals(24f * 0.6f, medium.refractionAmountDp, 0f)
+        val large = liquid.withLensScale(GlassVariantScale.LARGE)
+        assertEquals(GlassVariantScale.LARGE_BAND_CAP_DP, large.refractionHeightDp, 0f)
+        assertEquals(24f * 0.35f, large.refractionAmountDp, 0.001f)
+        // Only the lens changes; the material identity stays.
+        assertEquals(liquid.tintAlphaDark, large.tintAlphaDark, 0f)
+        assertEquals(liquid.blurDp, large.blurDp, 0f)
+        assertEquals(liquid.saturation, large.saturation, 0f)
+        assertEquals(liquid.dispersion, large.dispersion, 0f)
+    }
 }

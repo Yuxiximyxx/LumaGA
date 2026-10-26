@@ -1,6 +1,7 @@
 package com.bugenzhao.mnga.ui.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,11 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.bugenzhao.mnga.ui.root.GlassVariantScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -81,15 +84,32 @@ fun MiuixDropdownMenu(
 ) {
     val popupContent: @Composable () -> Unit = {
         ListPopupColumn {
-            // 8 dp of panel padding top/bottom: with the items' own 12 dp
-            // vertical padding this reproduces DropdownImpl's 20 dp end
-            // padding rhythm for plain lists.
-            Column(
-                Modifier
-                    .widthIn(max = MiuixMenuMaxWidth)
-                    .padding(vertical = 8.dp),
-            ) {
-                content()
+            Box(Modifier.widthIn(max = MiuixMenuMaxWidth)) {
+                // Liquid glass panel (v1.7.3): SuperListPopup renders in
+                // the main window (root Scaffold popup host), so the
+                // panel can sample the real content beneath it. The
+                // library paints its opaque surfaceContainer UNDER the
+                // ListPopupColumn content (ListPopupContent draws its
+                // background before the content), so this full-size
+                // glass layer — the first content child — covers the
+                // panel exactly, clipped by the library's own 16 dp
+                // shape clip and revealed by its entrance animation.
+                // WindowListPopup menus live in a platform Dialog
+                // window instead: cross-window sampling is impossible,
+                // so they deliberately keep the library panel.
+                if (!windowPopup) {
+                    GlassPanelBackground(
+                        shape = RoundedCornerShape(16.dp),
+                        lensScale = GlassVariantScale.MEDIUM,
+                        debugColor = Color(0xFFFF9800),
+                    )
+                }
+                // 8 dp of panel padding top/bottom: with the items' own
+                // 12 dp vertical padding this reproduces DropdownImpl's
+                // 20 dp end padding rhythm for plain lists.
+                Column(Modifier.padding(vertical = 8.dp)) {
+                    content()
+                }
             }
         }
     }

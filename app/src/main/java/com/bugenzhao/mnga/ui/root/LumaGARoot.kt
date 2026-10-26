@@ -2,6 +2,7 @@ package com.bugenzhao.mnga.ui.root
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -137,12 +138,22 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         // sample never has to come through the whole keep-alive host
         // while the dock is actually on screen.
         val dockBackdrop = rememberLayerBackdrop()
+        // Second backdrop for the other glass faces (menus, toasts —
+        // v1.7.3, see GlassOverlayBackdrop.kt): the same host wrapper
+        // records it too, but only while a consumer is composed, so the
+        // full-host re-render Kyant recording costs is paid only for
+        // the lifetime of a transient overlay.
+        val contentBackdrop = rememberLayerBackdrop()
+        val overlayState = rememberGlassOverlayState()
         val rootStack by navigator.stack.collectAsState()
         val shellRecordsDock = dockShellRecordsBackdrop(rootStack.lastOrNull())
+        val shellRecordsContent = overlayState.activeConsumers > 0
         Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
             CompositionLocalProvider(
                 LocalNavigator provides navigator,
                 LocalDockBackdrop provides dockBackdrop,
+                LocalContentBackdrop provides contentBackdrop,
+                LocalGlassOverlayState provides overlayState,
             ) {
                 Box(Modifier.fillMaxSize()) {
                     Box(
@@ -154,15 +165,22 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
                                 } else {
                                     Modifier
                                 },
+                            )
+                            .then(
+                                if (shellRecordsContent) {
+                                    Modifier.layerBackdrop(contentBackdrop)
+                                } else {
+                                    Modifier
+                                },
                             ),
                     ) {
                         NavigationHost(navigator, editor)
                     }
                     MainTabBar(navigator, dockBackdrop)
                 }
+                GlobalOverlays(navigator, editor)
             }
         }
-        GlobalOverlays(navigator, editor)
 
         // Pasteboard deep-link handling: when the newest clipboard entry is a
         // navigable NGA/LumaGA link that has not been jumped to yet, navigate
@@ -217,14 +235,31 @@ private fun BoxScope.MainTabBar(
     val stack by navigator.stack.collectAsState()
     val current = stack.lastOrNull()
     val onTabRoot = current is Route.ForumList || current is Route.PersonalCenter
+    // Dock (re)appearance (v1.7.3): until now this used the DEFAULT
+    // AnimatedVisibility transitions — a full-height slide over the
+    // default 300ms tween — while the page transition underneath runs
+    // 280ms and the backdrop's recording node hands over between the
+    // shell wrapper and the tab-root screen in the same frames. The
+    // dock therefore travelled its whole height on a different clock
+    // than the page it lands on, fully opaque from the first frame,
+    // with its glass sample switching source mid-flight — the " pops
+    // in stiffly" feel in the user's recording. Now: a short fade with
+    // a third-height rise (250ms enter / 150ms exit, easeOut), so the
+    // dock materializes over the landing page; the fade covers the
+    // first frames of the recording handover (the keep-alive tab root
+    // is already the current destination — and already recording
+    // itself — during the page transition, so the sample is settled
+    // well before the fade completes).
     AnimatedVisibility(
         visible = onTabRoot,
         modifier = Modifier
             .align(Alignment.BottomCenter)
             .navigationBarsPadding()
             .padding(bottom = TabDockBottomGap),
-        enter = slideInVertically { it } + fadeIn(),
-        exit = slideOutVertically { it } + fadeOut(),
+        enter = fadeIn(tween(250, easing = EaseOut)) +
+            slideInVertically(tween(250, easing = EaseOut)) { it / 3 },
+        exit = fadeOut(tween(150, easing = EaseOut)) +
+            slideOutVertically(tween(150, easing = EaseOut)) { it / 3 },
     ) {
         FloatingTabDock(
             homeSelected = current is Route.ForumList,

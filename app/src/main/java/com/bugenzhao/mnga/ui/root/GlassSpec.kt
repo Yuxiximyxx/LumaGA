@@ -169,6 +169,35 @@ fun resolveGlassSpec(
     )
 }
 
+/**
+ * Lens strength per floating-face size class, following the sister
+ * c001apk fork's miuix17 variant table (Apple's rule: the larger the
+ * glass face, the weaker its refraction — big faces are backgrounds,
+ * not lenses). Small control faces (buttons, toasts) take the spec
+ * whole; menus take the medium step; sheets and dialogs would take the
+ * large step (band additionally capped, as in the sister fork).
+ */
+object GlassVariantScale {
+    const val SMALL = 1.0f
+    const val MEDIUM = 0.6f
+    const val LARGE = 0.35f
+    const val LARGE_BAND_CAP_DP = 14f
+}
+
+/** This spec with its lens scaled by [factor] (see [GlassVariantScale]). */
+fun GlassSpec.withLensScale(factor: Float): GlassSpec {
+    if (factor == 1f) return this
+    val bandCap = if (factor <= GlassVariantScale.LARGE) {
+        GlassVariantScale.LARGE_BAND_CAP_DP
+    } else {
+        Float.MAX_VALUE
+    }
+    return copy(
+        refractionHeightDp = minOf(refractionHeightDp * factor, bandCap),
+        refractionAmountDp = refractionAmountDp * factor,
+    )
+}
+
 /** Slider ranges of the glass fine-tuning section (settings). */
 object GlassRanges {
     val TINT_ALPHA = 0f..0.8f
