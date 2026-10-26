@@ -53,7 +53,9 @@ import com.bugenzhao.mnga.model.appScope
 import com.xah.navigation.anim.effect.DefaultTransitionEffect
 import com.xah.navigation.anim.effect.FadeTransitionEffect
 import com.xah.navigation.anim.effect.rememberDefaultPageEffects
-import com.styropyr0.prismal.sources.prismalGlassLayer
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.xah.navigation.component.SharedNavHost
 import com.xah.navigation.component.rememberNavController
 import kotlinx.coroutines.flow.filter
@@ -67,7 +69,6 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
     val prefs = App.prefs
     val themeColor by prefs.themeColorRaw.flow.collectAsState()
     val colorScheme by prefs.colorSchemeRaw.flow.collectAsState()
-    val tabDockGlassRaw by prefs.tabDockGlassMaterialRaw.flow.collectAsState()
 
     LumaGATheme(
         themeColor = com.bugenzhao.mnga.storage.ThemeColor.fromRaw(themeColor),
@@ -127,27 +128,24 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         // it (v1.7.0): tab-root screens add bottom content padding (see
         // tabDockContentBottomPadding) so their last item can scroll clear
         // of the dock.
-        val colorSchemeMode = com.bugenzhao.mnga.storage.ColorSchemeMode.fromRaw(colorScheme)
-        val tabDockGlassMaterial =
-            com.bugenzhao.mnga.storage.DockGlassMaterial.fromRaw(tabDockGlassRaw)
-        // Backdrop for the tab dock's glass (Prismal): only the navigation
+        // Backdrop for the tab dock's glass (Kyant): only the navigation
         // content is recorded — overlays, the editor and the dock itself
         // stay out of the sample. The recording is a live layer, so page
         // transitions and scrolling are sampled as they draw; the dock's
         // blur/refraction therefore tracks the content beneath it instead
         // of a frozen snapshot.
-        val dockBackdrop = com.styropyr0.prismal.sources.rememberPrismalGlassLayer()
+        val dockBackdrop = rememberLayerBackdrop()
         Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
             CompositionLocalProvider(LocalNavigator provides navigator) {
                 Box(Modifier.fillMaxSize()) {
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .prismalGlassLayer(dockBackdrop),
+                            .layerBackdrop(dockBackdrop),
                     ) {
                         NavigationHost(navigator, editor)
                     }
-                    MainTabBar(navigator, colorSchemeMode, tabDockGlassMaterial, dockBackdrop)
+                    MainTabBar(navigator, dockBackdrop)
                 }
             }
         }
@@ -200,10 +198,9 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
 @Composable
 private fun BoxScope.MainTabBar(
     navigator: Navigator,
-    colorSchemeMode: com.bugenzhao.mnga.storage.ColorSchemeMode,
-    glassMaterial: com.bugenzhao.mnga.storage.DockGlassMaterial,
-    backdrop: com.styropyr0.prismal.sources.PrismalGlassLayer,
+    backdrop: LayerBackdrop,
 ) {
+    val glass = rememberGlassSettings()
     val stack by navigator.stack.collectAsState()
     val current = stack.lastOrNull()
     val onTabRoot = current is Route.ForumList || current is Route.PersonalCenter
@@ -222,8 +219,9 @@ private fun BoxScope.MainTabBar(
             onMineClick = {
                 if (current is Route.ForumList) navigator.push(Route.PersonalCenter)
             },
-            colorSchemeMode = colorSchemeMode,
-            glassMaterial = glassMaterial,
+            glassMaterial = glass.material,
+            spec = glass.spec,
+            scheme = glass.scheme,
             backdrop = backdrop,
         )
     }

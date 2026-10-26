@@ -53,12 +53,13 @@ enum class ColorSchemeMode(val raw: Int) {
 }
 
 /**
- * Glass material of the floating tab dock (liquid-glass-recipes' three
- * glasses). FROSTED is the default — its veil is the look the dock shipped
- * with in v1.7.0 (thick milky veil). The materials are rendered by
- * Prismal backdrop sampling with per-material parameters and degrade by
- * device tier (AGSL refraction on API 33+, RenderEffect blur on 31–32,
- * legacy frost below); see MainTabDock.kt for what each one varies.
+ * Glass material of the floating tab dock and the app's floating buttons
+ * (liquid-glass-recipes' three glasses). FROSTED is the default — the
+ * look the dock shipped with in v1.7.0 (thick milky veil). The materials
+ * are rendered by Kyant Backdrop sampling with per-material parameters
+ * (see GlassSpec.kt for the calibrated table) and degrade by device tier
+ * (AGSL lens on API 33+, RenderEffect blur/saturation on 31–32, plain
+ * tint below).
  */
 enum class DockGlassMaterial(val raw: Int) {
     CLEAR(0),
@@ -70,6 +71,21 @@ enum class DockGlassMaterial(val raw: Int) {
             entries.firstOrNull { it.raw == raw } ?: FROSTED
     }
 }
+
+/**
+ * User-tuned absolute glass parameters (the settings sliders), stored
+ * when the user drags any slider after picking a preset. One tint alpha
+ * anchors the dark scheme; the light/classic veil alphas follow the
+ * selected preset's per-scheme ratio (see resolveGlassSpec).
+ */
+data class GlassCustom(
+    val tintAlpha: Float,
+    val blurDp: Float,
+    val saturation: Float,
+    val refractionHeightDp: Float,
+    val refractionAmountDp: Float,
+    val dispersion: Float,
+)
 
 enum class DateTimeStrategy(val raw: Int, val label: String) {
     AUTOMATIC(0, "Automatic"),
@@ -163,6 +179,11 @@ class PreferencesStorage(private val prefs: SharedPreferences) {
             { p, k, d -> p.getString(k, d) ?: d },
             { e, k, v -> e.putString(k, v) })
 
+    private fun floatPref(key: String, default: Float) =
+        Pref(prefs, key, default,
+            { p, k, d -> p.getFloat(k, d) },
+            { e, k, v -> e.putFloat(k, v) })
+
     val showSignature = boolPref("showSignatureNew", false)
     val useInAppSafari = boolPref("useInAppSafari", true)
     val topicListHideBlocked = boolPref("topicListHideBlocked", false)
@@ -188,6 +209,21 @@ class PreferencesStorage(private val prefs: SharedPreferences) {
     val themeColorRaw = intPref("themeColorNew", 0)
     val colorSchemeRaw = intPref("colorScheme", 0)
     val tabDockGlassMaterialRaw = intPref("tabDockGlassMaterial", DockGlassMaterial.FROSTED.raw)
+
+    // Glass fine-tuning (settings sliders). The custom block only takes
+    // effect while glassCustomEnabled is set (any slider drag sets it;
+    // picking a preset or "reset to preset" clears it). Defaults mirror
+    // the FROSTED preset so a stray read is harmless.
+    val glassCustomEnabled = boolPref("glassCustomEnabled", false)
+    val glassCustomTintAlpha = floatPref("glassCustomTintAlpha", 0.55f)
+    val glassCustomBlur = floatPref("glassCustomBlur", 20f)
+    val glassCustomSaturation = floatPref("glassCustomSaturation", 1.3f)
+    val glassCustomRefractionHeight = floatPref("glassCustomRefractionHeight", 20f)
+    val glassCustomRefractionAmount = floatPref("glassCustomRefractionAmount", 6f)
+    val glassCustomDispersion = floatPref("glassCustomDispersion", 0f)
+    // Highlight trim, 0–2 (1 = preset value). Applies on top of both the
+    // preset and the custom block; reset together with the custom block.
+    val glassHighlightScale = floatPref("glassHighlightScale", 1f)
     val postRowDateTimeStrategyRaw = intPref("postRowDateTimeStrategy", 0)
     val topicDetailsWebApiStrategyRaw = intPref("topicDetailsWebApiStrategyNew", 1)
 
@@ -200,6 +236,20 @@ class PreferencesStorage(private val prefs: SharedPreferences) {
         get() = ColorSchemeMode.fromRaw(colorSchemeRaw.value)
     val tabDockGlassMaterial: DockGlassMaterial
         get() = DockGlassMaterial.fromRaw(tabDockGlassMaterialRaw.value)
+    /** The stored slider block, or null while a preset is in effect. */
+    val glassCustom: GlassCustom?
+        get() = if (glassCustomEnabled.value) {
+            GlassCustom(
+                tintAlpha = glassCustomTintAlpha.value,
+                blurDp = glassCustomBlur.value,
+                saturation = glassCustomSaturation.value,
+                refractionHeightDp = glassCustomRefractionHeight.value,
+                refractionAmountDp = glassCustomRefractionAmount.value,
+                dispersion = glassCustomDispersion.value,
+            )
+        } else {
+            null
+        }
     val postRowDateTimeStrategy: DateTimeStrategy
         get() = DateTimeStrategy.fromRaw(postRowDateTimeStrategyRaw.value)
     val resumeTopicFrom: TopicResumeFrom

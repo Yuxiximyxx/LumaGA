@@ -138,9 +138,9 @@ dependencies {
     // QR code scanning: CameraX + ML Kit Barcode
     implementation(libs.miuix)
     implementation(libs.sharednav.navigation)
-    // PrismalAGSL: liquid-glass backdrop sampling for the tab dock
-    // (JitPack; AGSL shaders self-init via AndroidX App Startup).
-    implementation(libs.prismal)
+    // Kyant Backdrop: true liquid-glass backdrop sampling (lens /
+    // highlight / shadow) for the tab dock and floating buttons.
+    implementation(libs.kyant.backdrop)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Instrumented tests (currently not run in CI; the emulator workflow was

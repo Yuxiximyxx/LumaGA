@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +62,15 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * layout it is composed in — wrap the anchor widget and the menu in a
  * `Box`, as the call sites already do.
  */
+/**
+ * Widest a dropdown menu panel may grow. Miuix's ListPopup measures its
+ * content (the panel is content-sized, never a fixed near-full-screen
+ * width), but an item carrying a long title would otherwise stretch the
+ * panel to the popup's window constraint; every menu in the app funnels
+ * through [MiuixDropdownMenu], so the cap lives here.
+ */
+val MiuixMenuMaxWidth = 280.dp
+
 @Composable
 fun MiuixDropdownMenu(
     expanded: Boolean,
@@ -74,7 +84,11 @@ fun MiuixDropdownMenu(
             // 8 dp of panel padding top/bottom: with the items' own 12 dp
             // vertical padding this reproduces DropdownImpl's 20 dp end
             // padding rhythm for plain lists.
-            Column(Modifier.padding(vertical = 8.dp)) {
+            Column(
+                Modifier
+                    .widthIn(max = MiuixMenuMaxWidth)
+                    .padding(vertical = 8.dp),
+            ) {
                 content()
             }
         }

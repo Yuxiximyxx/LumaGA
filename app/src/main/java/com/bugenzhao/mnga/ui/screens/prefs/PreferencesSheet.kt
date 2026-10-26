@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -39,6 +40,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.RadioButton
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
@@ -76,6 +78,10 @@ import com.bugenzhao.mnga.storage.WebApiStrategy
 import com.bugenzhao.mnga.ui.components.GroupedList
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.root.GlassRanges
+import com.bugenzhao.mnga.ui.root.GlassSpec
+import com.bugenzhao.mnga.ui.root.resolveGlassSpec
+import kotlin.math.roundToInt
 import com.bugenzhao.mnga.ui.screens.misc.CheckForUpdatesRow
 import com.bugenzhao.mnga.ui.screens.misc.UpdateFlowDialogs
 import com.bugenzhao.mnga.util.DownloadDestination
@@ -122,6 +128,14 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
     val colorSchemeRaw by prefs.colorSchemeRaw.flow.collectAsState()
     val themeColorRaw by prefs.themeColorRaw.flow.collectAsState()
     val dockGlassRaw by prefs.tabDockGlassMaterialRaw.flow.collectAsState()
+    val glassCustomEnabled by prefs.glassCustomEnabled.flow.collectAsState()
+    val glassCustomTint by prefs.glassCustomTintAlpha.flow.collectAsState()
+    val glassCustomBlur by prefs.glassCustomBlur.flow.collectAsState()
+    val glassCustomSaturation by prefs.glassCustomSaturation.flow.collectAsState()
+    val glassCustomRefrHeight by prefs.glassCustomRefractionHeight.flow.collectAsState()
+    val glassCustomRefrAmount by prefs.glassCustomRefractionAmount.flow.collectAsState()
+    val glassCustomDispersion by prefs.glassCustomDispersion.flow.collectAsState()
+    val glassHighlightScale by prefs.glassHighlightScale.flow.collectAsState()
     val alwaysPortrait by prefs.alwaysPortraitOnPhone.flow.collectAsState()
     val useInAppSafari by prefs.useInAppSafari.flow.collectAsState()
     val alwaysShareImageAsFile by prefs.alwaysShareImageAsFile.flow.collectAsState()
@@ -205,6 +219,40 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
     val themeColor = ThemeColor.fromRaw(themeColorRaw)
     val colorScheme = ColorSchemeMode.fromRaw(colorSchemeRaw)
     val dockGlass = DockGlassMaterial.fromRaw(dockGlassRaw)
+    // The glass fine-tuning state: the effective spec the sliders show
+    // and edit (preset values while no custom block is stored).
+    val glassCustom = if (glassCustomEnabled) {
+        com.bugenzhao.mnga.storage.GlassCustom(
+            tintAlpha = glassCustomTint,
+            blurDp = glassCustomBlur,
+            saturation = glassCustomSaturation,
+            refractionHeightDp = glassCustomRefrHeight,
+            refractionAmountDp = glassCustomRefrAmount,
+            dispersion = glassCustomDispersion,
+        )
+    } else {
+        null
+    }
+    val glassSpec = resolveGlassSpec(dockGlass, glassCustom, glassHighlightScale)
+    val glassIsCustom = glassCustom != null || glassHighlightScale != 1f
+
+    /** Persist [spec] as the custom slider block (any slider drag). */
+    fun writeGlassCustom(spec: GlassSpec) {
+        val custom = spec.toCustom()
+        prefs.glassCustomTintAlpha.value = custom.tintAlpha
+        prefs.glassCustomBlur.value = custom.blurDp
+        prefs.glassCustomSaturation.value = custom.saturation
+        prefs.glassCustomRefractionHeight.value = custom.refractionHeightDp
+        prefs.glassCustomRefractionAmount.value = custom.refractionAmountDp
+        prefs.glassCustomDispersion.value = custom.dispersion
+        prefs.glassCustomEnabled.value = true
+    }
+
+    /** Back to the selected preset, value for value. */
+    fun resetGlassToPreset() {
+        prefs.glassCustomEnabled.value = false
+        prefs.glassHighlightScale.value = 1f
+    }
     val defaultOrder = TopicListOrder.fromRaw(defaultOrderRaw)
     val webApiStrategy = WebApiStrategy.fromRaw(webApiStrategyRaw)
     val resumeFrom = TopicResumeFrom.fromRaw(resumeFromRaw)
@@ -247,10 +295,88 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
                         onClick = { picker = PickerKind.THEME_COLOR },
                     )
                     PickerRow(
-                        title = L.str(context, "Dock Glass Material"),
-                        valueLabel = dockGlassLabel(context, dockGlass),
+                        title = L.str(context, "Glass Material"),
+                        valueLabel = dockGlassLabel(context, dockGlass) +
+                            if (glassIsCustom) {
+                                " · " + L.str(context, "Custom")
+                            } else {
+                                ""
+                            },
                         onClick = { picker = PickerKind.DOCK_GLASS },
                     )
+                    GlassSliderRow(
+                        title = L.str(context, "Glass Opacity"),
+                        valueLabel = "%.2f".format(glassSpec.tintAlphaDark),
+                        value = glassSpec.tintAlphaDark,
+                        valueRange = GlassRanges.TINT_ALPHA,
+                        onValueChange = {
+                            writeGlassCustom(glassSpec.copy(tintAlphaDark = it))
+                        },
+                    )
+                    GlassSliderRow(
+                        title = L.str(context, "Refraction Strength"),
+                        valueLabel = glassSpec.refractionAmountDp.roundToInt().toString(),
+                        value = glassSpec.refractionAmountDp,
+                        valueRange = GlassRanges.REFRACTION_AMOUNT_DP,
+                        onValueChange = {
+                            writeGlassCustom(glassSpec.copy(refractionAmountDp = it))
+                        },
+                    )
+                    GlassSliderRow(
+                        title = L.str(context, "Refraction Range"),
+                        valueLabel = glassSpec.refractionHeightDp.roundToInt().toString(),
+                        value = glassSpec.refractionHeightDp,
+                        valueRange = GlassRanges.REFRACTION_HEIGHT_DP,
+                        onValueChange = {
+                            writeGlassCustom(glassSpec.copy(refractionHeightDp = it))
+                        },
+                    )
+                    GlassSliderRow(
+                        title = L.str(context, "Glass Blur"),
+                        valueLabel = glassSpec.blurDp.roundToInt().toString(),
+                        value = glassSpec.blurDp,
+                        valueRange = GlassRanges.BLUR_DP,
+                        onValueChange = {
+                            writeGlassCustom(glassSpec.copy(blurDp = it))
+                        },
+                    )
+                    GlassSliderRow(
+                        title = L.str(context, "Glass Saturation"),
+                        valueLabel = "%.2f".format(glassSpec.saturation),
+                        value = glassSpec.saturation,
+                        valueRange = GlassRanges.SATURATION,
+                        onValueChange = {
+                            writeGlassCustom(glassSpec.copy(saturation = it))
+                        },
+                    )
+                    GlassSliderRow(
+                        title = L.str(context, "Glass Dispersion"),
+                        valueLabel = "%.2f".format(glassSpec.dispersion),
+                        value = glassSpec.dispersion,
+                        valueRange = GlassRanges.DISPERSION,
+                        onValueChange = {
+                            writeGlassCustom(glassSpec.copy(dispersion = it))
+                        },
+                    )
+                    GlassSliderRow(
+                        title = L.str(context, "Highlight Strength"),
+                        valueLabel = "${(glassHighlightScale * 100).roundToInt()}%",
+                        value = glassHighlightScale,
+                        valueRange = GlassRanges.HIGHLIGHT_SCALE,
+                        onValueChange = { prefs.glassHighlightScale.value = it },
+                    )
+                    if (glassIsCustom) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                        ) {
+                            TextButton(
+                                text = L.str(context, "Reset to Preset"),
+                                onClick = { resetGlassToPreset() },
+                            )
+                        }
+                    }
                     SwitchRow(
                         title = L.str(context, "Lock Screen Rotation"),
                         checked = alwaysPortrait,
@@ -511,12 +637,17 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
             )
         PickerKind.DOCK_GLASS ->
             PickerDialog(
-                title = L.str(context, "Dock Glass Material"),
+                title = L.str(context, "Glass Material"),
                 options = DockGlassMaterial.entries.map {
                     PickerOption(it, dockGlassLabel(context, it))
                 },
                 selected = dockGlass,
-                onSelect = { prefs.tabDockGlassMaterialRaw.value = it.raw },
+                onSelect = {
+                    prefs.tabDockGlassMaterialRaw.value = it.raw
+                    // Picking a preset applies its full table: any custom
+                    // slider block and highlight trim are reset.
+                    resetGlassToPreset()
+                },
                 onDismiss = { picker = null },
             )
         PickerKind.ORDER ->
@@ -646,6 +777,46 @@ private fun PickerRow(
         summary = valueLabel,
         onClick = onClick,
     )
+}
+
+/**
+ * One glass fine-tuning slider: title + current value on one line, the
+ * Miuix slider below. Dragging writes through to the preference store,
+ * which re-resolves the glass spec app-wide immediately.
+ */
+@Composable
+private fun GlassSliderRow(
+    title: String,
+    valueLabel: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    onValueChange: (Float) -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                title,
+                style = MiuixTheme.textStyles.body1,
+                color = MiuixTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                valueLabel,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            steps = 0,
+        )
+    }
 }
 
 @Composable
