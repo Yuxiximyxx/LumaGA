@@ -93,6 +93,8 @@ import com.bugenzhao.mnga.protos.service.TopicListRequest
 import com.bugenzhao.mnga.protos.service.TopicListResponse
 import com.bugenzhao.mnga.storage.TopicListOrder
 import com.bugenzhao.mnga.ui.components.PagedList
+import com.bugenzhao.mnga.ui.components.GlassPanelBackground
+import com.bugenzhao.mnga.ui.root.GlassVariantScale
 import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
 import com.bugenzhao.mnga.ui.root.glassContentColor
 import com.bugenzhao.mnga.ui.root.rememberGlassSettings
@@ -328,6 +330,19 @@ private fun TopicListScreenContent(
                                 onDismissRequest = { rangeMenuExpanded = false },
                             ) {
                                 ListPopupColumn {
+                                    // Same glass panel layer as
+                                    // MiuixDropdownMenu (v1.7.6): the
+                                    // library paints its opaque panel
+                                    // under the column content, so the
+                                    // glass layer rides as the first
+                                    // child of a wrapping Box.
+                                    Box {
+                                        GlassPanelBackground(
+                                            shape = RoundedCornerShape(16.dp),
+                                            lensScale = GlassVariantScale.MEDIUM,
+                                            debugColor = Color(0xFFFF9800),
+                                        )
+                                        Column {
                                     val ranges = listOf(
                                         HotTopicListRequest.DateRange.DAY to "Last 24 hours",
                                         HotTopicListRequest.DateRange.WEEK to "Last week",
@@ -345,6 +360,8 @@ private fun TopicListScreenContent(
                                                     rangeMenuExpanded = false
                                                 },
                                             )
+                                        }
+                                    }
                                         }
                                     }
                                 }
