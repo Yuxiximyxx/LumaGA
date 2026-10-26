@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -51,6 +50,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -245,8 +248,10 @@ internal fun dockColors(
  *   value ζ1.0/k1000, press ζ1.0/k1000, scaleX ζ0.6/k250, scaleY
  *   ζ0.7/k250, velocity ζ0.5/k300, pressedScale 78/56) chases the finger
  *   with press growth and velocity jelly; on release it snaps to the
- *   nearest tab and navigates. Taps keep working (the visible items
- *   stay selectable; tapping the other tab animates the pill over).
+ *   nearest tab and navigates. Taps are zero-length drags through the
+ *   same path (items carry semantics only, no pointer input — see
+ *   DockItem; the v1.7.4 note there explains the v1.7.3 regression
+ *   where a competing `selectable` + an async target race ate taps).
  * - The pill is a real lens: it samples a COMBINED backdrop — the
  *   current page's own recording (v1.7.2's per-screen source, unchanged)
  *   plus a second, invisible copy of the tab row rendered accent-tinted
@@ -323,6 +328,18 @@ fun FloatingTabDock(
     val onTabSelectedState = rememberUpdatedState { index: Int ->
         if (index == 0) onHomeClick() else onMineClick()
     }
+    // The slot the current gesture is aiming at, recorded synchronously
+    // in the drag callbacks (v1.7.4). onDragStopped used to derive the
+    // navigation target from the value Animatable's targetValue alone —
+    // but for a TAP the finger lifts within a frame or two of the press,
+    // before the animateTo launched by updateValue() has necessarily
+    // run, so targetValue could still hold the OLD slot: the pill
+    // twitched toward the tapped tab and settled back, and nothing
+    // navigated. Drags never hit this (their continuous onDrag calls
+    // keep targetValue current long before release). The intent is
+    // therefore captured at callback time; targetValue remains the
+    // fallback. -1 = no gesture in flight.
+    var gestureTargetIndex by remember { mutableIntStateOf(-1) }
     val dampedDragAnimation = remember(animationScope) {
         DampedDragAnimation(
             animationScope = animationScope,
@@ -340,12 +357,20 @@ fun FloatingTabDock(
                 // drag that ends there.
                 val rawIndex = (position.x / slotWidthPx).toInt().coerceIn(0, tabCount - 1)
                 val index = if (isLtr) rawIndex else tabCount - 1 - rawIndex
+                gestureTargetIndex = index
                 if (index != targetValue.roundToInt()) {
                     updateValue(index.toFloat())
                 }
             },
             onDragStopped = {
-                val targetIndex = targetValue.roundToInt().coerceIn(0, tabCount - 1)
+                val targetIndex = (
+                    if (gestureTargetIndex >= 0) {
+                        gestureTargetIndex
+                    } else {
+                        targetValue.roundToInt()
+                    }
+                    ).coerceIn(0, tabCount - 1)
+                gestureTargetIndex = -1
                 currentIndex = targetIndex
                 animateToValue(targetIndex.toFloat())
                 animationScope.launch {
@@ -353,10 +378,10 @@ fun FloatingTabDock(
                 }
             },
             onDrag = { _, dragAmount ->
-                updateValue(
-                    (targetValue + dragAmount.x / slotWidthPx * if (isLtr) 1f else -1f)
-                        .coerceIn(0f, (tabCount - 1).toFloat()),
-                )
+                val newTarget = (targetValue + dragAmount.x / slotWidthPx * if (isLtr) 1f else -1f)
+                    .coerceIn(0f, (tabCount - 1).toFloat())
+                gestureTargetIndex = newTarget.roundToInt()
+                updateValue(newTarget)
                 animationScope.launch {
                     offsetAnimation.snapTo(offsetAnimation.value + dragAmount.x)
                 }
@@ -521,9 +546,11 @@ fun FloatingTabDock(
                     modifier = Modifier.weight(1f),
                 )
             }
-            // The visible tab row: items stay selectable (tap = animate
-            // + navigate through currentIndex), their look is driven
-            // continuously by the pill's animated position.
+            // The visible tab row: items carry semantics only (role /
+            // selected / accessibility click — no pointer input, see
+            // DockItem); taps and drags alike are owned by the gesture
+            // layer below, their look driven continuously by the pill's
+            // animated position.
             Row(Modifier.fillMaxSize()) {
                 DockItem(
                     progress = (1f - abs(0f - dampedDragAnimation.value)).coerceIn(0f, 1f),
@@ -616,9 +643,8 @@ fun FloatingTabDock(
             )
             // Gesture layer: covers the whole dock content area, so a
             // press anywhere on the dock (pill or not) starts the
-            // damped drag; the visible items keep their selectable
-            // semantics for accessibility, with their clicks driven by
-            // the same currentIndex path.
+            // damped drag; a press with no travel is a tap and settles /
+            // navigates on release through the same onDragStopped path.
             Box(
                 Modifier
                     .fillMaxSize()
@@ -667,15 +693,30 @@ private fun DockItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val isSelected = selected
+    val clickAction = onClick
     Box(
         modifier
             .fillMaxHeight()
             .clip(RoundedCornerShape(percent = 50))
-            .selectable(
-                selected = selected,
-                role = Role.Tab,
-                onClick = onClick,
-            ),
+            // Semantics only — NO pointer input on the items (v1.7.4).
+            // In v1.7.3 the items carried foundation `selectable`, whose
+            // click detector competed with the full-dock drag detector
+            // for the same gesture (it consumes the up in the Main pass)
+            // while the drag path's own tap handling raced the value
+            // animation's async start; between the two owners a plain
+            // tap navigated through neither. Kyant's LiquidBottomTabs —
+            // the structure this ports — gives its items no pointer
+            // input at all: a tap is simply a zero-length drag owned
+            // end-to-end by the DampedDragAnimation detector (press
+            // retargets on down, release settles + navigates). The
+            // semantics onClick keeps the tabs operable for
+            // accessibility services without touching the pointer path.
+            .semantics(mergeDescendants = true) {
+                role = Role.Tab
+                this.selected = isSelected
+                onClick { clickAction(); true }
+            },
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

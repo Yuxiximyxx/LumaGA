@@ -1,55 +1,53 @@
 package com.bugenzhao.mnga.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.unit.dp
-import com.bugenzhao.mnga.ui.root.GlassOverlayRegistration
-import com.bugenzhao.mnga.ui.root.LocalContentBackdrop
 import com.bugenzhao.mnga.ui.root.rememberGlassSettings
-import com.bugenzhao.mnga.ui.root.withLensScale
 
 /**
- * The glass skin of a floating overlay face (v1.7.3): a full-size layer
- * meant to sit *under* a face's own content, sampling the recorded
- * content backdrop (see GlassOverlayBackdrop.kt for who records, and
- * when) through the shared [liquidGlass] chain — the resolved spec of
- * the user's glass material, its lens weakened by [lensScale] per the
- * face's size class (menus: [com.bugenzhao.mnga.ui.root.GlassVariantScale.MEDIUM]).
+ * The background layer of a floating overlay face (menus).
  *
- * Composing this also registers the face as a backdrop consumer, which
- * is what switches the shell's on-demand recording on; the face's own
- * composition lifetime (for Miuix popups: exactly the shown period,
- * exit animation included) bounds the recording.
+ * v1.7.4 hotfix — live sampling REMOVED from popups. In v1.7.3 this
+ * sampled a backdrop recorded by the navigation-host wrapper, switched
+ * on on-demand when the first consumer (a menu) composed. That wiring
+ * is structurally unsafe: the menu itself is composed inside the
+ * recorded subtree (each screen's Scaffold popup host lives inside
+ * NavigationHost), so the consumer sat inside its own recording — the
+ * wrapper's record pass re-drew the popup, whose glass then drew the
+ * very layer being recorded — and the recording node was attached to /
+ * detached from a live ancestor of the open popup at runtime. On device
+ * every ⋮ menu crashed on open. See the v1.7.4 notes.
  *
- * Only usable for faces rendered in the main window; where no content
- * backdrop is provided this draws nothing and the face keeps whatever
- * background its container paints.
+ * What remains is the prescribed degradation, and nothing else: the
+ * resolved spec's tint, clipped to the face shape, painted over
+ * whatever background the container itself draws. No backdrop is read,
+ * no state is flipped, nothing on the menu-open path can throw. A
+ * future re-land of true menu glass needs a backdrop recorded by a
+ * subtree that provably does not contain the popup host (e.g. recorded
+ * inside each screen's content root, like the dock's) — not a
+ * shell-level recording.
+ *
+ * [lensScale] / [debugColor] are kept in the signature so call sites
+ * stay unchanged; they only mattered to the removed sampling chain.
  */
 @Composable
 fun GlassPanelBackground(
     shape: Shape,
-    lensScale: Float,
-    debugColor: Color,
+    @Suppress("UNUSED_PARAMETER") lensScale: Float,
+    @Suppress("UNUSED_PARAMETER") debugColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    val backdrop = LocalContentBackdrop.current ?: return
     val glass = rememberGlassSettings()
-    GlassOverlayRegistration()
     Box(
         modifier
             .fillMaxSize()
-            .liquidGlass(
-                backdrop = backdrop,
-                shape = shape,
-                spec = glass.spec.withLensScale(lensScale),
-                scheme = glass.scheme,
-                shadowRadius = 0.dp,
-                debugShowSample = glass.debugShowSample,
-                debugColor = debugColor,
-            ),
+            .clip(shape)
+            .background(glassTintColor(glass.spec, glass.scheme), shape),
     )
 }

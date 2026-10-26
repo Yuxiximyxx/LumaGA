@@ -138,22 +138,12 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         // sample never has to come through the whole keep-alive host
         // while the dock is actually on screen.
         val dockBackdrop = rememberLayerBackdrop()
-        // Second backdrop for the other glass faces (menus, toasts —
-        // v1.7.3, see GlassOverlayBackdrop.kt): the same host wrapper
-        // records it too, but only while a consumer is composed, so the
-        // full-host re-render Kyant recording costs is paid only for
-        // the lifetime of a transient overlay.
-        val contentBackdrop = rememberLayerBackdrop()
-        val overlayState = rememberGlassOverlayState()
         val rootStack by navigator.stack.collectAsState()
         val shellRecordsDock = dockShellRecordsBackdrop(rootStack.lastOrNull())
-        val shellRecordsContent = overlayState.activeConsumers > 0
         Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
             CompositionLocalProvider(
                 LocalNavigator provides navigator,
                 LocalDockBackdrop provides dockBackdrop,
-                LocalContentBackdrop provides contentBackdrop,
-                LocalGlassOverlayState provides overlayState,
             ) {
                 Box(Modifier.fillMaxSize()) {
                     Box(
@@ -165,22 +155,15 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
                                 } else {
                                     Modifier
                                 },
-                            )
-                            .then(
-                                if (shellRecordsContent) {
-                                    Modifier.layerBackdrop(contentBackdrop)
-                                } else {
-                                    Modifier
-                                },
                             ),
                     ) {
                         NavigationHost(navigator, editor)
                     }
                     MainTabBar(navigator, dockBackdrop)
                 }
-                GlobalOverlays(navigator, editor)
             }
         }
+        GlobalOverlays(navigator, editor)
 
         // Pasteboard deep-link handling: when the newest clipboard entry is a
         // navigable NGA/LumaGA link that has not been jumped to yet, navigate

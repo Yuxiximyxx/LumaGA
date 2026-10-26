@@ -5,7 +5,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,11 +19,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
-import com.bugenzhao.mnga.ui.components.liquidGlass
-import com.bugenzhao.mnga.ui.root.GlassOverlayRegistration
-import com.bugenzhao.mnga.ui.root.LocalContentBackdrop
-import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +28,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -160,36 +155,17 @@ private fun ToastCard(
     container: Color,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
 ) {
-    // Liquid glass (v1.7.3): the toast is the app's own composable in
-    // the main window, so its card samples the real content beneath it
-    // (small face → the resolved spec unscaled). While the card is
-    // composed it registers as a backdrop consumer, which switches the
-    // shell's on-demand content recording on (GlassOverlayBackdrop.kt).
-    // Without a content backdrop (never in the real root) it falls back
-    // to the previous opaque surface color.
-    val backdrop = LocalContentBackdrop.current
-    val glass = rememberGlassSettings()
-    GlassOverlayRegistration()
-    val shape = RoundedCornerShape(16.dp)
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .then(
-                if (backdrop != null) {
-                    Modifier.liquidGlass(
-                        backdrop = backdrop,
-                        shape = shape,
-                        spec = glass.spec,
-                        scheme = glass.scheme,
-                        shadowRadius = 8.dp,
-                        debugShowSample = glass.debugShowSample,
-                        debugColor = Color(0xFF2196F3),
-                    )
-                } else {
-                    Modifier.background(MiuixTheme.colorScheme.surfaceContainerHigh, shape)
-                },
-            )
-            .clip(shape),
+    // v1.7.4: back to the opaque card of v1.7.2. The v1.7.3 glass skin
+    // sampled the shell's on-demand content backdrop — the same
+    // recording removed in this hotfix after it crashed every popup
+    // menu (the consumers sat inside the recorded subtree). With the
+    // recording gone, the card keeps its proven opaque surface rather
+    // than degrading to an unsampled translucent tint.
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MiuixTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 6.dp,
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
             Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
