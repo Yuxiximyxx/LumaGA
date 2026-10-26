@@ -210,8 +210,12 @@ class GlassSpecTest {
         assertEquals(24f * 0.6f, medium.refractionHeightDp, 0f)
         assertEquals(24f * 0.6f, medium.refractionAmountDp, 0f)
         val large = liquid.withLensScale(GlassVariantScale.LARGE)
-        assertEquals(GlassVariantScale.LARGE_BAND_CAP_DP, large.refractionHeightDp, 0f)
+        assertEquals(24f * 0.35f, large.refractionHeightDp, 0.001f)
         assertEquals(24f * 0.35f, large.refractionAmountDp, 0.001f)
+        // The large band cap only bites when the scaled band would
+        // exceed it (a 48dp-band custom spec: 48 × 0.35 = 16.8 > 14).
+        val capped = liquid.copy(refractionHeightDp = 48f).withLensScale(GlassVariantScale.LARGE)
+        assertEquals(GlassVariantScale.LARGE_BAND_CAP_DP, capped.refractionHeightDp, 0f)
         // Only the lens changes; the material identity stays.
         assertEquals(liquid.tintAlphaDark, large.tintAlphaDark, 0f)
         assertEquals(liquid.blurDp, large.blurDp, 0f)
