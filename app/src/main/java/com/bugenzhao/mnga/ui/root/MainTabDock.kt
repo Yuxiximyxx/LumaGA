@@ -41,9 +41,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -149,6 +155,13 @@ internal data class DockColors(
  * over the glass: the selection pill, the border and the rim-light bands
  * (whose alphas the user's highlight trim scales at draw time).
  *
+ * v1.7.8: for LIQUID in the Dark/Light schemes the shell's rim is drawn
+ * by the aligned surround model instead ([dockAlignedSurround] — the
+ * sister FluxTie dock's dual-peak rim, halo and shadow); this palette's
+ * border / highlight / bottomHighlight / sheen fields then serve only
+ * the Classic scheme and the other materials. The pill field is used
+ * for every scheme × material.
+ *
  * - FROSTED （磨砂玻璃， the default): the soft, wide top highlight and
  *   the faintest rim — matte.
  * - CLEAR （毛玻璃）: a brighter and narrower (sharper) top highlight and
@@ -177,7 +190,11 @@ internal fun dockColors(
         )
         DockGlassMaterial.LIQUID -> DockColors(
             border = Color.White.copy(alpha = 0.60f),
-            pill = Color.Black.copy(alpha = 0.12f),
+            // v1.7.8: pill fill aligned with the sister FluxTie dock's
+            // fork.3 lightening — a deep gray at 0.60, not a near-black
+            // film (was Black α0.12) — sitting on the full spec chain
+            // (see the pill's effects in FloatingTabDock).
+            pill = Color(0xFF26262B).copy(alpha = 0.60f),
             unselected = Color(0xFFF2F2F7),
             highlight = Color.White.copy(alpha = 0.65f),
             highlightHeight = 8.dp,
@@ -201,7 +218,10 @@ internal fun dockColors(
         )
         DockGlassMaterial.LIQUID -> DockColors(
             border = Color.White.copy(alpha = 0.55f),
-            pill = Color.Black.copy(alpha = 0.08f),
+            // v1.7.8: aligned with FluxTie fork.3 (see the Dark row) —
+            // was Black α0.08, a barely-there film; the unified dock
+            // spec's selected state is a solid dark ellipse.
+            pill = Color(0xFF3C3D42).copy(alpha = 0.80f),
             unselected = Color(0xFF3A3A3C),
             highlight = Color.White.copy(alpha = 0.90f),
             highlightHeight = 8.dp,
@@ -231,6 +251,127 @@ internal fun dockColors(
             highlightHeight = 8.dp,
             bottomHighlight = Color.White.copy(alpha = 0.40f),
             sheen = Color.White.copy(alpha = 0.14f),
+        )
+    }
+}
+
+/**
+ * The dock shell's surround in the aligned rim model (v1.7.8, LIQUID in
+ * the Dark/Light schemes): a dual-peak rim — a bright arc at the top
+ * edge, a fainter arc at the bottom — drawn as two border passes (a
+ * wide, weak inner glow band under a narrow rim line), a layered halo
+ * glowing outward from the outline, and a cast shadow with pinned
+ * colors. The values are the sister FluxTie dock's (its FloatingDock,
+ * after the fork.3 lightening), measured in the three-fork audit: this
+ * fork's previous liquid surround — a flat α0.60 border, an α0.65 top
+ * band, the Kyant Highlight at full 1.0 and the default black shadow —
+ * wrapped the (then under-sampled) capsule in a hard white outline,
+ * where the sister dock's soft peaks and faint halo let the glass
+ * itself define the edge.
+ */
+internal data class DockAlignedSurround(
+    /** Brightest color of the top rim arc (its alpha is the arc's). */
+    val rimTop: Color,
+    /** Brightest color of the bottom rim arc. */
+    val rimBottom: Color,
+    /** Base color of the outward halo; per-layer alphas multiply it. */
+    val haloBase: Color,
+    /** Ambient/spot color of the shell's cast shadow. */
+    val shadowColor: Color,
+)
+
+internal fun dockAlignedSurround(scheme: DockScheme): DockAlignedSurround =
+    when (scheme) {
+        DockScheme.Dark -> DockAlignedSurround(
+            rimTop = Color.White.copy(alpha = 0.22f),
+            rimBottom = Color.White.copy(alpha = 0.10f),
+            haloBase = Color.White.copy(alpha = 0.05f),
+            shadowColor = Color.Black.copy(alpha = 0.22f),
+        )
+        // Classic never takes the aligned path (it keeps the palette
+        // rim); it shares the Light row so this stays total.
+        DockScheme.Light, DockScheme.Classic -> DockAlignedSurround(
+            rimTop = Color.White.copy(alpha = 0.90f),
+            rimBottom = Color.Black.copy(alpha = 0.10f),
+            haloBase = Color.Black.copy(alpha = 0.045f),
+            shadowColor = Color.Black.copy(alpha = 0.10f),
+        )
+    }
+
+/** Rim line width of the aligned shell (FluxTie DockRimWidth). */
+internal val DockAlignedRimWidth = 1.5.dp
+
+/** Inner glow band width of the aligned shell (FluxTie DockRimGlowWidth). */
+internal val DockAlignedRimGlowWidth = 3.dp
+
+/** The aligned glow band's alphas are the rim's × this factor. */
+internal const val DockAlignedRimGlowFactor = 0.25f
+
+/**
+ * Halo layers of the aligned shell (stroke width dp → alpha factor):
+ * concentric strokes stepping outward, the factor decaying so the
+ * layers composite into a gradient glow rather than a hard ring
+ * (FluxTie's DockHaloLayers, same table).
+ */
+internal val DockHaloLayers: List<Pair<Float, Float>> = listOf(
+    0.75f to 0.30f, 1.5f to 0.22f, 2.25f to 0.16f, 3f to 0.117f,
+    3.75f to 0.085f, 4.5f to 0.062f, 5.25f to 0.045f, 6f to 0.033f,
+)
+
+/**
+ * Highlight factor the LIQUID shell applies on top of the resolved
+ * spec's highlight alpha (the sister dock's highlightScale): the liquid
+ * preset's full 1.0 was the strongest of the three forks and made the
+ * specular edge shout over the refracted sample.
+ */
+internal const val DockLiquidHighlightScale = 0.85f
+
+/**
+ * The aligned rim as a four-stop vertical brush: the top arc brightest
+ * at the very top edge, fading out by 35%; the bottom arc fading in
+ * from 65% to the bottom edge. The two mid stops carry the arcs' own
+ * hues at alpha 0 so the interpolation never greys. [factor] scales
+ * both arcs (the glow band passes [DockAlignedRimGlowFactor]); the
+ * user's highlight trim ([hlScale]) scales on top, as it did the old
+ * rim bands.
+ */
+private fun dockRimBrush(
+    surround: DockAlignedSurround,
+    hlScale: Float,
+    factor: Float,
+): Brush {
+    val top = surround.rimTop.copy(
+        alpha = (surround.rimTop.alpha * hlScale * factor).coerceAtMost(1f),
+    )
+    val bottom = surround.rimBottom.copy(
+        alpha = (surround.rimBottom.alpha * hlScale * factor).coerceAtMost(1f),
+    )
+    return Brush.verticalGradient(
+        0f to top,
+        0.35f to top.copy(alpha = 0f),
+        0.65f to bottom.copy(alpha = 0f),
+        1f to bottom,
+    )
+}
+
+/**
+ * The aligned halo: [DockHaloLayers] concentric strokes, each drawn on
+ * an outline expanded by its own width so a layer covers exactly the
+ * band outside the capsule's edge — nothing spills inward.
+ */
+private fun DrawScope.drawDockHalo(haloBase: Color) {
+    DockHaloLayers.forEach { (widthDp, factor) ->
+        val wPx = widthDp.dp.toPx()
+        val half = wPx / 2f
+        drawRoundRect(
+            color = haloBase.copy(alpha = haloBase.alpha * factor),
+            topLeft = Offset(-half, -half),
+            size = Size(size.width + wPx, size.height + wPx),
+            cornerRadius = CornerRadius(
+                size.height / 2f + half,
+                size.height / 2f + half,
+            ),
+            style = Stroke(width = wPx),
         )
     }
 }
@@ -282,6 +423,21 @@ internal fun dockColors(
  *   catalog's panel offset) and blooms slightly while pressed; the
  *   bloom is capped at +5% (the catalog's 16dp-of-width rule targets
  *   full-width bars and would over-inflate this narrow capsule).
+ *
+ * v1.7.8 — glass alignment with the sister forks (three-fork audit:
+ * the spec table itself was already identical; what differed was the
+ * sampling and the surround):
+ *
+ * - The pill's pad is no longer the raw recording: its sample runs the
+ *   FULL spec chain (saturation ⇒ blur ⇒ the press lens), so the
+ *   resting pill sits on processed glass, and its fill is the aligned
+ *   deep gray (see dockColors) instead of a near-black film.
+ * - For LIQUID in the Dark/Light schemes the shell's surround is the
+ *   aligned model ([dockAlignedSurround]): dual-peak rim brushes, the
+ *   eight-layer outward halo and a pinned-color shadow at 10dp,
+ *   replacing the hand-drawn border/bands/sheen; the shell's Kyant
+ *   Highlight is scaled by [DockLiquidHighlightScale]. Other materials
+ *   (and Classic) keep the palette rim below.
  */
 @Composable
 fun FloatingTabDock(
@@ -300,6 +456,23 @@ fun FloatingTabDock(
     // top of the per-material palette (the Kyant specular highlight got
     // the same trim inside the resolved spec).
     val hlScale = spec.highlightScale
+    // Aligned surround (v1.7.8): LIQUID in the Dark/Light schemes draws
+    // the sister dock's rim model (see dockAlignedSurround); every other
+    // combination keeps the palette rim — border plus highlight bands —
+    // drawn below. The shell's spec carries the aligned highlight
+    // factor; the pill and the accent copy keep the resolved spec
+    // (their highlights are press-gated, zero at rest).
+    val alignedSurround = glassMaterial == DockGlassMaterial.LIQUID &&
+        scheme != DockScheme.Classic
+    val surround = dockAlignedSurround(scheme)
+    val shellSpec = if (glassMaterial == DockGlassMaterial.LIQUID) {
+        spec.copy(
+            highlightAlpha = (spec.highlightAlpha * DockLiquidHighlightScale)
+                .coerceAtMost(1f),
+        )
+    } else {
+        spec
+    }
     val topHighlight = colors.highlight.copy(
         alpha = (colors.highlight.alpha * hlScale).coerceAtMost(1f),
     )
@@ -485,15 +658,47 @@ fun FloatingTabDock(
                 .liquidGlass(
                     backdrop = backdrop,
                     shape = shape,
-                    spec = spec,
+                    spec = shellSpec,
                     scheme = scheme,
-                    shadowRadius = 16.dp,
+                    shadowRadius = if (alignedSurround) 10.dp else 16.dp,
+                    shadowColor = if (alignedSurround) surround.shadowColor else null,
                     debugShowSample = debugShowSample,
                     debugColor = Color.Magenta,
                 )
+                .then(
+                    if (alignedSurround) {
+                        // The halo hugs the OUTSIDE of the outline; it
+                        // must be drawn before the clip so the clip —
+                        // which bounds everything after it — cannot
+                        // cut it off.
+                        Modifier.drawBehind { drawDockHalo(surround.haloBase) }
+                    } else {
+                        Modifier
+                    },
+                )
                 .clip(shape)
-                .border(1.dp, colors.border, shape),
+                .then(
+                    if (alignedSurround) {
+                        Modifier
+                            .border(
+                                DockAlignedRimGlowWidth,
+                                dockRimBrush(
+                                    surround, hlScale,
+                                    DockAlignedRimGlowFactor,
+                                ),
+                                shape,
+                            )
+                            .border(
+                                DockAlignedRimWidth,
+                                dockRimBrush(surround, hlScale, 1f),
+                                shape,
+                            )
+                    } else {
+                        Modifier.border(1.dp, colors.border, shape)
+                    },
+                ),
         ) {
+            if (!alignedSurround) {
             // Diagonal sheen wash (liquid glass only; Transparent
             // otherwise): a faint gloss running from the top-left corner,
             // reinforcing the liquid recipe's reflective surface over
@@ -540,6 +745,7 @@ fun FloatingTabDock(
                             ),
                         ),
                 )
+            }
             }
         }
         Box(Modifier.fillMaxSize().padding(TabDockInnerPadding)) {
@@ -653,6 +859,20 @@ fun FloatingTabDock(
                     backdrop = combinedBackdrop,
                     shape = { shape },
                     effects = {
+                        // The pad under the pill tint is the FULL spec
+                        // chain over the combined sample (v1.7.8) —
+                        // saturation and blur included — not the raw
+                        // recording it used to be: the resting pill now
+                        // sits on processed glass, the structure the
+                        // sister forks' pills have. The lens itself
+                        // stays press-gated (10/14 × p, the Kyant pill
+                        // norm), zero at rest as approved.
+                        if (spec.saturation != 1f) {
+                            colorControls(saturation = spec.saturation)
+                        }
+                        if (spec.blurDp > 0f) {
+                            blur(spec.blurDp.dp.toPx())
+                        }
                         val p = dampedDragAnimation.pressProgress
                         lens(
                             refractionHeight = 10.dp.toPx() * p,

@@ -29,6 +29,11 @@ import com.kyant.backdrop.backdrops.layerBackdrop
  * Exactly one node records at a time: the decision is a pure function
  * of the current route, shared by the shell and both screens, so the
  * handover cannot race.
+ *
+ * v1.7.8: every recording (here, in [rememberScreenBackdropSourceModifier]
+ * and at the raw recording sites) paints the page background as its own
+ * first layer — see [recordedPageBackground] for why a texture without
+ * it turned the dock into a smoked-black capsule.
  */
 val LocalDockBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 
@@ -45,12 +50,14 @@ fun dockShellRecordsBackdrop(current: Route?): Boolean =
  * into the shared dock backdrop while this screen is the current
  * destination, and is a no-op otherwise (covered keep-alive instances
  * of the same screen must not overwrite the visible page's sample).
+ * The recording carries the page-background underlay
+ * ([recordedPageBackground]).
  */
 @Composable
 fun rememberDockBackdropSourceModifier(isCurrentScreen: Boolean): Modifier {
     val backdrop = LocalDockBackdrop.current
     return if (isCurrentScreen && backdrop != null) {
-        Modifier.layerBackdrop(backdrop)
+        Modifier.layerBackdrop(backdrop).recordedPageBackground()
     } else {
         Modifier
     }

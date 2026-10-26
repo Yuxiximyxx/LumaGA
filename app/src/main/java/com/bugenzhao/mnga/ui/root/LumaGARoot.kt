@@ -166,6 +166,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
                             .then(
                                 if (shellRecordsDock) {
                                     Modifier.layerBackdrop(dockBackdrop)
+                                        .recordedPageBackground()
                                 } else {
                                     Modifier
                                 },

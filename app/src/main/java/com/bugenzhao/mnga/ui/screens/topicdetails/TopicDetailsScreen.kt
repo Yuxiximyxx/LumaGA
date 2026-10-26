@@ -128,6 +128,7 @@ import com.bugenzhao.mnga.ui.components.toggleTopicFavor
 import com.bugenzhao.mnga.ui.components.imageviewer.ImageViewerDialog
 import com.bugenzhao.mnga.ui.editor.EditorController
 import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
+import com.bugenzhao.mnga.ui.root.recordedPageBackground
 import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -877,7 +878,10 @@ private fun TopicDetailsScreenContent(
             pullToRefreshState = pullRefreshState,
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
-            Box(Modifier.fillMaxSize().layerBackdrop(indicatorBackdrop)) {
+            Box(
+                Modifier.fillMaxSize().layerBackdrop(indicatorBackdrop)
+                    .recordedPageBackground(),
+            ) {
             if (localMode) {
                 LocalCacheBanner(
                     reason = response?.localReason ?: "",

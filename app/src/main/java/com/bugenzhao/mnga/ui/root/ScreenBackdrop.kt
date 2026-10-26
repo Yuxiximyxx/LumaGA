@@ -1,5 +1,6 @@
 package com.bugenzhao.mnga.ui.root
 
+import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -8,6 +9,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * Per-screen backdrop plumbing for the floating faces that live inside a
@@ -110,14 +112,42 @@ fun ScreenBackdropProvider(
  * The recording modifier for a screen's scrolling content root: records
  * into the screen backdrop published by the enclosing
  * [ScreenBackdropProvider], or is a no-op when the screen does not
- * participate. Mirrors `rememberDockBackdropSourceModifier`.
+ * participate. Mirrors `rememberDockBackdropSourceModifier`. The
+ * recording always carries its page-background underlay (see
+ * [recordedPageBackground]).
  */
 @Composable
 fun rememberScreenBackdropSourceModifier(): Modifier {
     val backdrop = LocalScreenBackdrop.current
     return if (backdrop != null) {
-        Modifier.layerBackdrop(backdrop)
+        Modifier.layerBackdrop(backdrop).recordedPageBackground()
     } else {
         Modifier
     }
 }
+
+/**
+ * The page background as an underlay drawn INSIDE a recording node,
+ * beneath its content — the Miuix Scaffold's default container color
+ * (`colorScheme.surface`), the very value every screen backs its
+ * content with, read from the same theme so it can never drift from
+ * what is on screen.
+ *
+ * Why it must live inside the recording (v1.7.8): Kyant records exactly
+ * what the recording node draws. That container color is painted by an
+ * ANCESTOR of every screen's content root (the screen's Scaffold), so
+ * recordings used to hold only the scrolling content itself. Over the
+ * screens' undrawn regions — spacing, list tails, and above all the
+ * ≈94dp of bottom content padding the tab roots keep clear of the
+ * dock — the texture stayed transparent, and a glass surface sampling
+ * it blurred / refracted see-through pixels to near-black: the dock
+ * read as a smoked-black capsule whatever the material, its backdrop
+ * invisible rather than veiled. The sister forks record whole pages
+ * (background included), which is why the identical spec read clear
+ * there. Painting the background as the recording's own first layer
+ * makes the texture an opaque page again; on screen nothing changes,
+ * the same color already shows through those regions.
+ */
+@Composable
+fun Modifier.recordedPageBackground(): Modifier =
+    this.background(MiuixTheme.colorScheme.surface)

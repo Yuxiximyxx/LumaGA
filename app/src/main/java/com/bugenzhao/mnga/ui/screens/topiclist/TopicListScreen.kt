@@ -97,6 +97,7 @@ import com.bugenzhao.mnga.ui.components.GlassPanelBackground
 import com.bugenzhao.mnga.ui.root.GlassVariantScale
 import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
 import com.bugenzhao.mnga.ui.root.glassContentColor
+import com.bugenzhao.mnga.ui.root.recordedPageBackground
 import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -495,7 +496,10 @@ private fun TopicListScreenContent(
                 )
             }
         }
-        Box(Modifier.fillMaxSize().padding(padding).layerBackdrop(fabBackdrop)) {
+        Box(
+            Modifier.fillMaxSize().padding(padding).layerBackdrop(fabBackdrop)
+                .recordedPageBackground(),
+        ) {
             PagedList(
                 dataSource = dataSource,
                 key = { it.id },

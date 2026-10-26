@@ -43,6 +43,10 @@ fun glassTintColor(spec: GlassSpec, scheme: DockScheme): Color =
  * API 33+ — Kyant no-ops the unsupported steps itself. Below API 31 the
  * surface falls back to a denser plain tint (a frost approximation with
  * no sampled backdrop at all).
+ *
+ * [shadowColor] optionally pins the cast shadow's ambient/spot color
+ * (the tab dock's aligned rim model uses it — see MainTabDock); null
+ * keeps the plain default-color shadow every other surface shares.
  */
 fun Modifier.liquidGlass(
     backdrop: LayerBackdrop,
@@ -50,11 +54,19 @@ fun Modifier.liquidGlass(
     spec: GlassSpec,
     scheme: DockScheme,
     shadowRadius: Dp = 12.dp,
+    shadowColor: Color? = null,
     debugShowSample: Boolean = false,
     debugColor: Color = Color.Magenta,
 ): Modifier {
     val tint = glassTintColor(spec, scheme)
-    val base = shadow(shadowRadius, shape, clip = false)
+    val base = if (shadowColor != null) {
+        shadow(
+            shadowRadius, shape, clip = false,
+            ambientColor = shadowColor, spotColor = shadowColor,
+        )
+    } else {
+        shadow(shadowRadius, shape, clip = false)
+    }
     if (debugShowSample && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // Diagnostic mode (settings → Glass Debug): draw the recorded
         // backdrop texture raw — no saturation, blur, lens or tint —
