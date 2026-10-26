@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.user
 
+import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,9 +47,11 @@ import com.bugenzhao.mnga.ui.root.rememberScreenBackdropSourceModifier
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -245,6 +249,31 @@ private fun UserProfileScreenContent(
             if (tab.value == ProfileTab.TOPICS) topicState.items.isEmpty()
             else postState.items.isEmpty()
 
+        // v1.7.7: the recreation above is driven by [measureEpoch], which
+        // only advances on SAME-tab load-state transitions. It used to key
+        // on the load-state pair directly — but a tab switch changes the
+        // pair too (it now describes the other tab's data source), so
+        // every switch recreated the whole LazyColumn and the topics/posts
+        // swap was a hard cut. A tab switch forces a relayout on its own
+        // (per the note above), so the workaround is not needed for it;
+        // instead the tab-specific items below crossfade via animateItem
+        // inside the surviving list. Specs mirror TabTransitionEffect's
+        // asymmetric timing (enter 280ms / exit 220ms, easeOut).
+        var measureEpoch by remember { mutableIntStateOf(0) }
+        var lastTab by remember { mutableStateOf(tab.value) }
+        var lastLoadPair by remember { mutableStateOf<Pair<Boolean, Boolean>?>(null) }
+        val loadPair = activeDS.isInitialLoading to activeIsEmpty
+        SideEffect {
+            val prev = lastLoadPair
+            if (prev != null && tab.value == lastTab && loadPair != prev) {
+                measureEpoch++
+            }
+            lastTab = tab.value
+            lastLoadPair = loadPair
+        }
+        val tabFadeInSpec = remember { tween<Float>(280, easing = EaseOut) }
+        val tabFadeOutSpec = remember { tween<Float>(220, easing = EaseOut) }
+
         // Prefetch when approaching the end of the active list.
         val activeItems = if (tab.value == ProfileTab.TOPICS) topicState.items
         else postState.items
@@ -266,7 +295,7 @@ private fun UserProfileScreenContent(
             modifier = Modifier.fillMaxSize().padding(padding)
                 .then(rememberScreenBackdropSourceModifier()),
         ) {
-            key(activeDS.isInitialLoading to activeIsEmpty) {
+            key(measureEpoch) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -315,13 +344,23 @@ private fun UserProfileScreenContent(
 
                     if (tab.value == ProfileTab.TOPICS) {
                         item(key = "topics-header") {
-                            SectionHeader(L.str(context, "%@'s Topics", displayName))
+                            Box(Modifier.animateItem(tabFadeInSpec, null, tabFadeOutSpec)) {
+                                SectionHeader(L.str(context, "%@'s Topics", displayName))
+                            }
                         }
                         if (topicDataSource.isInitialLoading) {
-                            item(key = "topics-loading") { CenteredLoading() }
+                            item(key = "topics-loading") {
+                                Box(Modifier.animateItem(tabFadeInSpec, null, tabFadeOutSpec)) {
+                                    CenteredLoading()
+                                }
+                            }
                         } else if (topicState.items.isEmpty()) {
                             item(key = "topics-empty") {
-                                SectionCard {
+                                SectionCard(
+                                    modifier = Modifier.animateItem(
+                                        tabFadeInSpec, null, tabFadeOutSpec,
+                                    ),
+                                ) {
                                     Box(
                                         Modifier.fillMaxWidth().padding(vertical = 20.dp),
                                         contentAlignment = Alignment.Center,
@@ -334,6 +373,9 @@ private fun UserProfileScreenContent(
                                 // wrapper: it brings its own card surface.
                                 TopicRow(
                                     topic = topic,
+                                    modifier = Modifier.animateItem(
+                                        tabFadeInSpec, null, tabFadeOutSpec,
+                                    ),
                                     // Every topic here is this user's own, so
                                     // the posting date is what distinguishes
                                     // them, not the last reply.
@@ -352,13 +394,23 @@ private fun UserProfileScreenContent(
                         }
                     } else {
                         item(key = "posts-header") {
-                            SectionHeader(L.str(context, "%@'s Posts", displayName))
+                            Box(Modifier.animateItem(tabFadeInSpec, null, tabFadeOutSpec)) {
+                                SectionHeader(L.str(context, "%@'s Posts", displayName))
+                            }
                         }
                         if (postDataSource.isInitialLoading) {
-                            item(key = "posts-loading") { CenteredLoading() }
+                            item(key = "posts-loading") {
+                                Box(Modifier.animateItem(tabFadeInSpec, null, tabFadeOutSpec)) {
+                                    CenteredLoading()
+                                }
+                            }
                         } else if (postState.items.isEmpty()) {
                             item(key = "posts-empty") {
-                                SectionCard {
+                                SectionCard(
+                                    modifier = Modifier.animateItem(
+                                        tabFadeInSpec, null, tabFadeOutSpec,
+                                    ),
+                                ) {
                                     Box(
                                         Modifier.fillMaxWidth().padding(vertical = 20.dp),
                                         contentAlignment = Alignment.Center,
@@ -371,7 +423,9 @@ private fun UserProfileScreenContent(
                                 // into the topic-details page (SharedNav
                                 // shared container; key = destination key).
                                 SectionCard(
-                                    modifier = Modifier.sharedContainer(
+                                    modifier = Modifier.animateItem(
+                                        tabFadeInSpec, null, tabFadeOutSpec,
+                                    ).sharedContainer(
                                         key = "topic-details/${tp.topic.id}",
                                         shape = RoundedCornerShape(12.dp),
                                         containerColor = null,

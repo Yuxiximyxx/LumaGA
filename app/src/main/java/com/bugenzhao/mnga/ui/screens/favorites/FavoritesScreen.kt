@@ -1,6 +1,10 @@
 package com.bugenzhao.mnga.ui.screens.favorites
 
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseIn
+import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +66,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -135,6 +140,43 @@ private fun FavoritesScreenContent(navigator: Navigator, initialFolderId: String
     val foldersModel = favoritesVM.foldersModel
     val folders by foldersModel.folders.collectAsState()
     var currentFolder by remember { mutableStateOf<FavoriteTopicFolder?>(null) }
+
+    // v1.7.7: a folder switch used to swap the whole list in place — a
+    // hard cut, and the only content switch in the Mine area with no
+    // animation at all. The content column is now driven by
+    // [displayedFolder], which lags the selection while the column fades
+    // out and back in (asymmetric, mirroring the tab crossfade's
+    // longer-enter/shorter-exit: 110ms out, 190ms in). A fade-through
+    // rather than a crossfade is deliberate: rows of two folders can
+    // register the same shared-container key (a topic favorited into
+    // both), so the two lists must never be composed at the same time.
+    var displayedFolder by remember { mutableStateOf<FavoriteTopicFolder?>(null) }
+    val folderContentAlpha = remember { Animatable(1f) }
+    // First resolution and same-folder updates (rename, restore) apply
+    // in place — the page push already animates the entrance, and a
+    // rename must not blink the list.
+    LaunchedEffect(currentFolder) {
+        val target = currentFolder
+        if (target == null || displayedFolder == null ||
+            displayedFolder?.id == target.id
+        ) {
+            displayedFolder = target
+        }
+    }
+    LaunchedEffect(currentFolder?.id) {
+        val target = currentFolder
+        if (target == null) {
+            // The shown folder was deleted mid-fade: never leave the
+            // content stuck at a partial alpha.
+            folderContentAlpha.snapTo(1f)
+            return@LaunchedEffect
+        }
+        val shown = displayedFolder
+        if (shown == null || shown.id == target.id) return@LaunchedEffect
+        folderContentAlpha.animateTo(0f, tween(110, easing = EaseIn))
+        displayedFolder = target
+        folderContentAlpha.animateTo(1f, tween(190, easing = EaseOut))
+    }
 
     // Load folders on entry, keeping the previous selection when possible.
     // The ViewModel (and the loaded folder list) survives pop-backs, so only
@@ -236,9 +278,12 @@ private fun FavoritesScreenContent(navigator: Navigator, initialFolderId: String
         // Miuix 0.8.8 SmallTopAppBar has no subtitle slot; the current
         // folder name (the old subtitle) is folded into a header label
         // above the list so the information stays on screen.
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(
+            Modifier.fillMaxSize().padding(padding)
+                .graphicsLayer { alpha = folderContentAlpha.value },
+        ) {
             Text(
-                currentFolder?.name ?: L.str(context, "Default Folder"),
+                displayedFolder?.name ?: L.str(context, "Default Folder"),
                 style = MiuixTheme.textStyles.footnote2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 maxLines = 1,
@@ -246,7 +291,7 @@ private fun FavoritesScreenContent(navigator: Navigator, initialFolderId: String
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
             Box(Modifier.fillMaxSize()) {
-                val folder = currentFolder
+                val folder = displayedFolder
                 if (folder == null) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
