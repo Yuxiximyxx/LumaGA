@@ -33,6 +33,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.model.ToastModel
+import com.bugenzhao.mnga.ui.components.liquidGlass
+import com.bugenzhao.mnga.ui.root.LocalScreenBackdropRegistry
+import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import com.bugenzhao.mnga.util.L
 import kotlinx.coroutines.delay
 
@@ -148,6 +151,9 @@ private data class ToastVisual(
 private val green = Color(0xE634C759)
 private val red = Color(0xE6FF3B30)
 
+/** Diagnostic outline color of the toast face (see Glass Debug). */
+private val ToastGlassDebugColor = Color(0xFF2196F3)
+
 @Composable
 private fun ToastCard(
     title: String,
@@ -155,35 +161,71 @@ private fun ToastCard(
     container: Color,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
 ) {
-    // v1.7.4: back to the opaque card of v1.7.2. The v1.7.3 glass skin
-    // sampled the shell's on-demand content backdrop — the same
-    // recording removed in this hotfix after it crashed every popup
-    // menu (the consumers sat inside the recorded subtree). With the
-    // recording gone, the card keeps its proven opaque surface rather
-    // than degrading to an unsampled translucent tint.
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MiuixTheme.colorScheme.surfaceContainerHigh,
-        shadowElevation = 6.dp,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+    // Liquid glass (v1.7.6), on the Dock-standard architecture: the
+    // consumer sits here in the root overlay layer, and the backdrop is
+    // recorded by the CURRENT screen's own content root for the
+    // screen's whole composition lifetime (published through the
+    // ScreenBackdropRegistry — see ScreenBackdrop.kt) — never switched
+    // on by the toast itself. Small face: the spec's lens at full
+    // strength (GlassVariantScale.SMALL). On screens that publish no
+    // backdrop the card keeps the opaque Miuix surface of v1.7.2/1.7.4
+    // rather than an unsampled translucent tint. (The v1.7.3 attempt
+    // sampled the shell's on-demand recording — the one removed in
+    // v1.7.4 after it crashed every popup menu.)
+    val glass = rememberGlassSettings()
+    val backdrop = LocalScreenBackdropRegistry.current?.activeBackdrop
+    val shape = RoundedCornerShape(16.dp)
+    if (backdrop != null) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .liquidGlass(
+                    backdrop = backdrop,
+                    shape = shape,
+                    spec = glass.spec,
+                    scheme = glass.scheme,
+                    shadowRadius = 8.dp,
+                    debugShowSample = glass.debugShowSample,
+                    debugColor = ToastGlassDebugColor,
+                ),
         ) {
-            Icon(icon, contentDescription = null, tint = container)
-            Column {
-                Text(title, style = MaterialTheme.typography.titleSmall)
-                if (subtitle != null) {
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+            ToastCardContent(title, subtitle, container, icon)
+        }
+    } else {
+        Surface(
+            shape = shape,
+            color = MiuixTheme.colorScheme.surfaceContainerHigh,
+            shadowElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            ToastCardContent(title, subtitle, container, icon)
+        }
+    }
+}
+
+@Composable
+private fun ToastCardContent(
+    title: String,
+    subtitle: String?,
+    container: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+) {
+    Row(
+        Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = container)
+        Column {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

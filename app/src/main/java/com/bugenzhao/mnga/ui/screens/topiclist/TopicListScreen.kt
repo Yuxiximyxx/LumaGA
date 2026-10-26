@@ -93,6 +93,7 @@ import com.bugenzhao.mnga.protos.service.TopicListRequest
 import com.bugenzhao.mnga.protos.service.TopicListResponse
 import com.bugenzhao.mnga.storage.TopicListOrder
 import com.bugenzhao.mnga.ui.components.PagedList
+import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
 import com.bugenzhao.mnga.ui.root.glassContentColor
 import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -125,6 +126,27 @@ fun TopicListScreen(
     mode: TopicListMode = TopicListMode.NORMAL,
     dateRange: Int = 0,
     editor: com.bugenzhao.mnga.ui.editor.EditorController? = null,
+) {
+    // The FAB's backdrop doubles as the screen backdrop (v1.7.6): the
+    // list content root records it for the screen's whole lifetime and
+    // every consumer — the FAB beside the list, the popup menus in the
+    // Scaffold's host — sits outside that recording. Hoisted here so
+    // the provider can wrap the Scaffold (see ScreenBackdrop.kt).
+    val fabBackdrop = rememberLayerBackdrop()
+    ScreenBackdropProvider(fabBackdrop) {
+        TopicListScreenContent(navigator, forumId, mode, dateRange, editor, fabBackdrop)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TopicListScreenContent(
+    navigator: Navigator,
+    forumId: ForumId,
+    mode: TopicListMode = TopicListMode.NORMAL,
+    dateRange: Int = 0,
+    editor: com.bugenzhao.mnga.ui.editor.EditorController? = null,
+    fabBackdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -258,8 +280,9 @@ fun TopicListScreen(
 
     // The refresh FAB floats over the list as liquid glass (v1.7.1): the
     // list content is recorded into fabBackdrop and the button samples it.
+    // (The backdrop itself is remembered by the entry point above, which
+    // also publishes it as this screen's menu/toast sampling source.)
     val glass = rememberGlassSettings()
-    val fabBackdrop = rememberLayerBackdrop()
 
     val navID = NavigationIdentifier.ForumID(forum.id)
 

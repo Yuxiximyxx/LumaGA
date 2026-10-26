@@ -40,6 +40,9 @@ import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
+import com.bugenzhao.mnga.ui.root.rememberScreenBackdropSourceModifier
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -88,8 +91,31 @@ private enum class ProfileTab(val labelKey: String) {
  * huge user header, signature, and a Topics/Posts segmented paged list.
  */
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Entry point: publishes this screen's backdrop (v1.7.6) — recorded by
+ * the content root below for the screen's whole lifetime, sampled by
+ * its popup menu from the Scaffold's host (see ScreenBackdrop.kt).
+ */
 @Composable
 fun UserProfileScreen(
+    navigator: Navigator,
+    userId: String? = null,
+    userName: String? = null,
+    user: User? = null,
+    signatureContent: (@Composable (PostContent) -> Unit)? = null,
+    onNewMessage: (User) -> Unit = { },
+) {
+    val screenBackdrop = rememberLayerBackdrop()
+    ScreenBackdropProvider(screenBackdrop) {
+        UserProfileScreenContent(
+            navigator, userId, userName, user, signatureContent, onNewMessage,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UserProfileScreenContent(
     navigator: Navigator,
     userId: String? = null,
     userName: String? = null,
@@ -237,7 +263,8 @@ fun UserProfileScreen(
         PullToRefresh(
             isRefreshing = topicState.isRefreshing || postState.isRefreshing,
             onRefresh = { refresh() },
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding)
+                .then(rememberScreenBackdropSourceModifier()),
         ) {
             key(activeDS.isInitialLoading to activeIsEmpty) {
             LazyColumn(

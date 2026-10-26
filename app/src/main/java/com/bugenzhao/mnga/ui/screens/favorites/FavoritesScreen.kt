@@ -44,6 +44,9 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.extra.WindowDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
+import com.bugenzhao.mnga.ui.root.rememberScreenBackdropSourceModifier
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -108,8 +111,22 @@ private val favoriteDeleteMutex = Mutex()
  * (rename/delete/make default/create/switch) and swipe-to-delete rows.
  */
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Entry point: publishes this screen's backdrop (v1.7.6) — recorded by
+ * the content root below for the screen's whole lifetime, sampled by
+ * its popup menus from the Scaffold's host (see ScreenBackdrop.kt).
+ */
 @Composable
 fun FavoritesScreen(navigator: Navigator, initialFolderId: String? = null) {
+    val screenBackdrop = rememberLayerBackdrop()
+    ScreenBackdropProvider(screenBackdrop) {
+        FavoritesScreenContent(navigator, initialFolderId)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FavoritesScreenContent(navigator: Navigator, initialFolderId: String? = null) {
     val context = LocalContext.current
     val view = LocalView.current
     val scope = rememberCoroutineScope()
@@ -520,7 +537,7 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
     PullToRefresh(
         isRefreshing = state.isRefreshing,
         onRefresh = { dataSource.refreshAsync(sleepMillis = 500) },
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().then(rememberScreenBackdropSourceModifier()),
     ) {
         when {
             dataSource.isInitialLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

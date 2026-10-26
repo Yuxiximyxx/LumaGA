@@ -52,6 +52,8 @@ import com.bugenzhao.mnga.protos.datamodel.User
 import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.root.LocalDockBackdrop
+import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
 import com.bugenzhao.mnga.ui.root.rememberDockBackdropSourceModifier
 import com.bugenzhao.mnga.ui.root.tabDockContentBottomPadding
 import com.bugenzhao.mnga.ui.nav.RouteDestination
@@ -71,8 +73,22 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * (current user card, quick links, account switcher, sign in/out and app
  * settings) is unchanged from the drawer-page era.
  */
+/**
+ * Entry point: publishes the dock backdrop — recorded by this
+ * screen's own list below — as the screen backdrop (v1.7.6). This
+ * screen has no popup menus of its own; publishing it lets root-level
+ * consumers (toasts) sample this tab's content like every other
+ * participating screen.
+ */
 @Composable
 fun PersonalCenterScreen(navigator: Navigator) {
+    ScreenBackdropProvider(LocalDockBackdrop.current) {
+        PersonalCenterScreenContent(navigator)
+    }
+}
+
+@Composable
+private fun PersonalCenterScreenContent(navigator: Navigator) {
     val context = LocalContext.current
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)

@@ -40,6 +40,9 @@ import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
+import com.bugenzhao.mnga.ui.root.rememberScreenBackdropSourceModifier
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -85,8 +88,22 @@ private const val SubforumTipSeenKey = "subforumTipSeen"
  * navigate, long-press to favorite, and a first-visit tip card.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+/**
+ * Entry point: publishes this screen's backdrop (v1.7.6) — recorded by
+ * the content root below for the screen's whole lifetime, sampled by
+ * its popup menu from the Scaffold's host (see ScreenBackdrop.kt).
+ */
 @Composable
 fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
+    val screenBackdrop = rememberLayerBackdrop()
+    ScreenBackdropProvider(screenBackdrop) {
+        SubforumListScreenContent(navigator, forumId)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+private fun SubforumListScreenContent(navigator: Navigator, forumId: ForumId) {
     val context = LocalContext.current
     val view = LocalView.current
     val scope = rememberCoroutineScope()
@@ -164,7 +181,8 @@ fun SubforumListScreen(navigator: Navigator, forumId: ForumId) {
         PullToRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = { dataSource.refreshAsync(sleepMillis = 500) },
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding)
+                .then(rememberScreenBackdropSourceModifier()),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),

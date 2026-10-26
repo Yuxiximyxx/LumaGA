@@ -89,6 +89,8 @@ import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.root.LocalDockBackdrop
+import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
 import com.bugenzhao.mnga.ui.root.rememberDockBackdropSourceModifier
 import com.bugenzhao.mnga.ui.root.tabDockContentBottomPadding
 import com.bugenzhao.mnga.ui.nav.RouteDestination
@@ -114,9 +116,23 @@ private fun favoriteGridKey(forum: Forum): String = "fav-${forumIdKey(forum.id)}
  * (notifications, search, filter). The personal center lives in the
  * bottom-bar "Mine" tab since the MIUIX phase-2 shell.
  */
+/**
+ * Entry point: publishes the dock backdrop — recorded by this
+ * screen's own grid below — as the screen backdrop, so this screen's
+ * popup menus (⋮ and long-press) sample the same in-screen recording
+ * the dock itself uses (v1.7.6; see ScreenBackdrop.kt for why the
+ * provider must wrap the whole Scaffold).
+ */
+@Composable
+fun ForumListScreen(navigator: Navigator) {
+    ScreenBackdropProvider(LocalDockBackdrop.current) {
+        ForumListScreenContent(navigator)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun ForumListScreen(
+private fun ForumListScreenContent(
     navigator: Navigator,
 ) {
     val context = LocalContext.current

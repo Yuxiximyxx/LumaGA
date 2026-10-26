@@ -20,6 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,7 +53,6 @@ import com.bugenzhao.mnga.ui.screens.user.BlockedUsersScreen
 import com.bugenzhao.mnga.ui.theme.LumaGATheme
 import com.bugenzhao.mnga.model.appScope
 import com.xah.navigation.anim.effect.DefaultTransitionEffect
-import com.xah.navigation.anim.effect.FadeTransitionEffect
 import com.xah.navigation.anim.effect.rememberDefaultPageEffects
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -94,9 +94,12 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         // cancelled — is unchanged. (The old NavHost slide geometry is
         // intentionally not reproduced: in SharedNav one effect drives
         // both the transition and its predictive preview.)
-        // The Mine tab keeps its crossfade (tab switches are not pushes in
-        // spirit), via the per-push fade effect below; its back preview is
-        // therefore a fade as well.
+        // The Mine tab crossfades (tab switches are not pushes in
+        // spirit), via the per-push TabTransitionEffect below: both
+        // pages fade and settle slightly — the stock fade used before
+        // only faded the incoming page in over a frozen outgoing one —
+        // with an asymmetric 280ms enter / 220ms exit. Its back
+        // preview is the same crossfade mirrored.
         val pushEffect = remember {
             DefaultTransitionEffect(
                 pageEffect = CardPageEffects(defaultPageEffects),
@@ -105,7 +108,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
             )
         }
         val tabEffect = remember {
-            FadeTransitionEffect(pushAnimation = tween(280), popAnimation = tween(280))
+            com.bugenzhao.mnga.ui.nav.TabTransitionEffect()
         }
         val navController = rememberNavController(
             startDestination = navigator.startDestination,
@@ -140,6 +143,17 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         val dockBackdrop = rememberLayerBackdrop()
         val rootStack by navigator.stack.collectAsState()
         val shellRecordsDock = dockShellRecordsBackdrop(rootStack.lastOrNull())
+        // Registry of per-screen glass backdrops (v1.7.6): screens
+        // publish the backdrop their own content root records (menus
+        // sample it in-screen); this root-level stack lets the toast
+        // host — which lives outside every screen subtree — sample the
+        // current screen's recording. Provided around BOTH the
+        // navigation surface and the global overlays for that reason.
+        val screenBackdropRegistry =
+            remember { ScreenBackdropRegistry<com.kyant.backdrop.backdrops.LayerBackdrop>() }
+        CompositionLocalProvider(
+            LocalScreenBackdropRegistry provides screenBackdropRegistry,
+        ) {
         Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
             CompositionLocalProvider(
                 LocalNavigator provides navigator,
@@ -164,6 +178,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
             }
         }
         GlobalOverlays(navigator, editor)
+        }
 
         // Pasteboard deep-link handling: when the newest clipboard entry is a
         // navigable NGA/LumaGA link that has not been jumped to yet, navigate
@@ -458,9 +473,29 @@ private fun DeepLinkDestination(navigator: Navigator) {
 @Composable
 private fun InAppBrowserOverlay() {
     val url by App.openURL.inAppURL.collectAsState()
-    val current = url ?: return
-    com.bugenzhao.mnga.ui.components.InAppBrowserSheet(uri = current) {
-        App.openURL.dismissInApp()
+    // Until v1.7.6 this full-screen surface was swapped in and out by
+    // plain conditional composition — the only page-level switch in
+    // the app with no animation at all. It now fades and rises in /
+    // out with the dock's reappearance language (250ms easeOut enter,
+    // 150ms exit). The last URL stays composed through the exit (the
+    // flow is already null by then), so the WebView is only destroyed
+    // once the surface has fully left.
+    var lastUrl by remember { mutableStateOf<android.net.Uri?>(null) }
+    LaunchedEffect(url) {
+        if (url != null) lastUrl = url
+    }
+    AnimatedVisibility(
+        visible = url != null,
+        enter = fadeIn(tween(250, easing = EaseOut)) +
+            slideInVertically(tween(250, easing = EaseOut)) { it / 8 },
+        exit = fadeOut(tween(150, easing = EaseOut)) +
+            slideOutVertically(tween(150, easing = EaseOut)) { it / 8 },
+    ) {
+        lastUrl?.let { uri ->
+            com.bugenzhao.mnga.ui.components.InAppBrowserSheet(uri = uri) {
+                App.openURL.dismissInApp()
+            }
+        }
     }
 }
 

@@ -127,6 +127,7 @@ import com.bugenzhao.mnga.ui.components.hotAccentColor
 import com.bugenzhao.mnga.ui.components.toggleTopicFavor
 import com.bugenzhao.mnga.ui.components.imageviewer.ImageViewerDialog
 import com.bugenzhao.mnga.ui.editor.EditorController
+import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
 import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -155,6 +156,26 @@ fun TopicDetailsScreen(
     navigator: Navigator,
     route: Route.TopicDetails,
     editor: EditorController? = null,
+) {
+    // The page capsule's backdrop doubles as the screen backdrop
+    // (v1.7.6): the content root records it for the screen's whole
+    // lifetime and every consumer — the capsule beside the list, the
+    // popup menus (⋮ and per-post) in the Scaffold's host — sits
+    // outside that recording. Hoisted here so the provider can wrap
+    // the Scaffold (see ScreenBackdrop.kt).
+    val indicatorBackdrop = rememberLayerBackdrop()
+    ScreenBackdropProvider(indicatorBackdrop) {
+        TopicDetailsScreenContent(navigator, route, editor, indicatorBackdrop)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TopicDetailsScreenContent(
+    navigator: Navigator,
+    route: Route.TopicDetails,
+    editor: EditorController? = null,
+    indicatorBackdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -272,9 +293,10 @@ fun TopicDetailsScreen(
 
     // The page capsule floats over the list as liquid glass (v1.7.1):
     // the content box below is recorded into indicatorBackdrop and the
-    // capsule samples it.
+    // capsule samples it. (The backdrop itself is remembered by the
+    // entry point above, which also publishes it as this screen's
+    // menu/toast sampling source.)
     val glass = rememberGlassSettings()
-    val indicatorBackdrop = rememberLayerBackdrop()
 
     // Jump selector state.
     var showJumpSelector by remember { mutableStateOf(false) }
