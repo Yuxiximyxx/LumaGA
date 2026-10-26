@@ -171,13 +171,13 @@ fun resolveGlassSpec(
 
 /** Slider ranges of the glass fine-tuning section (settings). */
 object GlassRanges {
-    const val TINT_ALPHA = 0f..0.8f
-    const val REFRACTION_AMOUNT_DP = 0f..48f
-    const val REFRACTION_HEIGHT_DP = 0f..40f
-    const val BLUR_DP = 0f..30f
-    const val SATURATION = 1.0f..2.2f
-    const val DISPERSION = 0f..0.5f
-    const val HIGHLIGHT_SCALE = 0f..2f
+    val TINT_ALPHA = 0f..0.8f
+    val REFRACTION_AMOUNT_DP = 0f..48f
+    val REFRACTION_HEIGHT_DP = 0f..40f
+    val BLUR_DP = 0f..30f
+    val SATURATION = 1.0f..2.2f
+    val DISPERSION = 0f..0.5f
+    val HIGHLIGHT_SCALE = 0f..2f
 }
 
 fun dockSchemeFor(mode: ColorSchemeMode, systemInDark: Boolean): DockScheme = when (mode) {

@@ -61,7 +61,7 @@ fun Modifier.liquidGlass(
                     colorControls(saturation = spec.saturation)
                 }
                 if (spec.blurDp > 0f) {
-                    blur(spec.blurDp.toPx())
+                    blur(spec.blurDp.dp.toPx())
                 }
                 if (spec.refractionAmountDp > 0f && spec.refractionHeightDp > 0f) {
                     // The lens SDF needs the band within the corner radius
@@ -69,11 +69,11 @@ fun Modifier.liquidGlass(
                     // clamp both so small buttons stay artifact-free.
                     lens(
                         refractionHeight = min(
-                            spec.refractionHeightDp.toPx(),
+                            spec.refractionHeightDp.dp.toPx(),
                             size.minDimension / 2f,
                         ),
                         refractionAmount = min(
-                            spec.refractionAmountDp.toPx(),
+                            spec.refractionAmountDp.dp.toPx(),
                             size.minDimension,
                         ),
                         chromaticAberration = spec.chromaticAberration,

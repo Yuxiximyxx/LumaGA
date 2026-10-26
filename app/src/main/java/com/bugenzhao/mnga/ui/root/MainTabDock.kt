@@ -63,8 +63,7 @@ fun tabDockContentBottomPadding(): Dp =
     TabDockHeight + TabDockBottomGap + 16.dp +
         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-internal enum class DockScheme { Dark, Light, Classic }
-
+enum class DockScheme { Dark, Light, Classic }
 internal data class DockColors(
     val border: Color,
     val pill: Color,
