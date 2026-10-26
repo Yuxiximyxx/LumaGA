@@ -38,7 +38,6 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Share
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import androidx.compose.runtime.Composable
@@ -71,8 +70,13 @@ import coil.request.ImageRequest
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.BuildConfig
 import com.bugenzhao.mnga.model.ViewingImageModel
+import com.bugenzhao.mnga.ui.components.GlassButton
+import com.bugenzhao.mnga.ui.root.DockScheme
+import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import com.bugenzhao.mnga.util.DownloadDestination
 import com.bugenzhao.mnga.util.URLs
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -107,6 +111,12 @@ fun ImageViewerDialog(model: ViewingImageModel) {
     var preparingShare by remember { mutableStateOf(true) }
 
     val pagerState = rememberPagerState(initialPage = current, pageCount = { urls.size })
+
+    // The overlay buttons float over the photo as liquid glass (v1.7.1),
+    // sampling the recorded pager layer. The viewer is always dark, so
+    // the dark-scheme glass applies whatever the app theme is.
+    val glass = rememberGlassSettings()
+    val viewerBackdrop = rememberLayerBackdrop()
 
     // The model is the source of truth; keep the pager in sync.
     LaunchedEffect(current) {
@@ -151,7 +161,7 @@ fun ImageViewerDialog(model: ViewingImageModel) {
         ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().layerBackdrop(viewerBackdrop),
                 pageSpacing = 40.dp,
                 key = { urls[it] },
             ) { page ->
@@ -187,7 +197,13 @@ fun ImageViewerDialog(model: ViewingImageModel) {
                     }
                 }
                 Box(Modifier.weight(1f))
-                IconButton(onClick = { model.dismiss() }) {
+                GlassButton(
+                    backdrop = viewerBackdrop,
+                    spec = glass.spec,
+                    scheme = DockScheme.Dark,
+                    onClick = { model.dismiss() },
+                    size = 44.dp,
+                ) {
                     Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White)
                 }
             }
@@ -207,9 +223,15 @@ fun ImageViewerDialog(model: ViewingImageModel) {
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    IconButton(onClick = {
-                        shareIntent?.let { runCatching { context.startActivity(it) } }
-                    }) {
+                    GlassButton(
+                        backdrop = viewerBackdrop,
+                        spec = glass.spec,
+                        scheme = DockScheme.Dark,
+                        onClick = {
+                            shareIntent?.let { runCatching { context.startActivity(it) } }
+                        },
+                        size = 44.dp,
+                    ) {
                         Icon(Icons.Filled.Share, contentDescription = "Share", tint = Color.White)
                     }
                 }
@@ -236,14 +258,20 @@ fun ImageViewerDialog(model: ViewingImageModel) {
                     .align(Alignment.BottomEnd)
                     .padding(bottom = 32.dp, end = 24.dp),
             ) {
-                IconButton(onClick = {
-                    val url = urls.getOrNull(pagerState.settledPage) ?: return@IconButton
-                    if (hasStoragePermission(context)) {
-                        saveImage(scope, context, url) { ok -> toastImageResult(context, ok) }
-                    } else {
-                        permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    }
-                }) {
+                GlassButton(
+                    backdrop = viewerBackdrop,
+                    spec = glass.spec,
+                    scheme = DockScheme.Dark,
+                    onClick = {
+                        val url = urls.getOrNull(pagerState.settledPage) ?: return@GlassButton
+                        if (hasStoragePermission(context)) {
+                            saveImage(scope, context, url) { ok -> toastImageResult(context, ok) }
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        }
+                    },
+                    size = 44.dp,
+                ) {
                     Icon(Icons.Filled.Download, contentDescription = "Download", tint = Color.White)
                 }
             }

@@ -32,7 +32,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
@@ -56,7 +55,11 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bugenzhao.mnga.ui.components.liquidGlass
+import com.bugenzhao.mnga.ui.root.DockScheme
+import com.bugenzhao.mnga.ui.root.GlassSpec
 import com.bugenzhao.mnga.util.Haptics
+import com.kyant.backdrop.backdrops.LayerBackdrop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -108,6 +111,9 @@ fun PageIndicatorOverlay(
     isListScrolling: Boolean,
     onJumpToPage: (Int) -> Unit,
     onTap: () -> Unit,
+    backdrop: LayerBackdrop,
+    spec: GlassSpec,
+    scheme: DockScheme,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -144,6 +150,9 @@ fun PageIndicatorOverlay(
                 expanded = false
                 onJumpToPage(page)
             },
+            backdrop = backdrop,
+            spec = spec,
+            scheme = scheme,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 20.dp),
@@ -159,6 +168,9 @@ private fun PageCapsule(
     onLongPress: () -> Unit,
     onTap: () -> Unit,
     onJumpToPage: (Int) -> Unit,
+    backdrop: LayerBackdrop,
+    spec: GlassSpec,
+    scheme: DockScheme,
     modifier: Modifier = Modifier,
 ) {
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
@@ -210,10 +222,20 @@ private fun PageCapsule(
         label = "page-indicator-height",
     )
 
-    Surface(
+    // The capsule floats over the post list as liquid glass (v1.7.1),
+    // sampling the recorded list layer beneath it.
+    Box(
         modifier = modifier
             .width(width)
             .height(height)
+            .liquidGlass(
+                backdrop = backdrop,
+                shape = CircleShape,
+                spec = spec,
+                scheme = scheme,
+                shadowRadius = 8.dp,
+            )
+            .clip(CircleShape)
             .capsulePressDrag(
                 scope = pressScope,
                 timeoutMs = LongPressTimeoutMs,
@@ -239,9 +261,6 @@ private fun PageCapsule(
                     flingJobHolder.job = null
                 },
             ),
-        shape = CircleShape,
-        color = MiuixTheme.colorScheme.surfaceContainerHigh,
-        shadowElevation = 4.dp,
     ) {
         Box {
             // 胶囊形态的进度条背景。

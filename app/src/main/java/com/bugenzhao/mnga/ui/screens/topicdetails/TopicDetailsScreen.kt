@@ -127,6 +127,9 @@ import com.bugenzhao.mnga.ui.components.hotAccentColor
 import com.bugenzhao.mnga.ui.components.toggleTopicFavor
 import com.bugenzhao.mnga.ui.components.imageviewer.ImageViewerDialog
 import com.bugenzhao.mnga.ui.editor.EditorController
+import com.bugenzhao.mnga.ui.root.rememberGlassSettings
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.bugenzhao.mnga.ui.editor.PostReplyTask
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
@@ -266,6 +269,12 @@ fun TopicDetailsScreen(
     val localMode = forceLocalMode || (response?.isLocalCache == true)
 
     val listState = rememberLazyListState()
+
+    // The page capsule floats over the list as liquid glass (v1.7.1):
+    // the content box below is recorded into indicatorBackdrop and the
+    // capsule samples it.
+    val glass = rememberGlassSettings()
+    val indicatorBackdrop = rememberLayerBackdrop()
 
     // Jump selector state.
     var showJumpSelector by remember { mutableStateOf(false) }
@@ -846,7 +855,7 @@ fun TopicDetailsScreen(
             pullToRefreshState = pullRefreshState,
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
-            Box(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize().layerBackdrop(indicatorBackdrop)) {
             if (localMode) {
                 LocalCacheBanner(
                     reason = response?.localReason ?: "",
@@ -1011,6 +1020,9 @@ fun TopicDetailsScreen(
                     },
                     // 点击胶囊：打开与右上角菜单相同的跳转弹窗。
                     onTap = { showJumpSelector = true },
+                    backdrop = indicatorBackdrop,
+                    spec = glass.spec,
+                    scheme = glass.scheme,
                 )
             }
             }

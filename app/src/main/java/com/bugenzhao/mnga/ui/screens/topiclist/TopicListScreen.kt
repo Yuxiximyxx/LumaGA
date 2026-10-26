@@ -43,7 +43,6 @@ import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.extra.SuperListPopup
-import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -74,6 +73,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.model.NavigationIdentifier
+import com.bugenzhao.mnga.ui.components.GlassButton
 import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuHeader
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
@@ -92,6 +92,10 @@ import com.bugenzhao.mnga.protos.service.TopicListRequest
 import com.bugenzhao.mnga.protos.service.TopicListResponse
 import com.bugenzhao.mnga.storage.TopicListOrder
 import com.bugenzhao.mnga.ui.components.PagedList
+import com.bugenzhao.mnga.ui.root.glassContentColor
+import com.bugenzhao.mnga.ui.root.rememberGlassSettings
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.bugenzhao.mnga.ui.components.SwipeToFavorBox
 import com.bugenzhao.mnga.ui.components.toggleTopicFavor
 import com.bugenzhao.mnga.ui.nav.Navigator
@@ -251,6 +255,11 @@ fun TopicListScreen(
 
     val showRefreshButton by App.prefs.topicListShowRefreshButton.flow.collectAsState()
 
+    // The refresh FAB floats over the list as liquid glass (v1.7.1): the
+    // list content is recorded into fabBackdrop and the button samples it.
+    val glass = rememberGlassSettings()
+    val fabBackdrop = rememberLayerBackdrop()
+
     val navID = NavigationIdentifier.ForumID(forum.id)
 
     val screenTitle = when (mode) {
@@ -391,11 +400,15 @@ fun TopicListScreen(
         },
         floatingActionButton = {
             if (showRefreshButton && !dataSource.isInitialLoading) {
-                FloatingActionButton(
+                GlassButton(
+                    backdrop = fabBackdrop,
+                    spec = glass.spec,
+                    scheme = glass.scheme,
                     onClick = {
                         if (!state.isLoading && !state.isRefreshing) triggerRefresh()
                     },
-                    containerColor = MiuixTheme.colorScheme.primaryContainer,
+                    size = 56.dp,
+                    shape = RoundedCornerShape(16.dp),
                 ) {
                     if (state.isRefreshing) {
                         CircularProgressIndicator(
@@ -406,7 +419,7 @@ fun TopicListScreen(
                         Icon(
                             Icons.Outlined.Refresh,
                             contentDescription = L.str(context, "Refresh"),
-                            tint = MiuixTheme.colorScheme.onPrimaryContainer,
+                            tint = glassContentColor(glass.scheme),
                         )
                     }
                 }
@@ -439,7 +452,7 @@ fun TopicListScreen(
                 )
             }
         }
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding).layerBackdrop(fabBackdrop)) {
             PagedList(
                 dataSource = dataSource,
                 key = { it.id },
