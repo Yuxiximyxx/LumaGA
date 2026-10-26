@@ -11,25 +11,34 @@ import org.junit.Test
  *
  * The three-fork audit found the spec table itself (veil / blur /
  * saturation / lens — see GlassSpecTest) already identical across the
- * forks; the visible gap was in three places pinned here: the resting
- * pill's fill (the sister FluxTie dock's fork.3 values, over a pad that
- * now runs the full spec chain), the LIQUID shell's surround values
- * (dual-peak rim, halo base, pinned shadow — the sister dock's, in
- * place of the hand-drawn border/bands), and the eight-step halo decay
- * table. The sampling fix (page background inside every recording) is a
+ * forks; the visible gap was in three places: the LIQUID shell's
+ * surround values (dual-peak rim, halo base, pinned shadow — the
+ * sister dock's, in place of the hand-drawn border/bands) and the
+ * eight-step halo decay table, both pinned here. The resting pill's
+ * fill is also pinned here — at the v1.7.7 values, NOT the sister
+ * fork's: v1.7.8 shipped the aligned fill (#26262B α0.60 / #3C3D42
+ * α0.80) over a full-chain pad and the selected glyphs sank on
+ * device, because in this fork's tabsBackdrop stack the glyphs reach
+ * the screen through the pill's sampled texture, where a heavy fill
+ * and any blur land directly on them (v1.7.9 hotfix). The sampling
+ * fix (page background inside every recording) is a
  * composition-structure change and has no JVM-level surface; it is
  * covered by the on-device checks in the v1.7.8 release notes.
  */
 class DockAlignmentTest {
 
     @Test
-    fun `liquid pill fill matches the aligned fork values`() {
+    fun `liquid pill fill is the restored near-black film`() {
+        // v1.7.9 hotfix: NOT the sister fork's fork.3 fill. In this
+        // fork the selected glyphs are delivered inside the pill's
+        // sampled texture, so #26262B α0.60 (and the pad's blur) sank
+        // them on device; the v1.7.7 film is the readable recipe here.
         assertEquals(
-            Color(0xFF26262B).copy(alpha = 0.60f),
+            Color.Black.copy(alpha = 0.12f),
             dockColors(DockScheme.Dark, DockGlassMaterial.LIQUID).pill,
         )
         assertEquals(
-            Color(0xFF3C3D42).copy(alpha = 0.80f),
+            Color.Black.copy(alpha = 0.08f),
             dockColors(DockScheme.Light, DockGlassMaterial.LIQUID).pill,
         )
     }

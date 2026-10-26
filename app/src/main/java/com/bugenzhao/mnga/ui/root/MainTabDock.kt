@@ -190,11 +190,18 @@ internal fun dockColors(
         )
         DockGlassMaterial.LIQUID -> DockColors(
             border = Color.White.copy(alpha = 0.60f),
-            // v1.7.8: pill fill aligned with the sister FluxTie dock's
-            // fork.3 lightening — a deep gray at 0.60, not a near-black
-            // film (was Black α0.12) — sitting on the full spec chain
-            // (see the pill's effects in FloatingTabDock).
-            pill = Color(0xFF26262B).copy(alpha = 0.60f),
+            // The pill fill is a near-black film (Black α0.12) — the
+            // v1.7.7 recipe, restored in v1.7.9. v1.7.8 tried the
+            // sister FluxTie dock's fork.3 fill (#26262B α0.60) and it
+            // failed on device: in this fork's Kyant tabsBackdrop
+            // stack the selected tab's glyphs reach the screen ONLY
+            // through the pill's sampled texture (the visible row's
+            // selected item sits under the pill), so a 60% fill drawn
+            // over the sample lands directly on the glyphs and sinks
+            // them. FluxTie draws its glyphs in the foreground ABOVE
+            // its indicator, where the same fill never touches them —
+            // the value is stack-dependent and does not transfer.
+            pill = Color.Black.copy(alpha = 0.12f),
             unselected = Color(0xFFF2F2F7),
             highlight = Color.White.copy(alpha = 0.65f),
             highlightHeight = 8.dp,
@@ -218,10 +225,10 @@ internal fun dockColors(
         )
         DockGlassMaterial.LIQUID -> DockColors(
             border = Color.White.copy(alpha = 0.55f),
-            // v1.7.8: aligned with FluxTie fork.3 (see the Dark row) —
-            // was Black α0.08, a barely-there film; the unified dock
-            // spec's selected state is a solid dark ellipse.
-            pill = Color(0xFF3C3D42).copy(alpha = 0.80f),
+            // v1.7.7 recipe, restored in v1.7.9 (see the Dark row):
+            // the v1.7.8 aligned fill (#3C3D42 α0.80) sank the glyphs
+            // that reach the screen through the pill's sample.
+            pill = Color.Black.copy(alpha = 0.08f),
             unselected = Color(0xFF3A3A3C),
             highlight = Color.White.copy(alpha = 0.90f),
             highlightHeight = 8.dp,
@@ -428,10 +435,12 @@ private fun DrawScope.drawDockHalo(haloBase: Color) {
  * the spec table itself was already identical; what differed was the
  * sampling and the surround):
  *
- * - The pill's pad is no longer the raw recording: its sample runs the
- *   FULL spec chain (saturation ⇒ blur ⇒ the press lens), so the
- *   resting pill sits on processed glass, and its fill is the aligned
- *   deep gray (see dockColors) instead of a near-black film.
+ * - The pill's pad briefly ran the FULL spec chain with the aligned
+ *   deep-gray fill in v1.7.8; both were reverted in v1.7.9 (the pad is
+ *   the lens-only sample again and the fill the near-black film — see
+ *   dockColors): the selected glyphs reach the screen through the
+ *   pill's own texture, so the chain's blur and the heavier fill both
+ *   landed on the glyphs and sank them.
  * - For LIQUID in the Dark/Light schemes the shell's surround is the
  *   aligned model ([dockAlignedSurround]): dual-peak rim brushes, the
  *   eight-layer outward halo and a pinned-color shadow at 10dp,
@@ -859,20 +868,20 @@ fun FloatingTabDock(
                     backdrop = combinedBackdrop,
                     shape = { shape },
                     effects = {
-                        // The pad under the pill tint is the FULL spec
-                        // chain over the combined sample (v1.7.8) —
-                        // saturation and blur included — not the raw
-                        // recording it used to be: the resting pill now
-                        // sits on processed glass, the structure the
-                        // sister forks' pills have. The lens itself
-                        // stays press-gated (10/14 × p, the Kyant pill
-                        // norm), zero at rest as approved.
-                        if (spec.saturation != 1f) {
-                            colorControls(saturation = spec.saturation)
-                        }
-                        if (spec.blurDp > 0f) {
-                            blur(spec.blurDp.dp.toPx())
-                        }
+                        // Lens only — the pill's sample is the COMBINED
+                        // texture (page + the accent copy), and the
+                        // copy's glyphs are part of that texture: they
+                        // are how the selected tab's icon and label
+                        // reach the screen. Any blur here blurs the
+                        // glyphs themselves (v1.7.8 added the spec's
+                        // saturation + blur to this chain and the 11sp
+                        // labels smeared into illegibility on device —
+                        // reverted in v1.7.9). Saturation/blur live in
+                        // the accent copy's own backdrop pass, where
+                        // they process the page sample UNDER the
+                        // glyphs, never the glyphs. The lens stays
+                        // press-gated (10/14 × p, the Kyant pill norm),
+                        // zero at rest as approved.
                         val p = dampedDragAnimation.pressProgress
                         lens(
                             refractionHeight = 10.dp.toPx() * p,
