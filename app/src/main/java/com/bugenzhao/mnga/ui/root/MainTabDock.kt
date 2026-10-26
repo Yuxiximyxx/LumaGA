@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -48,6 +47,29 @@ import kotlin.math.roundToInt
 
 /** Height of the floating tab dock capsule. */
 val TabDockHeight = 68.dp
+
+/** Width of one tab slot inside the dock capsule. */
+val TabDockSlotWidth = 72.dp
+
+/** Horizontal padding between the capsule edge and the first/last slot. */
+val TabDockInnerPadding = 6.dp
+
+/** Absolute cap on the dock width, however many tabs it holds. */
+val TabDockMaxWidth = 380.dp
+
+/**
+ * Dock width rule (v1.7.2, unified across the sister forks): the
+ * capsule hugs its tabs — [tabCount] slots of [TabDockSlotWidth] plus
+ * the inner padding on both sides — capped at the screen width minus
+ * 32dp and at [TabDockMaxWidth]. Fewer tabs ⇒ a narrower capsule (the
+ * old fixed ≈58%-of-screen width squeezed many-tab docks and left
+ * two-tab docks mostly empty).
+ */
+fun tabDockWidth(tabCount: Int, screenWidth: Dp): Dp {
+    val natural = TabDockSlotWidth * tabCount + TabDockInnerPadding * 2
+    val screenCap = (screenWidth - 32.dp).coerceAtLeast(0.dp)
+    return minOf(natural, screenCap, TabDockMaxWidth)
+}
 
 /** Gap between the dock's bottom edge and the system navigation-bar area. */
 val TabDockBottomGap = 10.dp
@@ -173,9 +195,10 @@ internal fun dockColors(
 
 /**
  * The floating tab dock of the main shell (v1.7.0), replacing the full-width
- * Miuix NavigationBar: a capsule about 58% of the screen width, horizontally
- * centered, hovering above the content (which scrolls underneath it) just
- * above the system gesture area. The selected tab is a dark oval holding an
+ * Miuix NavigationBar: a capsule whose width adapts to its tab count (see
+ * [tabDockWidth]), horizontally centered, hovering above the content
+ * (which scrolls underneath it) just above the system gesture area.
+ * The selected tab is a dark oval holding an
  * accent-tinted icon stacked over its label; the unselected tab shows its
  * icon only. The oval slides between the two tabs. Tab semantics (which
  * routes count as roots, push/pop behavior) live in [MainTabBar] and are
@@ -214,10 +237,12 @@ fun FloatingTabDock(
         animationSpec = tween(260),
         label = "tabDockPill",
     )
+    val tabCount = 2
+    val screenWidth = androidx.compose.ui.platform.LocalConfiguration.current
+        .screenWidthDp.dp
     Box(
         modifier
-            .fillMaxWidth(0.58f)
-            .widthIn(max = 380.dp)
+            .width(tabDockWidth(tabCount, screenWidth))
             .height(TabDockHeight)
             // The glass itself: Kyant samples the recorded root content
             // (saturation / blur / lens per the resolved spec) and draws
@@ -279,7 +304,7 @@ fun FloatingTabDock(
                     ),
             )
         }
-        BoxWithConstraints(Modifier.fillMaxSize().padding(6.dp)) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(TabDockInnerPadding)) {
             val itemWidth = maxWidth / 2
             // Sliding selection oval, drawn under the items.
             Box(
