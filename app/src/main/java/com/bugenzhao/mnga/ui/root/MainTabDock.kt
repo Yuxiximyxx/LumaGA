@@ -5,6 +5,8 @@ import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,6 +47,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -59,6 +64,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.fastFirstOrNull
 import com.bugenzhao.mnga.storage.DockGlassMaterial
 import com.bugenzhao.mnga.ui.components.glassTintColor
 import com.bugenzhao.mnga.ui.components.liquidGlass
@@ -250,8 +256,12 @@ internal fun dockColors(
  *   with press growth and velocity jelly; on release it snaps to the
  *   nearest tab and navigates. Taps are zero-length drags through the
  *   same path (items carry semantics only, no pointer input — see
- *   DockItem; the v1.7.4 note there explains the v1.7.3 regression
- *   where a competing `selectable` + an async target race ate taps).
+ *   DockItem). Since v1.7.5 the gesture decisions are made by the pure
+ *   [DockGestureMachine] (JVM-unit-tested) and merely executed here;
+ *   the v1.7.3/1.7.4 builds derived the tap target from the animation's
+ *   asynchronously updated targetValue, which is why taps silently
+ *   navigated nowhere while drags worked — see the note where the
+ *   machine is wired in below.
  * - The pill is a real lens: it samples a COMBINED backdrop — the
  *   current page's own recording (v1.7.2's per-screen source, unchanged)
  *   plus a second, invisible copy of the tab row rendered accent-tinted
@@ -328,18 +338,6 @@ fun FloatingTabDock(
     val onTabSelectedState = rememberUpdatedState { index: Int ->
         if (index == 0) onHomeClick() else onMineClick()
     }
-    // The slot the current gesture is aiming at, recorded synchronously
-    // in the drag callbacks (v1.7.4). onDragStopped used to derive the
-    // navigation target from the value Animatable's targetValue alone —
-    // but for a TAP the finger lifts within a frame or two of the press,
-    // before the animateTo launched by updateValue() has necessarily
-    // run, so targetValue could still hold the OLD slot: the pill
-    // twitched toward the tapped tab and settled back, and nothing
-    // navigated. Drags never hit this (their continuous onDrag calls
-    // keep targetValue current long before release). The intent is
-    // therefore captured at callback time; targetValue remains the
-    // fallback. -1 = no gesture in flight.
-    var gestureTargetIndex by remember { mutableIntStateOf(-1) }
     val dampedDragAnimation = remember(animationScope) {
         DampedDragAnimation(
             animationScope = animationScope,
@@ -348,45 +346,106 @@ fun FloatingTabDock(
             visibilityThreshold = 0.001f,
             initialScale = 1f,
             pressedScale = 78f / 56f,
-            onDragStarted = { position ->
-                // A press landing on the OTHER slot (the gesture layer
-                // covers the whole dock, not just the pill) immediately
+        )
+    }
+    // Gesture decisions live in the pure [DockGestureMachine] (pinned
+    // by JVM unit tests); this layer only translates pointer events
+    // into machine events and executes the machine's intents against
+    // the animation engine, in the same order the pre-v1.7.5 callback
+    // chain ran (retarget → press on landing; settle → release on
+    // lift). Why the split (the v1.7.5 tap post-mortem): v1.7.3/1.7.4
+    // derived the release-time navigation target from the value
+    // Animatable's targetValue — animation state that updates
+    // asynchronously. The catalog detector this used to run fires a
+    // contractual zero-delta onDrag immediately after onDragStarted,
+    // and the v1.7.4 intent variable recorded in onDragStarted was
+    // overwritten by that very call (it recomputed the intent from
+    // the not-yet-updated targetValue) before any real move arrived;
+    // at lift, the recorded intent was the OLD slot, currentIndex
+    // never changed, and the tap navigated nowhere. Drags masked the
+    // bug because their continuous moves kept re-recording the intent
+    // from live positions. The machine never reads animation state:
+    // the intent comes from the gesture itself.
+    val gestureMachine = remember(slotWidthPx, tabCount, isLtr) {
+        DockGestureMachine(
+            slotWidthPx = slotWidthPx,
+            tabCount = tabCount,
+            isLtr = isLtr,
+        )
+    }
+    fun executeDockIntent(intent: DockGestureIntent) {
+        when (intent) {
+            is DockGestureIntent.PressStarted -> {
+                // A press landing on the OTHER slot immediately
                 // retargets the value spring to that slot — this is
                 // what makes a plain tap on the other tab animate the
                 // pill over and navigate on release, exactly like a
                 // drag that ends there.
-                val rawIndex = (position.x / slotWidthPx).toInt().coerceIn(0, tabCount - 1)
-                val index = if (isLtr) rawIndex else tabCount - 1 - rawIndex
-                gestureTargetIndex = index
-                if (index != targetValue.roundToInt()) {
-                    updateValue(index.toFloat())
+                if (intent.index != dampedDragAnimation.targetValue.roundToInt()) {
+                    dampedDragAnimation.updateValue(intent.index.toFloat())
                 }
-            },
-            onDragStopped = {
-                val targetIndex = (
-                    if (gestureTargetIndex >= 0) {
-                        gestureTargetIndex
-                    } else {
-                        targetValue.roundToInt()
-                    }
-                    ).coerceIn(0, tabCount - 1)
-                gestureTargetIndex = -1
-                currentIndex = targetIndex
-                animateToValue(targetIndex.toFloat())
+                dampedDragAnimation.press()
+            }
+            is DockGestureIntent.DragTo -> {
+                dampedDragAnimation.updateValue(intent.value)
+                animationScope.launch {
+                    offsetAnimation.snapTo(offsetAnimation.value + intent.deltaPx)
+                }
+            }
+            is DockGestureIntent.ReleaseSelect -> {
+                currentIndex = intent.index
+                dampedDragAnimation.animateToValue(intent.index.toFloat())
                 animationScope.launch {
                     offsetAnimation.animateTo(0f, spring(1f, 300f, 0.5f))
                 }
-            },
-            onDrag = { _, dragAmount ->
-                val newTarget = (targetValue + dragAmount.x / slotWidthPx * if (isLtr) 1f else -1f)
-                    .coerceIn(0f, (tabCount - 1).toFloat())
-                gestureTargetIndex = newTarget.roundToInt()
-                updateValue(newTarget)
+                dampedDragAnimation.release()
+            }
+            DockGestureIntent.ReleaseCancel -> {
+                dampedDragAnimation.animateToValue(currentIndex.toFloat())
                 animationScope.launch {
-                    offsetAnimation.snapTo(offsetAnimation.value + dragAmount.x)
+                    offsetAnimation.animateTo(0f, spring(1f, 300f, 0.5f))
                 }
-            },
-        )
+                dampedDragAnimation.release()
+            }
+        }
+    }
+    // The gesture loop (Kyant's LiquidBottomTabs shape): the Initial
+    // pass sees the landing before any other consumer, so a press
+    // enters the machine the moment the finger lands — no touch slop;
+    // a tap is simply a Down followed by an Up with no Move between.
+    val dockGestureModifier = Modifier.pointerInput(gestureMachine) {
+        awaitEachGesture {
+            awaitFirstDown(false, PointerEventPass.Initial)
+            val down = awaitFirstDown(false)
+            gestureMachine.onEvent(
+                DockGestureEvent.Down(down.position.x, currentIndex),
+            ).forEach(::executeDockIntent)
+            val pointerId = down.id
+            var finished = false
+            while (!finished) {
+                val event = awaitPointerEvent()
+                val change = event.changes.fastFirstOrNull { it.id == pointerId }
+                when {
+                    change == null -> {
+                        // The tracked pointer vanished from the
+                        // stream (the gesture was interrupted).
+                        gestureMachine.onEvent(DockGestureEvent.Cancel)
+                            .forEach(::executeDockIntent)
+                        finished = true
+                    }
+                    change.changedToUpIgnoreConsumed() -> {
+                        gestureMachine.onEvent(DockGestureEvent.Up)
+                            .forEach(::executeDockIntent)
+                        finished = true
+                    }
+                    change.position != change.previousPosition -> {
+                        gestureMachine.onEvent(
+                            DockGestureEvent.Move(change.position.x),
+                        ).forEach(::executeDockIntent)
+                    }
+                }
+            }
+        }
     }
     // External selection changes (system back, deep links) move the pill
     // without navigating again: the collector below is what navigates,
@@ -643,12 +702,12 @@ fun FloatingTabDock(
             )
             // Gesture layer: covers the whole dock content area, so a
             // press anywhere on the dock (pill or not) starts the
-            // damped drag; a press with no travel is a tap and settles /
-            // navigates on release through the same onDragStopped path.
+            // gesture; a press with no travel is a tap and settles /
+            // navigates on release through the same machine path.
             Box(
                 Modifier
                     .fillMaxSize()
-                    .then(dampedDragAnimation.modifier),
+                    .then(dockGestureModifier),
             )
         }
     }
@@ -699,18 +758,19 @@ private fun DockItem(
         modifier
             .fillMaxHeight()
             .clip(RoundedCornerShape(percent = 50))
-            // Semantics only — NO pointer input on the items (v1.7.4).
-            // In v1.7.3 the items carried foundation `selectable`, whose
-            // click detector competed with the full-dock drag detector
-            // for the same gesture (it consumes the up in the Main pass)
-            // while the drag path's own tap handling raced the value
-            // animation's async start; between the two owners a plain
-            // tap navigated through neither. Kyant's LiquidBottomTabs —
-            // the structure this ports — gives its items no pointer
-            // input at all: a tap is simply a zero-length drag owned
-            // end-to-end by the DampedDragAnimation detector (press
-            // retargets on down, release settles + navigates). The
-            // semantics onClick keeps the tabs operable for
+            // Semantics only — NO pointer input on the items (v1.7.4,
+            // kept in v1.7.5). In v1.7.3 the items carried foundation
+            // `selectable`, whose click detector competed with the
+            // full-dock drag detector for the same gesture (it consumes
+            // the up in the Main pass); and the drag path's own tap
+            // handling derived its target from animation state that a
+            // fast tap outruns. Kyant's LiquidBottomTabs gives its
+            // items' clickables a separate existence from the drag
+            // detector; here the cleaner split is: items carry no
+            // pointer input at all, a tap is simply a zero-length drag
+            // owned end-to-end by the DockGestureMachine gesture layer
+            // (press retargets on down, release settles + navigates).
+            // The semantics onClick keeps the tabs operable for
             // accessibility services without touching the pointer path.
             .semantics(mergeDescendants = true) {
                 role = Role.Tab

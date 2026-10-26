@@ -4,23 +4,10 @@ import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.MutatorMutex
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.AwaitPointerEventScope
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerId
-import androidx.compose.ui.input.pointer.PointerInputChange
-import androidx.compose.ui.input.pointer.PointerInputScope
-import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.util.fastFirstOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -40,12 +27,21 @@ import kotlin.math.abs
  * - pressProgress: spring(ζ 1.0, k 1000)
  * - scaleX: spring(ζ 0.6, k 250), scaleY: spring(ζ 0.7, k 250)
  *
- * Behavior: a press starts the moment a finger lands (no touch slop);
- * while dragging only the *target* moves ([updateValue]) and the value
- * spring chases it, feeding the velocity tracker whose smoothed output
- * drives the jelly deformation in the pill's layer block; on release the
- * press is held until the value settles within 2.5% of the full range
- * from its target ([release]).
+ * This class is ONLY the animation engine: [press] grows the pill,
+ * [updateValue] moves the target the value spring chases (feeding the
+ * velocity tracker whose smoothed output drives the jelly deformation
+ * in the pill's layer block), and [release] holds the press until the
+ * value settles within 2.5% of the full range from its target.
+ *
+ * It deliberately owns NO gesture detection and makes NO decisions:
+ * since v1.7.5 the pointer stream is translated by the gesture layer
+ * in MainTabDock into events for [DockGestureMachine] (the pure,
+ * unit-tested decision maker) and the machine's intents are executed
+ * against this engine. The catalog's `inspectDragGestures` detector
+ * and the constructor callbacks that used to live here were removed in
+ * that split — the v1.7.4 tap post-mortem (see MainTabDock) traced the
+ * dead taps to intent being derived from this class's asynchronously
+ * updated [targetValue] inside those callbacks.
  */
 class DampedDragAnimation(
     private val animationScope: CoroutineScope,
@@ -54,9 +50,6 @@ class DampedDragAnimation(
     val visibilityThreshold: Float,
     val initialScale: Float,
     val pressedScale: Float,
-    val onDragStarted: DampedDragAnimation.(position: Offset) -> Unit,
-    val onDragStopped: DampedDragAnimation.() -> Unit,
-    val onDrag: DampedDragAnimation.(size: IntSize, dragAmount: Offset) -> Unit,
 ) {
 
     private val valueAnimationSpec =
@@ -92,25 +85,6 @@ class DampedDragAnimation(
     val scaleX: Float get() = scaleXAnimation.value
     val scaleY: Float get() = scaleYAnimation.value
     val velocity: Float get() = velocityAnimation.value
-
-    val modifier: Modifier = Modifier.pointerInput(Unit) {
-        inspectDragGestures(
-            onDragStart = { down ->
-                onDragStarted(down.position)
-                press()
-            },
-            onDragEnd = {
-                onDragStopped()
-                release()
-            },
-            onDragCancel = {
-                onDragStopped()
-                release()
-            },
-        ) { change, dragAmount ->
-            onDrag(size, dragAmount)
-        }
-    }
 
     fun press() {
         velocityTracker.resetTracking()
@@ -164,82 +138,5 @@ class DampedDragAnimation(
         )
         val targetVelocity = velocityTracker.calculateVelocity().x / (valueRange.endInclusive - valueRange.start)
         animationScope.launch { velocityAnimation.animateTo(targetVelocity, velocityAnimationSpec) }
-    }
-}
-
-/**
- * The catalog's `inspectDragGestures`: like `detectDragGestures` but the
- * drag starts on the *initial* down pass, so a press registers (and the
- * pill starts growing) the moment the finger lands, with no touch slop.
- */
-private suspend fun PointerInputScope.inspectDragGestures(
-    onDragStart: (down: PointerInputChange) -> Unit = {},
-    onDragEnd: (change: PointerInputChange) -> Unit = {},
-    onDragCancel: () -> Unit = {},
-    onDrag: (change: PointerInputChange, dragAmount: Offset) -> Unit,
-) {
-    awaitEachGesture {
-        val initialDown = awaitFirstDown(false, PointerEventPass.Initial)
-
-        val down = awaitFirstDown(false)
-        val drag = initialDown
-
-        onDragStart(down)
-        onDrag(drag, Offset.Zero)
-        val upEvent =
-            drag(
-                pointerId = drag.id,
-                onDrag = { onDrag(it, it.positionChange()) },
-            )
-        if (upEvent == null) {
-            onDragCancel()
-        } else {
-            onDragEnd(upEvent)
-        }
-    }
-}
-
-private suspend inline fun AwaitPointerEventScope.drag(
-    pointerId: PointerId,
-    onDrag: (PointerInputChange) -> Unit,
-): PointerInputChange? {
-    val isPointerUp = currentEvent.changes.fastFirstOrNull { it.id == pointerId }?.pressed != true
-    if (isPointerUp) {
-        return null
-    }
-    var pointer = pointerId
-    while (true) {
-        val change = awaitDragOrUp(pointer) ?: return null
-        if (change.isConsumed) {
-            return null
-        }
-        if (change.changedToUpIgnoreConsumed()) {
-            return change
-        }
-        onDrag(change)
-        pointer = change.id
-    }
-}
-
-private suspend inline fun AwaitPointerEventScope.awaitDragOrUp(
-    pointerId: PointerId,
-): PointerInputChange? {
-    var pointer = pointerId
-    while (true) {
-        val event = awaitPointerEvent()
-        val dragEvent = event.changes.fastFirstOrNull { it.id == pointer } ?: return null
-        if (dragEvent.changedToUpIgnoreConsumed()) {
-            val otherDown = event.changes.fastFirstOrNull { it.pressed }
-            if (otherDown == null) {
-                return dragEvent
-            } else {
-                pointer = otherDown.id
-            }
-        } else {
-            val hasDragged = dragEvent.previousPosition != dragEvent.position
-            if (hasDragged) {
-                return dragEvent
-            }
-        }
     }
 }
