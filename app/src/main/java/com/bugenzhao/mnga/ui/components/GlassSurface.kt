@@ -2,6 +2,7 @@ package com.bugenzhao.mnga.ui.components
 
 import android.os.Build
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -49,9 +50,30 @@ fun Modifier.liquidGlass(
     spec: GlassSpec,
     scheme: DockScheme,
     shadowRadius: Dp = 12.dp,
+    debugShowSample: Boolean = false,
+    debugColor: Color = Color.Magenta,
 ): Modifier {
     val tint = glassTintColor(spec, scheme)
     val base = shadow(shadowRadius, shape, clip = false)
+    if (debugShowSample && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // Diagnostic mode (settings → Glass Debug): draw the recorded
+        // backdrop texture raw — no saturation, blur, lens or tint —
+        // with a bright outline. If the texture inside the outline
+        // scrolls in sync with, and aligns seamlessly against, the
+        // content around the surface, sampling is healthy and any
+        // remaining "fake" look lives in the effect mix; a frozen,
+        // shifted or wrong texture is visible immediately.
+        return base
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { shape },
+                effects = {},
+                highlight = { null },
+                shadow = { null },
+                onDrawSurface = {},
+            )
+            .border(2.dp, debugColor, shape)
+    }
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         base.drawBackdrop(
             backdrop = backdrop,
@@ -108,12 +130,19 @@ fun GlassButton(
     size: Dp = 48.dp,
     shape: Shape = CircleShape,
     enabled: Boolean = true,
+    debugShowSample: Boolean = false,
+    debugColor: Color = Color.Magenta,
     content: @Composable () -> Unit,
 ) {
     Box(
         modifier
             .size(size)
-            .liquidGlass(backdrop, shape, spec, scheme, shadowRadius = 8.dp)
+            .liquidGlass(
+                backdrop, shape, spec, scheme,
+                shadowRadius = 8.dp,
+                debugShowSample = debugShowSample,
+                debugColor = debugColor,
+            )
             .clip(shape)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,

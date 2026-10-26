@@ -224,6 +224,10 @@ class PreferencesStorage(private val prefs: SharedPreferences) {
     // Highlight trim, 0–2 (1 = preset value). Applies on top of both the
     // preset and the custom block; reset together with the custom block.
     val glassHighlightScale = floatPref("glassHighlightScale", 1f)
+    // Glass diagnostic (v1.7.2): while on, every glass surface renders
+    // its raw sampled backdrop (no blur / lens / tint) with a colored
+    // outline, so a frozen or misaligned sample is visible at a glance.
+    val glassDebugShowSample = boolPref("glassDebugShowSample", false)
     val postRowDateTimeStrategyRaw = intPref("postRowDateTimeStrategy", 0)
     val topicDetailsWebApiStrategyRaw = intPref("topicDetailsWebApiStrategyNew", 1)
 

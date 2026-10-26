@@ -89,6 +89,7 @@ import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.root.rememberDockBackdropSourceModifier
 import com.bugenzhao.mnga.ui.root.tabDockContentBottomPadding
 import com.bugenzhao.mnga.ui.nav.RouteDestination
 import com.xah.container.component.base.sharedContainer
@@ -265,10 +266,16 @@ fun ForumListScreen(
             )
         },
     ) { padding ->
+        // While this tab root is current, its own scrolling content is
+        // the tab dock's glass sample source (see DockBackdrop.kt).
+        val navStack by navigator.stack.collectAsState()
+        val dockSource = rememberDockBackdropSourceModifier(
+            navStack.lastOrNull() is Route.ForumList,
+        )
         PullToRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = refresh,
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding).then(dockSource),
         ) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),

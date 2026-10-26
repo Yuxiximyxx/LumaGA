@@ -52,6 +52,7 @@ import com.bugenzhao.mnga.protos.datamodel.User
 import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.root.rememberDockBackdropSourceModifier
 import com.bugenzhao.mnga.ui.root.tabDockContentBottomPadding
 import com.bugenzhao.mnga.ui.nav.RouteDestination
 import com.xah.container.component.base.sharedContainer
@@ -82,9 +83,15 @@ fun PersonalCenterScreen(navigator: Navigator) {
             )
         },
     ) { padding ->
+        // While this tab root is current, its own scrolling content is
+        // the tab dock's glass sample source (see DockBackdrop.kt).
+        val navStack by navigator.stack.collectAsState()
+        val dockSource = rememberDockBackdropSourceModifier(
+            navStack.lastOrNull() is Route.PersonalCenter,
+        )
         PersonalCenterContent(
             navigator = navigator,
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding).then(dockSource),
         )
     }
 }

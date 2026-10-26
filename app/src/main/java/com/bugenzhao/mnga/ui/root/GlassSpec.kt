@@ -194,6 +194,8 @@ data class GlassSettings(
     val highlightScale: Float,
     val spec: GlassSpec,
     val scheme: DockScheme,
+    /** Diagnostic mode (settings toggle): render the raw sample. */
+    val debugShowSample: Boolean = false,
 )
 
 /**
@@ -214,6 +216,7 @@ fun rememberGlassSettings(): GlassSettings {
     val cRefrAmount by prefs.glassCustomRefractionAmount.flow.collectAsState()
     val cDispersion by prefs.glassCustomDispersion.flow.collectAsState()
     val highlightScale by prefs.glassHighlightScale.flow.collectAsState()
+    val debugShowSample by prefs.glassDebugShowSample.flow.collectAsState()
     val systemDark = isSystemInDarkTheme()
 
     val material = DockGlassMaterial.fromRaw(materialRaw)
@@ -235,5 +238,6 @@ fun rememberGlassSettings(): GlassSettings {
         highlightScale = highlightScale,
         spec = resolveGlassSpec(material, custom, highlightScale),
         scheme = dockSchemeFor(ColorSchemeMode.fromRaw(colorSchemeRaw), systemDark),
+        debugShowSample = debugShowSample,
     )
 }

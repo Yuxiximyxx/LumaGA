@@ -63,6 +63,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
@@ -409,6 +410,8 @@ fun TopicListScreen(
                     },
                     size = 56.dp,
                     shape = RoundedCornerShape(16.dp),
+                    debugShowSample = glass.debugShowSample,
+                    debugColor = Color.Cyan,
                 ) {
                     if (state.isRefreshing) {
                         CircularProgressIndicator(

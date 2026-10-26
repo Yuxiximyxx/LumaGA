@@ -115,6 +115,7 @@ fun PageIndicatorOverlay(
     spec: GlassSpec,
     scheme: DockScheme,
     modifier: Modifier = Modifier,
+    debugShowSample: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val view = LocalView.current
@@ -153,6 +154,7 @@ fun PageIndicatorOverlay(
             backdrop = backdrop,
             spec = spec,
             scheme = scheme,
+            debugShowSample = debugShowSample,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 20.dp),
@@ -172,6 +174,7 @@ private fun PageCapsule(
     spec: GlassSpec,
     scheme: DockScheme,
     modifier: Modifier = Modifier,
+    debugShowSample: Boolean = false,
 ) {
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
     val pressScope = rememberCoroutineScope()
@@ -234,6 +237,8 @@ private fun PageCapsule(
                 spec = spec,
                 scheme = scheme,
                 shadowRadius = 8.dp,
+                debugShowSample = debugShowSample,
+                debugColor = Color.Yellow,
             )
             .clip(CircleShape)
             .capsulePressDrag(

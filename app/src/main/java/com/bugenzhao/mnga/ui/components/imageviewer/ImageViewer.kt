@@ -156,21 +156,35 @@ fun ImageViewerDialog(model: ViewingImageModel) {
         Box(
             Modifier
                 .fillMaxSize()
-                .graphicsLayer { this.alpha = alpha }
-                .background(color = Color.Black.copy(alpha = 0.96f * alpha)),
+                .graphicsLayer { this.alpha = alpha },
         ) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize().layerBackdrop(viewerBackdrop),
-                pageSpacing = 40.dp,
-                key = { urls[it] },
-            ) { page ->
-                ZoomableImagePage(
-                    url = urls[page],
-                    isCurrent = page == pagerState.settledPage,
-                    onDismissAlpha = { dragAlpha = it },
-                    onDismiss = { model.dismiss() },
-                )
+            // Recorded node for the overlay buttons' glass: the dark
+            // backdrop AND the pager together (v1.7.2). Recording only
+            // the pager left the letterbox area transparent in the
+            // sample, so the buttons' glass washed out to plain tint
+            // wherever the photo did not reach. The buttons stay
+            // siblings of this box — never inside the recorded node,
+            // or they would sample themselves. Recording and consuming
+            // both live inside this Dialog's own composition/window.
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(color = Color.Black.copy(alpha = 0.96f * alpha))
+                    .layerBackdrop(viewerBackdrop),
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    pageSpacing = 40.dp,
+                    key = { urls[it] },
+                ) { page ->
+                    ZoomableImagePage(
+                        url = urls[page],
+                        isCurrent = page == pagerState.settledPage,
+                        onDismissAlpha = { dragAlpha = it },
+                        onDismiss = { model.dismiss() },
+                    )
+                }
             }
 
             // Top bar: page indicator trailing, share + close.
@@ -203,6 +217,8 @@ fun ImageViewerDialog(model: ViewingImageModel) {
                     scheme = DockScheme.Dark,
                     onClick = { model.dismiss() },
                     size = 44.dp,
+                    debugShowSample = glass.debugShowSample,
+                    debugColor = Color.Green,
                 ) {
                     Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White)
                 }
@@ -231,6 +247,8 @@ fun ImageViewerDialog(model: ViewingImageModel) {
                             shareIntent?.let { runCatching { context.startActivity(it) } }
                         },
                         size = 44.dp,
+                        debugShowSample = glass.debugShowSample,
+                        debugColor = Color.Green,
                     ) {
                         Icon(Icons.Filled.Share, contentDescription = "Share", tint = Color.White)
                     }
@@ -262,6 +280,8 @@ fun ImageViewerDialog(model: ViewingImageModel) {
                     backdrop = viewerBackdrop,
                     spec = glass.spec,
                     scheme = DockScheme.Dark,
+                    debugShowSample = glass.debugShowSample,
+                    debugColor = Color.Green,
                     onClick = {
                         val url = urls.getOrNull(pagerState.settledPage) ?: return@GlassButton
                         if (hasStoragePermission(context)) {

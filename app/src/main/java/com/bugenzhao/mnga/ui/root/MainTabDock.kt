@@ -191,6 +191,7 @@ fun FloatingTabDock(
     scheme: DockScheme,
     backdrop: LayerBackdrop,
     modifier: Modifier = Modifier,
+    debugShowSample: Boolean = false,
 ) {
     val colors = dockColors(scheme, glassMaterial)
     // The user's highlight trim scales the dock's own rim-light bands on
@@ -228,6 +229,8 @@ fun FloatingTabDock(
                 spec = spec,
                 scheme = scheme,
                 shadowRadius = 16.dp,
+                debugShowSample = debugShowSample,
+                debugColor = Color.Magenta,
             )
             .clip(shape)
             .border(1.dp, colors.border, shape),

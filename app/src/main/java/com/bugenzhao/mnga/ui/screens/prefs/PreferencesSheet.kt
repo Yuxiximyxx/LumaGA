@@ -136,6 +136,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
     val glassCustomRefrAmount by prefs.glassCustomRefractionAmount.flow.collectAsState()
     val glassCustomDispersion by prefs.glassCustomDispersion.flow.collectAsState()
     val glassHighlightScale by prefs.glassHighlightScale.flow.collectAsState()
+    val glassDebugShowSample by prefs.glassDebugShowSample.flow.collectAsState()
     val alwaysPortrait by prefs.alwaysPortraitOnPhone.flow.collectAsState()
     val useInAppSafari by prefs.useInAppSafari.flow.collectAsState()
     val alwaysShareImageAsFile by prefs.alwaysShareImageAsFile.flow.collectAsState()
@@ -377,6 +378,15 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
                             )
                         }
                     }
+                    // Diagnostic for "glass looks pasted on": while on,
+                    // every glass surface shows its raw sampled backdrop
+                    // (no effects, colored outline per surface), so a
+                    // frozen or misaligned sample is directly visible.
+                    SwitchRow(
+                        title = L.str(context, "Glass Debug: Raw Sample"),
+                        checked = glassDebugShowSample,
+                        onChange = { prefs.glassDebugShowSample.value = it },
+                    )
                     SwitchRow(
                         title = L.str(context, "Lock Screen Rotation"),
                         checked = alwaysPortrait,

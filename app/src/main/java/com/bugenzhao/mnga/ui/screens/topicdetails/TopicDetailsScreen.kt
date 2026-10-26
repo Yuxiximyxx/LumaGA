@@ -1023,6 +1023,7 @@ fun TopicDetailsScreen(
                     backdrop = indicatorBackdrop,
                     spec = glass.spec,
                     scheme = glass.scheme,
+                    debugShowSample = glass.debugShowSample,
                 )
             }
             }

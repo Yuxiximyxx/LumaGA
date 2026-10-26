@@ -130,18 +130,31 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         // of the dock.
         // Backdrop for the tab dock's glass (Kyant): only the navigation
         // content is recorded — overlays, the editor and the dock itself
-        // stay out of the sample. The recording is a live layer, so page
-        // transitions and scrolling are sampled as they draw; the dock's
-        // blur/refraction therefore tracks the content beneath it instead
-        // of a frozen snapshot.
+        // stay out of the sample. Who records follows DockBackdrop.kt:
+        // on the two tab roots the visible screen records its own
+        // scrolling content directly; this shell wrapper only records
+        // while another destination is on top (dock hidden), so the
+        // sample never has to come through the whole keep-alive host
+        // while the dock is actually on screen.
         val dockBackdrop = rememberLayerBackdrop()
+        val rootStack by navigator.stack.collectAsState()
+        val shellRecordsDock = dockShellRecordsBackdrop(rootStack.lastOrNull())
         Surface(Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.background) {
-            CompositionLocalProvider(LocalNavigator provides navigator) {
+            CompositionLocalProvider(
+                LocalNavigator provides navigator,
+                LocalDockBackdrop provides dockBackdrop,
+            ) {
                 Box(Modifier.fillMaxSize()) {
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .layerBackdrop(dockBackdrop),
+                            .then(
+                                if (shellRecordsDock) {
+                                    Modifier.layerBackdrop(dockBackdrop)
+                                } else {
+                                    Modifier
+                                },
+                            ),
                     ) {
                         NavigationHost(navigator, editor)
                     }
@@ -223,6 +236,7 @@ private fun BoxScope.MainTabBar(
             spec = glass.spec,
             scheme = glass.scheme,
             backdrop = backdrop,
+            debugShowSample = glass.debugShowSample,
         )
     }
 }
