@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.subforums
 
+import androidx.compose.ui.graphics.Color
+
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -174,6 +176,7 @@ private fun SubforumListScreenContent(navigator: Navigator, forumId: ForumId) {
             .exclude(WindowInsets.navigationBars),
         topBar = {
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = L.str(context, "Subforums of %@", forumName),
             )
         },

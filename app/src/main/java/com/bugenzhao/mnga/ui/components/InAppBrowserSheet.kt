@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.components
 
+import androidx.compose.ui.graphics.Color
+
 import android.net.Uri
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
@@ -44,6 +46,7 @@ fun InAppBrowserSheet(uri: Uri, onDismiss: () -> Unit) {
         contentWindowInsets = WindowInsets.systemBars.exclude(WindowInsets.navigationBars),
         topBar = {
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = uri.host ?: "",
                 navigationIcon = {
                     IconButton(onClick = onDismiss) {

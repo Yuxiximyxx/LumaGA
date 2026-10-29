@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.login
 
+import androidx.compose.ui.graphics.Color
+
 import android.net.Uri
 import android.webkit.CookieManager
 import android.webkit.JsResult
@@ -210,6 +212,7 @@ fun LoginSheet(onDismiss: () -> Unit) {
                 // no subtitle slot; the current URL that used to sit under the
                 // title is shown as a small strip directly below the bar.
                 SmallTopAppBar(
+                    color = Color.Transparent, // v1.8.5: no solid top band
                     title = L.str(context, "Sign in to NGA"),
                     navigationIcon = {
                         IconButton(onClick = { close() }) {

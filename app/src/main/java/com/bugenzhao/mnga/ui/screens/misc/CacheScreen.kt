@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.misc
 
+import androidx.compose.ui.graphics.Color
+
 import android.text.format.Formatter
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -145,6 +147,7 @@ fun CacheScreen(navigator: Navigator? = null) {
             .exclude(WindowInsets.navigationBars),
         topBar = {
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = L.str(context, "Cache Management"),
                 navigationIcon = {
                     IconButton(onClick = { navigator?.pop() }) {

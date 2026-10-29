@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.user
 
+import androidx.compose.ui.graphics.Color
+
 import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
@@ -212,6 +214,7 @@ private fun UserProfileScreenContent(
             // is not lost - the same string is already rendered in the list
             // as the SectionHeader below.
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = title,
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {

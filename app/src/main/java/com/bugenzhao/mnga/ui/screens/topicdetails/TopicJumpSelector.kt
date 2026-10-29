@@ -1,13 +1,22 @@
 package com.bugenzhao.mnga.ui.screens.topicdetails
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.Slider
@@ -15,7 +24,6 @@ import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.extra.SuperBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +34,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -69,8 +79,57 @@ fun TopicJumpSelector(
         pageText = selectedPage(selectedFloor).toString()
     }
 
-    SuperBottomSheet(show = true, onDismissRequest = onDismiss) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+    // v1.8.5: presented as an IN-WINDOW overlay, no longer as a Miuix
+    // SuperBottomSheet. On device (v1.8.4 and earlier) both jump
+    // entries — the ⋮ menu item and the header title tap — flipped
+    // the screen's showJumpSelector state and this composable was
+    // composed, yet nothing ever appeared: the chain was intact up
+    // to this presentation step (the state, both click paths and the
+    // onJump -> floorToJump/loadFromPage landing are shared with
+    // working features and check out in code), and the sheet was the
+    // one step living outside this window — SuperBottomSheet is
+    // composed in its own Dialog window (see the audit in
+    // ui/root/ScreenBackdrop.kt), and every sheet in the app that is
+    // known to open on device is hosted at the root (the editor, via
+    // GlobalSheets in LumaGARoot), not inside a navigation entry.
+    // The overlay below is composed in this screen's own composition,
+    // dismisses on scrim tap / back, and keeps the exact same
+    // content and onJump/onDismiss contract. (The BackHandler only
+    // dismisses this overlay; it never calls pop, so it does not
+    // clash with the root-owned navigation back handling.)
+    BackHandler(enabled = true, onBack = onDismiss)
+    Box(Modifier.fillMaxSize().imePadding()) {
+        Box(
+            Modifier.fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.4f))
+                .clickable(onClick = onDismiss),
+        )
+        Column(
+            Modifier.align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                .background(MiuixTheme.colorScheme.surface)
+                // Consume taps on the panel's own padding so they do
+                // not fall through to the dismiss scrim behind it.
+                .clickable(
+                    indication = null,
+                    interactionSource = remember {
+                        androidx.compose.foundation.interaction.MutableInteractionSource()
+                    },
+                ) {}
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+        ) {
+            Box(
+                Modifier.align(Alignment.CenterHorizontally)
+                    .padding(top = 8.dp, bottom = 4.dp)
+                    .size(width = 36.dp, height = 4.dp)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(
+                        MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            .copy(alpha = 0.4f)
+                    ),
+            )
             TabRow(
                 tabs = TopicJumpSelectorMode.entries.map { L.str(context, it.label) },
                 selectedTabIndex = mode.ordinal,

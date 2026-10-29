@@ -41,7 +41,6 @@ import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
@@ -683,20 +682,6 @@ private fun TopicDetailsScreenContent(
         }
     }
 
-    /** Hand the bar's text and target over to the full editor. */
-    fun expandInlineReply() {
-        val ctrl = editor ?: return
-        val targetPost = inlineReplyTarget ?: first ?: return
-        if (ctrl.postReply.showEditor.value) return
-        val draft = inlineReplyText.text
-        ctrl.replyWithDraft(targetPost, draft)
-        // The editor owns the text now; clear the bar so the same
-        // words cannot be sent twice.
-        inlineReplyText = TextFieldValue("")
-        inlineReplyTarget = null
-        keyboardController?.hide()
-    }
-
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
             .exclude(WindowInsets.navigationBars),
@@ -1310,7 +1295,6 @@ private fun TopicDetailsScreenContent(
                 focusRequester = inlineReplyFocus,
                 sending = inlineReplySending,
                 onSend = { sendInlineReply() },
-                onExpand = { expandInlineReply() },
                 onClearTarget = { inlineReplyTarget = null },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -1371,12 +1355,15 @@ private fun TopicDetailsScreenContent(
  * own Dialog window), and on device the tap animated but text could
  * never be entered — two rounds of focus/IME hardening inside that
  * sheet did not change it. The field below lives in THIS window:
- * tapping it focuses and raises the IME directly, the 发送 pill posts
- * through PostReplyModel.sendDirect (the editor's own requests), and
- * the expand button hands the typed text to the full editor for the
- * flows that need it (attachments, stickers, …). When a floor's Reply
- * action targeted another post, a chip row names that target and can
- * clear it back to the OP.
+ * tapping it focuses and raises the IME directly, and the 发送 pill
+ * posts through PostReplyModel.sendDirect (the editor's own
+ * requests). When a floor's Reply action targeted another post, a
+ * chip row names that target and can clear it back to the OP.
+ *
+ * v1.8.5: the bar's expand button (hand the draft to the full
+ * editor) is deleted at the user's call — the bar is input + send +
+ * target chip only. The full editor stays reachable from the floor
+ * menus (quote / edit / …) as before.
  */
 @Composable
 private fun InlineReplyBar(
@@ -1390,7 +1377,6 @@ private fun InlineReplyBar(
     focusRequester: FocusRequester,
     sending: Boolean,
     onSend: () -> Unit,
-    onExpand: () -> Unit,
     onClearTarget: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1477,14 +1463,6 @@ private fun InlineReplyBar(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(onSend = { onSend() }),
                     maxLines = 4,
-                )
-            }
-            IconButton(onClick = onExpand) {
-                Icon(
-                    Icons.Outlined.OpenInFull,
-                    contentDescription = L.str(context, "Open Editor"),
-                    tint = glassContentColor(scheme),
-                    modifier = Modifier.size(20.dp),
                 )
             }
             val canSend = text.text.isNotBlank() && !sending

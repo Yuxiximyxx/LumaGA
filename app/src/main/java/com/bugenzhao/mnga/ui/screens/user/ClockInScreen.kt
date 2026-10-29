@@ -80,6 +80,7 @@ fun ClockInScreen(navigator: Navigator? = null) {
             .exclude(WindowInsets.navigationBars),
         topBar = {
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = L.str(context, "Clock In"),
                 navigationIcon = {
                     IconButton(onClick = { navigator?.pop() }) {

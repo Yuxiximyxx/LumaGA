@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.messages
 
+import androidx.compose.ui.graphics.Color
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -104,6 +106,7 @@ fun ShortMessageDetailsScreen(
             // subtitle is folded into the list header below (same approach
             // as TopicListScreen).
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = L.str(context, "Short Message Details"),
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {

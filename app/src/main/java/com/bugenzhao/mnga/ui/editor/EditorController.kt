@@ -10,9 +10,6 @@ import com.bugenzhao.mnga.protos.datamodel.PostId
 import com.bugenzhao.mnga.protos.datamodel.PostReplyAction
 import com.bugenzhao.mnga.protos.datamodel.Topic
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Facade over the two editor models, mirroring the SwiftUI environment
@@ -118,29 +115,6 @@ class EditorController(val scope: CoroutineScope) {
         onResult: (Boolean) -> Unit,
     ) {
         postReply.sendDirect(task, content, onResult)
-    }
-
-    /**
-     * Open the full editor replying to [post], carrying [draft] (text
-     * already typed into the inline reply bar) into the editor's
-     * content once its context is built. No-op while the editor is
-     * already open, mirroring [GenericPostModel.show]'s own guard.
-     */
-    fun replyWithDraft(post: Post, draft: String) {
-        if (postReply.showEditor.value) return
-        val task = replyAction(post, PostReplyAction.Operation.REPLY)
-        postReply.show(task)
-        if (draft.isBlank()) return
-        scope.launch {
-            val built = withTimeoutOrNull(5_000) {
-                postReply.context.first {
-                    it?.task?.hashKey == task.hashKey
-                }
-            }
-            if (built != null) {
-                postReply.update { it.copy(content = draft) }
-            }
-        }
     }
 
     private fun replyAction(

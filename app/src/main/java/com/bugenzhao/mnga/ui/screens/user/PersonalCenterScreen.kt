@@ -52,8 +52,11 @@ import com.bugenzhao.mnga.protos.datamodel.User
 import com.bugenzhao.mnga.storage.BlockWordsStorage
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
+import com.bugenzhao.mnga.ui.components.GlassTopBarBackground
 import com.bugenzhao.mnga.ui.root.LocalDockBackdrop
+import com.bugenzhao.mnga.ui.root.LocalScreenBackdrop
 import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
+import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import com.bugenzhao.mnga.ui.root.rememberDockBackdropSourceModifier
 import com.bugenzhao.mnga.ui.root.tabDockContentBottomPadding
 import com.bugenzhao.mnga.ui.nav.RouteDestination
@@ -90,13 +93,30 @@ fun PersonalCenterScreen(navigator: Navigator) {
 @Composable
 private fun PersonalCenterScreenContent(navigator: Navigator) {
     val context = LocalContext.current
+    // v1.8.5: glass settings + this screen's published backdrop for
+    // the transparent top bar's background layer (same pair the home
+    // tab reads).
+    val glass = rememberGlassSettings()
+    val screenBackdrop = LocalScreenBackdrop.current
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
             .exclude(WindowInsets.navigationBars),
         topBar = {
-            TopAppBar(
-                title = L.str(context, "Personal Center"),
-            )
+            // v1.8.5: transparent, over a glass background layer
+            // sampling this screen's backdrop (see GlassTopBarBackground).
+            Box {
+                GlassTopBarBackground(
+                    backdrop = screenBackdrop,
+                    spec = glass.spec,
+                    scheme = glass.scheme,
+                    debugShowSample = glass.debugShowSample,
+                    modifier = Modifier.matchParentSize(),
+                )
+                TopAppBar(
+                    title = L.str(context, "Personal Center"),
+                    color = Color.Transparent,
+                )
+            }
         },
     ) { padding ->
         // While this tab root is current, its own scrolling content is

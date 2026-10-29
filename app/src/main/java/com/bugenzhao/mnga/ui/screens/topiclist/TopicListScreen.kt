@@ -763,7 +763,9 @@ private fun TopicListRefreshFab(
         modifier = modifier,
         onClick = onClick,
         size = 56.dp,
-        shape = RoundedCornerShape(16.dp),
+        // v1.8.5: round FAB per the user's call (was a 16dp squircle);
+        // size, dock-grouped anchor and glass are unchanged.
+        shape = androidx.compose.foundation.shape.CircleShape,
         debugShowSample = debugShowSample,
         debugColor = Color.Cyan,
     ) {

@@ -88,6 +88,7 @@ import com.bugenzhao.mnga.model.PlusFeature
 import com.bugenzhao.mnga.model.PlusModel
 import com.bugenzhao.mnga.protos.datamodel.Forum
 import com.bugenzhao.mnga.protos.service.AsyncRequest
+import com.bugenzhao.mnga.ui.components.GlassTopBarBackground
 import com.bugenzhao.mnga.ui.components.LoadingRow
 import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
@@ -236,8 +237,20 @@ private fun ForumListScreenContent(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
             .exclude(WindowInsets.navigationBars),
         topBar = {
+            // v1.8.5: no solid top band — the bar is transparent over
+            // a glass background layer sampling this screen's own
+            // backdrop (the header buttons' frosted read, full width).
+            Box {
+                GlassTopBarBackground(
+                    backdrop = screenBackdrop,
+                    spec = glass.spec,
+                    scheme = glass.scheme,
+                    debugShowSample = glass.debugShowSample,
+                    modifier = Modifier.matchParentSize(),
+                )
             TopAppBar(
                 title = "泥坛",
+                color = Color.Transparent,
                 navigationIcon = {
                     // v1.8.2: home-forum customization lives at the home
                     // tab's top-left now (was Settings-only before).
@@ -335,6 +348,7 @@ private fun ForumListScreenContent(
                     }
                 },
             )
+            }
         },
     ) { padding ->
         // While this tab root is current, its own scrolling content is

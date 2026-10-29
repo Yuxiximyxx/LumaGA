@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.user
 
+import androidx.compose.ui.graphics.Color
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,6 +87,7 @@ fun BlockedUsersScreen(navigator: Navigator) {
             .exclude(WindowInsets.navigationBars),
         topBar = {
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = L.str(context, "Block Management"),
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {

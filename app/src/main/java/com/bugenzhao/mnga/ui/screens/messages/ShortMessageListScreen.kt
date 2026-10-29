@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.messages
 
+import androidx.compose.ui.graphics.Color
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
@@ -86,6 +88,7 @@ fun ShortMessageListScreen(
             .exclude(WindowInsets.navigationBars),
         topBar = {
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = L.str(context, "Short Messages"),
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {

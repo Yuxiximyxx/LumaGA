@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.history
 
+import androidx.compose.ui.graphics.Color
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -148,6 +150,7 @@ fun HistoryScreen(navigator: Navigator) {
             .exclude(WindowInsets.navigationBars),
         topBar = {
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = L.str(context, "History"),
                 navigationIcon = {
                     IconButton(onClick = { navigator.pop() }) {

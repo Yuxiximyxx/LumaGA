@@ -46,8 +46,11 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * Full-surface glass audit (v1.8.1) — what is NOT backdrop glass, and
  * why each item stays that way:
  * - **Miuix SuperBottomSheet panels** (post editor, attachments,
- *   jump-to-floor selector, signature editor): Miuix 0.8.8 composes
- *   them in their own Dialog window. A backdrop texture lives in the
+ *   signature editor): Miuix 0.8.8 composes
+ *   them in their own Dialog window. (The jump-to-floor selector
+ *   left this list in v1.8.5: on device it never appeared from
+ *   inside a navigation entry, so it is an in-window overlay now —
+ *   see TopicJumpSelector.kt.) A backdrop texture lives in the
  *   activity window's graphics layer; another window cannot sample
  *   it — the same hard limit as the v1.7.4 menu crash, not a styling
  *   choice. The in-window alternative would be Miuix's Overlay*

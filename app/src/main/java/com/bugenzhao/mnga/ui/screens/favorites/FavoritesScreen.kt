@@ -47,7 +47,9 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.extra.WindowDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import com.bugenzhao.mnga.ui.root.LocalScreenBackdrop
 import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
+import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -80,7 +82,9 @@ import com.bugenzhao.mnga.protos.service.AsyncRequest
 import com.bugenzhao.mnga.protos.service.FavoriteFolderModifyRequest
 import com.bugenzhao.mnga.protos.service.TopicFavorRequest
 import com.bugenzhao.mnga.protos.service.TopicFavorResponse
+import androidx.compose.ui.graphics.Color
 import com.bugenzhao.mnga.ui.components.AdaptiveFooter
+import com.bugenzhao.mnga.ui.components.GlassTopBarBackground
 import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuHeader
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
@@ -200,6 +204,12 @@ private fun FavoritesScreenContent(navigator: Navigator, initialFolderId: String
         }
     }
 
+    // v1.8.5: glass settings + this screen's published backdrop for
+    // the transparent top bar's background layer (same pair the home
+    // tab reads).
+    val glass = rememberGlassSettings()
+    val screenBackdrop = LocalScreenBackdrop.current
+
     var folderMenuExpanded by remember { mutableStateOf(false) }
     var showingRename by remember { mutableStateOf(false) }
     var showingCreate by remember { mutableStateOf(false) }
@@ -222,8 +232,19 @@ private fun FavoritesScreenContent(navigator: Navigator, initialFolderId: String
         topBar = {
             // A dock tab root since v1.8.0: no back button; the large
             // TopAppBar matches the home tab's title bar.
+            // v1.8.5: transparent, over a glass background layer
+            // sampling this screen's backdrop (see GlassTopBarBackground).
+            Box {
+                GlassTopBarBackground(
+                    backdrop = screenBackdrop,
+                    spec = glass.spec,
+                    scheme = glass.scheme,
+                    debugShowSample = glass.debugShowSample,
+                    modifier = Modifier.matchParentSize(),
+                )
             TopAppBar(
                 title = L.str(context, "Favorite Topics"),
+                color = Color.Transparent,
                 actions = {
                     // Box anchor so the folder popup attaches to this
                     // button (phase 3 Miuix menu anchoring).
@@ -265,6 +286,7 @@ private fun FavoritesScreenContent(navigator: Navigator, initialFolderId: String
                     }
                 },
             )
+            }
         },
     ) { padding ->
         // Miuix 0.8.8 SmallTopAppBar has no subtitle slot; the current

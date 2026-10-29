@@ -278,6 +278,7 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
             .exclude(WindowInsets.navigationBars),
         topBar = {
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = L.str(context, "Settings"),
                 navigationIcon = {
                     IconButton(onClick = { dismiss() }) {

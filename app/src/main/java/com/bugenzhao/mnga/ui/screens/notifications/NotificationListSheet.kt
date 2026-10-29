@@ -172,6 +172,7 @@ fun NotificationListSheet(
             // count subtitle is folded into the list header below (same
             // approach as TopicListScreen).
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = L.str(context, "Notifications"),
                 navigationIcon = {
                     IconButton(onClick = onDismiss) {

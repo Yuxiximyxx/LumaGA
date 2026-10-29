@@ -1,5 +1,7 @@
 package com.bugenzhao.mnga.ui.screens.misc
 
+import androidx.compose.ui.graphics.Color
+
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +64,7 @@ fun AboutScreen(navigator: Navigator? = null) {
             .exclude(WindowInsets.navigationBars),
         topBar = {
             SmallTopAppBar(
+                color = Color.Transparent, // v1.8.5: no solid top band
                 title = L.str(context, "About"),
                 navigationIcon = {
                     IconButton(onClick = { navigator?.pop() }) {
