@@ -146,6 +146,7 @@ class RouteDestination(
         /** Shared-container / registry key for a route. */
         fun keyFor(route: Route): String = when (route) {
             Route.ForumList -> "forum-list"
+            Route.Forums -> "forums"
             is Route.TopicList -> "topic-list/${route.forumId.fidOrStid()}/${route.mode}/${route.dateRange}"
             is Route.TopicDetails -> "topic-details/${route.topicId}"
             is Route.UserProfile ->

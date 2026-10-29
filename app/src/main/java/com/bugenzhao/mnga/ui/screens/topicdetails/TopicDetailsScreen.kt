@@ -2,10 +2,10 @@ package com.bugenzhao.mnga.ui.screens.topicdetails
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -44,6 +45,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material3.Badge
@@ -58,7 +60,6 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -79,6 +80,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -120,6 +122,7 @@ import com.bugenzhao.mnga.protos.service.UpdateTopicProgressRequest
 import com.bugenzhao.mnga.storage.TopicResumeFrom
 import com.bugenzhao.mnga.ui.components.DateTimeText
 import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
+import com.bugenzhao.mnga.ui.components.liquidGlass
 import com.bugenzhao.mnga.ui.components.MiuixMenuDivider
 import com.bugenzhao.mnga.ui.components.MiuixMenuHeader
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
@@ -127,7 +130,10 @@ import com.bugenzhao.mnga.ui.components.hotAccentColor
 import com.bugenzhao.mnga.ui.components.toggleTopicFavor
 import com.bugenzhao.mnga.ui.components.imageviewer.ImageViewerDialog
 import com.bugenzhao.mnga.ui.editor.EditorController
+import com.bugenzhao.mnga.ui.root.DockScheme
+import com.bugenzhao.mnga.ui.root.GlassSpec
 import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
+import com.bugenzhao.mnga.ui.root.glassContentColor
 import com.bugenzhao.mnga.ui.root.recordedPageBackground
 import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -254,6 +260,17 @@ private fun TopicDetailsScreenContent(
     }
     val viewingImage = remember(route) { ViewingImageModel() }
     val currentViewingFloor = remember(route) { CurrentViewingFloor() }
+
+    // Reading-progress persistence (audited & hardened for v1.8.0):
+    // the local floor is now saved CONTINUOUSLY as the top visible
+    // floor changes (the snapshotFlow effect further down), not only
+    // from the dispose hook. The dispose-only save read the live
+    // viewing set at teardown time — after the rows' own dispose
+    // callbacks may already have emptied it — and never ran at all
+    // when the process died while reading, so "reopen jumps back"
+    // silently failed in exactly those cases. [lastVisibleFloor]
+    // mirrors the latest value for the dispose-time save below.
+    var lastVisibleFloor by remember(route) { mutableStateOf<Int?>(null) }
 
     // Posting flows (reply / quote / comment / edit / report) are performed by
     // the global editor controller, whose sheet the root hosts.
@@ -537,44 +554,42 @@ private fun TopicDetailsScreenContent(
         }
     }
 
+    // Continuous local save of the reading floor (see the note at
+    // [lastVisibleFloor]): snapshotFlow only emits when the top
+    // visible reply floor actually changes, and setReadingFloor is a
+    // cheap SharedPreferences apply. Applies to every entry path —
+    // favorites, home, forum lists, history, search, deep links all
+    // funnel into this one screen.
+    LaunchedEffect(listState, dataSource) {
+        snapshotFlow {
+            currentRows.drop(listState.firstVisibleItemIndex)
+                .firstOrNull { it is RowSpec.Reply }
+                ?.let { (it as RowSpec.Reply).post.floor }
+        }.collect { floor ->
+            if (floor != null && floor >= 1) {
+                lastVisibleFloor = floor
+                if (!mock && topic.id.isNotEmpty()) {
+                    App.prefs.setReadingFloor(topic.id, floor)
+                }
+            }
+        }
+    }
+
     // Sync reading progress when leaving the screen.
     DisposableEffect(route) {
         onDispose {
             syncTopicProgress(topic, currentViewingFloor)
             // Remember where the user left off, so reopening jumps straight
             // back to that floor. Saved for all topics (capped at 300).
-            val floor = currentViewingFloor.currentLowest
+            // Prefer the continuously tracked floor: the live viewing
+            // set may already be emptied by row teardown at this point.
+            val floor = lastVisibleFloor ?: currentViewingFloor.currentLowest
             android.util.Log.d("ReadingProgress", "save: topicId=${topic.id} fav=${topic.fav} floor=$floor")
             floor?.let {
                 App.prefs.setReadingFloor(topic.id, it)
             }
         }
     }
-
-    // Titles: subject + mode subtitle / forum name.
-    val title = topic.subject.content.ifEmpty { L.str(context, "Topic %@", topic.id) }
-    val subtitle = when {
-        localMode -> L.str(context, "Cached Topic")
-        !enableAuthorOnly && authorOnlyMode -> L.str(context, "Author Only")
-        onlyPostId != null -> L.str(context, "Reply")
-        atForum != null -> atForum.name
-        else -> null
-    }
-
-    // AppBar 标题随滚动渐显：头部一滚动就开始淡入（前 80px 内线性），
-    // 完全滚出视口（index >= 1）后全亮。
-    val headerScrolledAway by remember {
-        derivedStateOf { listState.firstVisibleItemIndex >= 1 }
-    }
-    val titleAlpha by animateFloatAsState(
-        targetValue = if (headerScrolledAway) {
-            1f
-        } else {
-            (listState.firstVisibleItemScrollOffset / 80f).coerceIn(0f, 1f)
-        },
-        animationSpec = tween(200),
-        label = "appBarTitleAlpha",
-    )
 
     // Locate a post within this topic (from rows' "Locate This Floor").
     fun locatePostInCurrentTopic(post: Post) {
@@ -601,104 +616,14 @@ private fun TopicDetailsScreenContent(
     val childLocateFloor: ((Post) -> Unit)? =
         if (forceLocalMode || onlyPostId != null) null else { post -> locatePostInCurrentTopic(post) }
 
+    // Floating reply bar (v1.8.0, per the confirmed mock): offered
+    // under exactly the conditions of the More menu's Reply entry.
+    val showReplyBar = onlyPostId == null && !mock && first != null && editor != null
+
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
             .exclude(WindowInsets.navigationBars),
-        // 正文用亮色背景（与 AppBar 默认色一致，滚动后 AppBar 变暗区分）。
         containerColor = MiuixTheme.colorScheme.surface,
-        topBar = {
-            SmallTopAppBar(
-                title = title,
-                // 标题随头部滚出淡入；滚出后顶栏底色变深与正文区分。
-                titleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = titleAlpha),
-                color = if (headerScrolledAway) {
-                    MiuixTheme.colorScheme.surfaceVariant
-                } else {
-                    MiuixTheme.colorScheme.surface
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navigator.pop() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    if (state.isLoading) {
-                        CircularProgressIndicator(
-                            size = 20.dp,
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.size(12.dp))
-                    }
-                    val unread by App.notis.unreadCountAnimated.collectAsState()
-                    IconButton(onClick = { navigator.push(Route.Notifications) }) {
-                        BadgedBox(badge = {
-                            if (unread > 0) Badge { Text(unread.toString()) }
-                        }) {
-                            Icon(Icons.Filled.Notifications, contentDescription = null)
-                        }
-                    }
-                    TopicDetailsMoreMenu(
-                        topic = topic,
-                        enableAuthorOnly = enableAuthorOnly,
-                        localMode = localMode,
-                        atForum = atForum,
-                        isFavorite = favoredOverride ?: topic.isFavored,
-                        onToggleFavorite = if (!mock) {
-                            {
-                                toggleTopicFavor(
-                                    scope = scope,
-                                    view = view,
-                                    topicId = topic.id,
-                                    currentFavored = favoredOverride ?: topic.isFavored,
-                                    onResult = { favored -> favoredOverride = favored },
-                                )
-                            }
-                        } else {
-                            null
-                        },
-                        onAuthorOnly = {
-                            if (PlusModel.checkPlus(PlusFeature.AUTHOR_ONLY)) {
-                                val isAnonymous = topic.authorName.anonymous.isNotEmpty()
-                                action.navigateToAuthorOnly.value =
-                                    if (isAnonymous) {
-                                        TopicDetailsActionModel.AuthorOnly.Anonymous(null)
-                                    } else {
-                                        TopicDetailsActionModel.AuthorOnly.ByUID(topic.authorId)
-                                    }
-                            }
-                        },
-                        onViewCached = { action.navigateToLocalMode.value = true },
-                        onGotoForum = { forum -> action.navigateToForum.value = forum },
-                        onJump = if (!mock && onlyPostId == null) {
-                            { if (PlusModel.checkPlus(PlusFeature.JUMP)) showJumpSelector = true }
-                        } else null,
-                        onLoadFirstPage = run {
-                            val firstLoaded = dataSource.firstLoadedPage
-                            if (firstLoaded != null && firstLoaded >= 2) {
-                                {
-                                    dataSource.loadFromPage = 1
-                                    floorToJump = 0
-                                }
-                            } else null
-                        },
-                        onReply = if (onlyPostId == null && !mock && first != null) {
-                            { onPostAction?.invoke(PostRowAction.REPLY, first) }
-                        } else null,
-                        onGotoTopic = if (onlyPostId != null && topic.id.isNotEmpty()) {
-                            {
-                                // Leave the single-post view for the full topic.
-                                navigator.push(
-                                    Route.TopicDetails(
-                                        topicId = topic.id,
-                                        fav = route.fav,
-                                    )
-                                )
-                            }
-                        } else null,
-                    )
-                },
-            )
-        },
     ) { padding ->
         // 加载上一页：记录加载前的锚定楼层，加载完成后滚回该楼层——前面
         // 的 items 前插进来，但阅读位置保持不变。锚点优先取跳转目标
@@ -866,6 +791,159 @@ private fun TopicDetailsScreenContent(
         // 失败时的兜底入口），无翻页动画、保持位置，与自动触发一致（顶部
         // 显示"正在加载上一页"提示）。
         val pullRefreshState = rememberPullToRefreshState()
+        Box(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize()) {
+            // Large-title header (v1.8.0, per the confirmed mock): back
+            // chevron, the forum name big with the mode/floor-count line
+            // under it, and round star / overflow buttons. The subject
+            // itself is the in-content TopicSubjectHeader, as in the
+            // mock — the old SmallTopAppBar duplicated it as its title.
+            Row(
+                Modifier.fillMaxWidth()
+                    .padding(start = 4.dp, end = 16.dp, top = 4.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = { navigator.pop() }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        atForum?.name
+                            ?: topic.parentForum.takeIf { topic.hasParentForum() }?.name
+                            ?: "",
+                        style = MiuixTheme.textStyles.title2,
+                        fontWeight = FontWeight.Bold,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                    val subLabel = when {
+                        localMode -> L.str(context, "Cached Topic")
+                        !enableAuthorOnly && authorOnlyMode ->
+                            L.str(context, "Author Only")
+                        onlyPostId != null -> L.str(context, "Reply")
+                        maxFloor > 0 -> "共 ${maxFloor + 1} 楼"
+                        else -> null
+                    }
+                    if (subLabel != null) {
+                        Text(
+                            subLabel,
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            maxLines = 1,
+                        )
+                    }
+                }
+                if (state.isLoading) {
+                    CircularProgressIndicator(size = 20.dp, strokeWidth = 2.dp)
+                    Spacer(Modifier.size(12.dp))
+                }
+                val unread by App.notis.unreadCountAnimated.collectAsState()
+                IconButton(onClick = { navigator.push(Route.Notifications) }) {
+                    BadgedBox(badge = {
+                        if (unread > 0) Badge { Text(unread.toString()) }
+                    }) {
+                        Icon(Icons.Filled.Notifications, contentDescription = null)
+                    }
+                }
+                if (!mock) {
+                    // The mock's star button: the same favorite toggle
+                    // the More menu carries.
+                    Box(
+                        Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(MiuixTheme.colorScheme.surfaceContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        IconButton(
+                            onClick = {
+                                toggleTopicFavor(
+                                    scope = scope,
+                                    view = view,
+                                    topicId = topic.id,
+                                    currentFavored = favoredOverride ?: topic.isFavored,
+                                    onResult = { favored -> favoredOverride = favored },
+                                )
+                            },
+                        ) {
+                            Icon(
+                                if (favoredOverride ?: topic.isFavored) {
+                                    Icons.Filled.Star
+                                } else {
+                                    Icons.Outlined.StarBorder
+                                },
+                                contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.size(10.dp))
+                }
+                Box(
+                    Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(MiuixTheme.colorScheme.surfaceContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    TopicDetailsMoreMenu(
+                        topic = topic,
+                        enableAuthorOnly = enableAuthorOnly,
+                        localMode = localMode,
+                        atForum = atForum,
+                        isFavorite = favoredOverride ?: topic.isFavored,
+                        onToggleFavorite = if (!mock) {
+                            {
+                                toggleTopicFavor(
+                                    scope = scope,
+                                    view = view,
+                                    topicId = topic.id,
+                                    currentFavored = favoredOverride ?: topic.isFavored,
+                                    onResult = { favored -> favoredOverride = favored },
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                        onAuthorOnly = {
+                            if (PlusModel.checkPlus(PlusFeature.AUTHOR_ONLY)) {
+                                val isAnonymous = topic.authorName.anonymous.isNotEmpty()
+                                action.navigateToAuthorOnly.value =
+                                    if (isAnonymous) {
+                                        TopicDetailsActionModel.AuthorOnly.Anonymous(null)
+                                    } else {
+                                        TopicDetailsActionModel.AuthorOnly.ByUID(topic.authorId)
+                                    }
+                            }
+                        },
+                        onViewCached = { action.navigateToLocalMode.value = true },
+                        onGotoForum = { forum -> action.navigateToForum.value = forum },
+                        onJump = if (!mock && onlyPostId == null) {
+                            { if (PlusModel.checkPlus(PlusFeature.JUMP)) showJumpSelector = true }
+                        } else null,
+                        onLoadFirstPage = run {
+                            val firstLoaded = dataSource.firstLoadedPage
+                            if (firstLoaded != null && firstLoaded >= 2) {
+                                {
+                                    dataSource.loadFromPage = 1
+                                    floorToJump = 0
+                                }
+                            } else null
+                        },
+                        onReply = if (onlyPostId == null && !mock && first != null) {
+                            { onPostAction?.invoke(PostRowAction.REPLY, first) }
+                        } else null,
+                        onGotoTopic = if (onlyPostId != null && topic.id.isNotEmpty()) {
+                            {
+                                // Leave the single-post view for the full topic.
+                                navigator.push(
+                                    Route.TopicDetails(
+                                        topicId = topic.id,
+                                        fav = route.fav,
+                                    )
+                                )
+                            }
+                        } else null,
+                    )
+                }
+            }
         PullToRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = {
@@ -876,7 +954,7 @@ private fun TopicDetailsScreenContent(
                 }
             },
             pullToRefreshState = pullRefreshState,
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.weight(1f),
         ) {
             Box(
                 Modifier.fillMaxSize().layerBackdrop(indicatorBackdrop)
@@ -948,7 +1026,12 @@ private fun TopicDetailsScreenContent(
                         // 跟手平移发生在 graphicsLayer：绘制/命中随平移变化，
                         // 手势判定仍用原始坐标。
                         .graphicsLayer { translationX = contentOffset },
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 8.dp,
+                        bottom = if (showReplyBar) 100.dp else 8.dp,
+                    ),
                 ) {
                     // 自动加载上一页时，顶部居中显示加载提示。
                     if (isLoadingPrev) {
@@ -977,12 +1060,43 @@ private fun TopicDetailsScreenContent(
                         }
                     }
                     itemsIndexed(rows, key = { _, row -> row.key }) { index, row ->
-                        Column {
+                        // Grouped card (v1.8.0 MIUIX layout): every row
+                        // between the subject header and the tail — the
+                        // OP, the hot band, the numbered floors — shares
+                        // one large-corner card surface; the header and
+                        // the tail stay outside it (per the mock). The
+                        // hot band paints its heat wash over the card
+                        // surface within its own bounds.
+                        val inCard = row !is RowSpec.Header && row !is RowSpec.Tail
+                        val prevInCard = rows.getOrNull(index - 1)?.let {
+                            it !is RowSpec.Header && it !is RowSpec.Tail
+                        } == true
+                        val nextInCard = rows.getOrNull(index + 1)?.let {
+                            it !is RowSpec.Header && it !is RowSpec.Tail
+                        } == true
+                        val cardShape = when {
+                            !inCard -> RoundedCornerShape(0.dp)
+                            !prevInCard && !nextInCard -> RoundedCornerShape(24.dp)
+                            !prevInCard -> RoundedCornerShape(
+                                topStart = 24.dp, topEnd = 24.dp,
+                            )
+                            !nextInCard -> RoundedCornerShape(
+                                bottomStart = 24.dp, bottomEnd = 24.dp,
+                            )
+                            else -> RoundedCornerShape(0.dp)
+                        }
+                        Column(
+                            if (inCard) {
+                                Modifier.fillMaxWidth().clip(cardShape)
+                                    .background(MiuixTheme.colorScheme.surfaceContainer)
+                            } else {
+                                Modifier
+                            },
+                        ) {
                             TopicDetailsRow(
                                 row = row,
                                 index = index,
                                 isLoading = state.isLoading,
-                                first = visibleFirst,
                                 topic = topic,
                                 action = action,
                                 votes = votes,
@@ -1000,16 +1114,16 @@ private fun TopicDetailsScreenContent(
                                     }
                                 },
                             )
-                            // 楼层之间用撑满全屏的浅色分割线分隔（无卡片背景）。
+                            // 楼层之间用卡内发丝线分隔（v1.8.0 分组卡）。
                             // 热点回复区自带热色底纹作为边界，共用分割线不再切进去。
                             val bordersHotBand = row.paintsOwnEdges ||
                                 rows.getOrNull(index + 1)?.paintsOwnEdges == true
-                            if (index < rows.lastIndex && !bordersHotBand) {
-                                Spacer(Modifier.height(8.dp))
+                            if (inCard && nextInCard && !bordersHotBand) {
                                 HorizontalDivider(
+                                    modifier = Modifier.padding(start = 16.dp),
+                                    thickness = 0.5.dp,
                                     color = MiuixTheme.colorScheme.dividerLine,
                                 )
-                                Spacer(Modifier.height(8.dp))
                             }
                         }
                     }
@@ -1054,6 +1168,23 @@ private fun TopicDetailsScreenContent(
             }
             }
         }
+        }
+        if (showReplyBar) {
+            FloatingReplyBar(
+                backdrop = indicatorBackdrop,
+                spec = glass.spec,
+                scheme = glass.scheme,
+                debugShowSample = glass.debugShowSample,
+                onClick = {
+                    first?.let { onPostAction?.invoke(PostRowAction.REPLY, it) }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+        }
+        }
     }
 
     // Overlays.
@@ -1094,6 +1225,66 @@ private fun TopicDetailsScreenContent(
         )
     }
     ImageViewerDialog(model = viewingImage)
+}
+
+/**
+ * The floating reply bar of the topic screen (v1.8.0, per the confirmed
+ * mock): a liquid-glass capsule in the shared glass recipe (same
+ * resolution and three-material setting as the dock), sampling the
+ * screen's own content recording from OUTSIDE the recorded subtree —
+ * the same consumer geometry as the page capsule. The whole bar (and
+ * its 发送 pill) opens the editor replying to the OP, the exact path
+ * of the More menu's Reply entry.
+ */
+@Composable
+private fun FloatingReplyBar(
+    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
+    spec: GlassSpec,
+    scheme: DockScheme,
+    debugShowSample: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(percent = 50)
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .liquidGlass(
+                backdrop = backdrop,
+                shape = shape,
+                spec = spec,
+                scheme = scheme,
+                shadowRadius = 12.dp,
+                debugShowSample = debugShowSample,
+                debugColor = Color.Cyan,
+            )
+            .clip(shape)
+            .clickable(onClick = onClick)
+            .padding(start = 20.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "回复楼主…",
+            style = MiuixTheme.textStyles.body1,
+            color = glassContentColor(scheme),
+        )
+        Spacer(Modifier.weight(1f))
+        Box(
+            Modifier
+                .clip(RoundedCornerShape(percent = 50))
+                .background(MiuixTheme.colorScheme.primary)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 22.dp, vertical = 10.dp),
+        ) {
+            Text(
+                "发送",
+                style = MiuixTheme.textStyles.body1,
+                fontWeight = FontWeight.SemiBold,
+                color = MiuixTheme.colorScheme.onPrimary,
+            )
+        }
+    }
 }
 
 // region Supporting models
@@ -1144,6 +1335,17 @@ sealed interface RowSpec {
         override val key: String = "header"
     }
 
+    /**
+     * The main (OP) post, split out of [Header] in v1.8.0 so the
+     * grouped card starts here — the subject header stays above the
+     * card, per the confirmed mock.
+     */
+    data class MainPost(val post: Post) : RowSpec {
+        override val key: String = "main_post"
+        override val floor: Int get() = post.floor
+        override val pid: String get() = post.id.pid
+    }
+
     /** Opens the hot-reply band: the flame marker over [count] replies. */
     data class HotHeader(val count: Int) : RowSpec {
         override val key: String = "hot_header"
@@ -1183,6 +1385,7 @@ private fun buildRows(
     showTail: Boolean,
 ): List<RowSpec> {
     val rows = mutableListOf<RowSpec>(RowSpec.Header)
+    if (first != null) rows += RowSpec.MainPost(first)
     first?.hotRepliesList?.takeIf { it.isNotEmpty() }?.let { hot ->
         rows += RowSpec.HotHeader(hot.size)
         hot.forEachIndexed { index, post ->
@@ -1305,7 +1508,6 @@ private fun TopicDetailsRow(
     row: RowSpec,
     index: Int,
     isLoading: Boolean,
-    first: Post?,
     topic: Topic,
     action: TopicDetailsActionModel,
     votes: VotesModel,
@@ -1323,27 +1525,26 @@ private fun TopicDetailsRow(
 
     when (row) {
         RowSpec.Header -> {
-            Column {
-                TopicSubjectHeader(topic = topic)
-                // 屏宽浅色分割线：分隔主题头部与帖子流。
-                HorizontalDivider(
-                    color = MiuixTheme.colorScheme.dividerLine.copy(alpha = 0.5f),
-                )
-                if (first != null) {
-                    PostRow(
-                        post = first,
-                        isAuthor = first.authorId == topic.authorId,
-                        action = action,
-                        votes = votes,
-                        quotedResolver = quotedPosts,
-                        viewingImage = viewingImage,
-                        enableAuthorOnly = enableAuthorOnly,
-                        onPostAction = onPostAction,
-                        onNavigateAuthorOnly = { navigateAuthorOnly(action, it) },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                }
-            }
+            // The subject header alone: the OP moved to its own row
+            // (v1.8.0) so the grouped card starts at the OP, below the
+            // title — the full-width divider that used to separate
+            // header and stream goes with the old flat layout.
+            TopicSubjectHeader(topic = topic)
+        }
+
+        is RowSpec.MainPost -> {
+            PostRow(
+                post = row.post,
+                isAuthor = row.post.authorId == topic.authorId,
+                action = action,
+                votes = votes,
+                quotedResolver = quotedPosts,
+                viewingImage = viewingImage,
+                enableAuthorOnly = enableAuthorOnly,
+                onPostAction = onPostAction,
+                onNavigateAuthorOnly = { navigateAuthorOnly(action, it) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
         }
 
         is RowSpec.HotHeader -> HotBandHeader(count = row.count)
@@ -1393,7 +1594,7 @@ private fun TopicDetailsRow(
         RowSpec.Tail -> {
             val loading = isLoading
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                     Button(onClick = { if (!loading) onLoadNewReplies() }, enabled = !loading) {
@@ -1573,7 +1774,7 @@ private val TagChipPalette = listOf(
 @Composable
 private fun TopicSubjectHeader(topic: Topic) {
     val context = LocalContext.current
-    Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)) {
+    Column(Modifier.padding(top = 4.dp, bottom = 12.dp)) {
         // 主题标题：大号加粗，置于头部最上方。
         Text(
             topic.subject.content.ifEmpty { L.str(context, "Untitled") },

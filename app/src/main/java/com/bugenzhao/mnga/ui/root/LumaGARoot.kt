@@ -135,7 +135,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         // Backdrop for the tab dock's glass (Kyant): only the navigation
         // content is recorded — overlays, the editor and the dock itself
         // stay out of the sample. Who records follows DockBackdrop.kt:
-        // on the two tab roots the visible screen records its own
+        // on the four tab roots the visible screen records its own
         // scrolling content directly; this shell wrapper only records
         // while another destination is on top (dock hidden), so the
         // sample never has to come through the whole keep-alive host
@@ -214,16 +214,28 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
     }
 }
 
+/** The dock's four tabs, in slot order （主页 / 版面 / 收藏 / 我的）. */
+private val MainDockTabs = listOf(
+    DockTab(androidx.compose.material.icons.Icons.Filled.Home, "主页"),
+    DockTab(androidx.compose.material.icons.Icons.Filled.GridView, "版面"),
+    DockTab(androidx.compose.material.icons.Icons.Filled.Star, "收藏"),
+    DockTab(androidx.compose.material.icons.Icons.Filled.Person, "我的"),
+)
+
+private val MainTabRoutes = listOf(
+    Route.ForumList, Route.Forums, Route.Favorites, Route.PersonalCenter,
+)
+
 /**
- * Bottom tab bar of the main shell: two tabs, Home and Mine, presented as
- * the floating dock in [FloatingTabDock] (v1.7.0, replacing the full-width
- * Miuix NavigationBar of MIUIX phase 2). The Mine tab is the personal-center
- * page, a root destination instead of a drawer-style page pushed over Home.
- * The dock only shows while a tab root is on top, hovering over the content
- * just above the system navigation area; tab switches never grow the stack
- * (Mine is pushed over Home, Home pops back to it), so back behavior and
- * the predictive preview stay exactly the host semantics used everywhere
- * else.
+ * Bottom tab bar of the main shell: four tabs （主页 / 版面 / 收藏 / 我的，
+ * v1.8.0; two before) presented as the floating dock in [FloatingTabDock]
+ * (v1.7.0, replacing the full-width Miuix NavigationBar of MIUIX phase 2).
+ * Every tab is a root destination; switches go through
+ * [Navigator.selectTab], which keeps the stack bottomed at 主页 and never
+ * deeper than two entries, so back behavior and the predictive preview
+ * stay exactly the host semantics used everywhere else. The dock only
+ * shows while a tab root is on top, hovering over the content just above
+ * the system navigation area.
  */
 @Composable
 private fun BoxScope.MainTabBar(
@@ -233,7 +245,11 @@ private fun BoxScope.MainTabBar(
     val glass = rememberGlassSettings()
     val stack by navigator.stack.collectAsState()
     val current = stack.lastOrNull()
-    val onTabRoot = current is Route.ForumList || current is Route.PersonalCenter
+    val onTabRoot = current?.isTabRoot == true
+    // The highlighted tab: the topmost tab root in the stack (a detail
+    // screen pushed over a tab still belongs to that tab).
+    val selectedTab = stack.lastOrNull { it.isTabRoot }
+    val selectedIndex = MainTabRoutes.indexOf(selectedTab).coerceAtLeast(0)
     // Dock (re)appearance (v1.7.3): until now this used the DEFAULT
     // AnimatedVisibility transitions — a full-height slide over the
     // default 300ms tween — while the page transition underneath runs
@@ -261,10 +277,10 @@ private fun BoxScope.MainTabBar(
             slideOutVertically(tween(150, easing = EaseOut)) { it / 3 },
     ) {
         FloatingTabDock(
-            homeSelected = current is Route.ForumList,
-            onHomeClick = { if (current is Route.PersonalCenter) navigator.pop() },
-            onMineClick = {
-                if (current is Route.ForumList) navigator.push(Route.PersonalCenter)
+            tabs = MainDockTabs,
+            selectedIndex = selectedIndex,
+            onTabSelected = { index ->
+                MainTabRoutes.getOrNull(index)?.let { navigator.selectTab(it) }
             },
             glassMaterial = glass.material,
             spec = glass.spec,
@@ -345,6 +361,8 @@ fun RouteDispatcher(
     when (route) {
         is Route.ForumList ->
             ForumListScreen(navigator)
+        is Route.Forums ->
+            com.bugenzhao.mnga.ui.screens.forumlist.ForumDirectoryScreen(navigator)
         is Route.TopicList ->
             TopicListScreen(
                 navigator,
@@ -409,7 +427,6 @@ fun GlobalOverlays(
     editor: com.bugenzhao.mnga.ui.editor.EditorController? = null,
 ) {
     com.bugenzhao.mnga.ui.components.toast.ToastHost()
-    CrashReportDialog()
     DeepLinkDestination(navigator)
     InAppBrowserOverlay()
     GlobalSheets(navigator, editor)

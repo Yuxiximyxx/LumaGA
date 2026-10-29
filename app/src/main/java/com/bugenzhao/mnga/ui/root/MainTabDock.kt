@@ -21,9 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -383,6 +380,9 @@ private fun DrawScope.drawDockHalo(haloBase: Color) {
     }
 }
 
+/** One tab of the floating dock: an icon over a short label. */
+data class DockTab(val icon: ImageVector, val label: String)
+
 /**
  * The floating tab dock of the main shell (v1.7.0), replacing the full-width
  * Miuix NavigationBar: a capsule whose width adapts to its tab count (see
@@ -450,9 +450,9 @@ private fun DrawScope.drawDockHalo(haloBase: Color) {
  */
 @Composable
 fun FloatingTabDock(
-    homeSelected: Boolean,
-    onHomeClick: () -> Unit,
-    onMineClick: () -> Unit,
+    tabs: List<DockTab>,
+    selectedIndex: Int,
+    onTabSelected: (Int) -> Unit,
     glassMaterial: DockGlassMaterial,
     spec: GlassSpec,
     scheme: DockScheme,
@@ -493,7 +493,10 @@ fun FloatingTabDock(
     )
     val accent = androidx.compose.material3.MaterialTheme.colorScheme.primary
     val shape = RoundedCornerShape(percent = 50)
-    val tabCount = 2
+    // v1.8.0: four tabs （主页/版面/收藏/我的）; the width rule, gesture
+    // machine and pill were already slot-count generic — only the count
+    // and the two hard-coded rows below were two-tab.
+    val tabCount = tabs.size
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val dockWidth = tabDockWidth(tabCount, screenWidth)
     val slotWidth = (dockWidth - TabDockInnerPadding * 2) / tabCount
@@ -506,7 +509,6 @@ fun FloatingTabDock(
     val combinedBackdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop)
 
     val animationScope = rememberCoroutineScope()
-    val selectedIndex = if (homeSelected) 0 else 1
     var currentIndex by remember { mutableIntStateOf(selectedIndex) }
     val offsetAnimation = remember { Animatable(0f) }
     val panelOffset by remember(density, dockWidthPx) {
@@ -517,9 +519,7 @@ fun FloatingTabDock(
             }
         }
     }
-    val onTabSelectedState = rememberUpdatedState { index: Int ->
-        if (index == 0) onHomeClick() else onMineClick()
-    }
+    val onTabSelectedState = rememberUpdatedState(onTabSelected)
     val dampedDragAnimation = remember(animationScope) {
         DampedDragAnimation(
             animationScope = animationScope,
@@ -807,18 +807,14 @@ fun FloatingTabDock(
                     .graphicsLayer { colorFilter = ColorFilter.tint(accent) },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DockTabGlyph(
-                    icon = Icons.Filled.Home,
-                    label = "主页",
-                    tint = accent,
-                    modifier = Modifier.weight(1f),
-                )
-                DockTabGlyph(
-                    icon = Icons.Filled.Person,
-                    label = "我的",
-                    tint = accent,
-                    modifier = Modifier.weight(1f),
-                )
+                tabs.forEach { tab ->
+                    DockTabGlyph(
+                        icon = tab.icon,
+                        label = tab.label,
+                        tint = accent,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
             // The visible tab row: items carry semantics only (role /
             // selected / accessibility click — no pointer input, see
@@ -826,28 +822,20 @@ fun FloatingTabDock(
             // layer below, their look driven continuously by the pill's
             // animated position.
             Row(Modifier.fillMaxSize()) {
-                DockItem(
-                    progress = (1f - abs(0f - dampedDragAnimation.value)).coerceIn(0f, 1f),
-                    pressProgress = dampedDragAnimation.pressProgress,
-                    selected = homeSelected,
-                    icon = Icons.Filled.Home,
-                    label = "主页",
-                    accent = accent,
-                    colors = colors,
-                    modifier = Modifier.weight(1f),
-                    onClick = { currentIndex = 0 },
-                )
-                DockItem(
-                    progress = (1f - abs(1f - dampedDragAnimation.value)).coerceIn(0f, 1f),
-                    pressProgress = dampedDragAnimation.pressProgress,
-                    selected = !homeSelected,
-                    icon = Icons.Filled.Person,
-                    label = "我的",
-                    accent = accent,
-                    colors = colors,
-                    modifier = Modifier.weight(1f),
-                    onClick = { currentIndex = 1 },
-                )
+                tabs.forEachIndexed { index, tab ->
+                    DockItem(
+                        progress = (1f - abs(index.toFloat() - dampedDragAnimation.value))
+                            .coerceIn(0f, 1f),
+                        pressProgress = dampedDragAnimation.pressProgress,
+                        selected = selectedIndex == index,
+                        icon = tab.icon,
+                        label = tab.label,
+                        accent = accent,
+                        colors = colors,
+                        modifier = Modifier.weight(1f),
+                        onClick = { currentIndex = index },
+                    )
+                }
             }
             // The liquid pill itself: pure lens, no input of its own.
             // It sits at the first slot and is translated by the damped

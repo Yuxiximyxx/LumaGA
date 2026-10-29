@@ -23,7 +23,6 @@ import com.bugenzhao.mnga.storage.PreferencesStorage
 import com.bugenzhao.mnga.storage.SearchHistoryStorage
 import com.bugenzhao.mnga.logicInitialConfigure
 import com.bugenzhao.mnga.model.appScope
-import com.bugenzhao.mnga.util.CrashReporter
 import kotlinx.coroutines.launch
 
 /** Application-scoped singletons, mirroring the SwiftUI environment objects. */
@@ -32,6 +31,7 @@ object App {
     lateinit var authStorage: AuthStorage
     lateinit var blockWords: BlockWordsStorage
     lateinit var favoriteForums: FavoriteForumsStorage
+    lateinit var pinnedForums: com.bugenzhao.mnga.storage.PinnedForumsStorage
     lateinit var searchHistory: SearchHistoryStorage
     lateinit var users: UsersModel
     lateinit var currentUser: CurrentUserModel
@@ -79,6 +79,9 @@ class LumaGAApplication : Application() {
         App.blockWords = BlockWordsStorage(prefs).also { BlockWordsStorage.shared = it }
         App.favoriteForums =
             FavoriteForumsStorage(this, prefs).also { FavoriteForumsStorage.shared = it }
+        App.pinnedForums =
+            com.bugenzhao.mnga.storage.PinnedForumsStorage(prefs)
+                .also { com.bugenzhao.mnga.storage.PinnedForumsStorage.shared = it }
         App.searchHistory =
             SearchHistoryStorage(prefs).also { SearchHistoryStorage.shared = it }
         App.users = UsersModel().also { UsersModel.shared = it }
@@ -142,12 +145,6 @@ class LumaGAApplication : Application() {
             .forEach { model ->
                 model.haptic = { type -> com.bugenzhao.mnga.util.Haptics.vibrate(this, type) }
             }
-
-        // Diagnostic build (v1.7.11): record uncaught-exception stacks to
-        // a private file so the next launch can show them (CrashReporter).
-        // Installed last on purpose: the previous handler captured here is
-        // Bugly's/system's, which still runs after ours via the chain.
-        CrashReporter.install(this)
     }
 
     private fun autoClockInOn(): Boolean =

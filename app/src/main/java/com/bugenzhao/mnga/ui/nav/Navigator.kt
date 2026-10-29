@@ -125,10 +125,43 @@ class Navigator {
         )
     }
 
+    /**
+     * Switches the bottom dock to another tab root (v1.8.0 four-tab dock).
+     *
+     * The stack always bottoms out at the home tab ([Route.ForumList]):
+     * selecting 主页 pops everything above it; selecting another tab from
+     * home pushes it; switching directly between two non-home tabs
+     * replaces the top entry, so the stack never grows deeper than two
+     * and back from any tab lands on 主页 first. A tab tapped while a
+     * pushed detail screen covers it pops back down to that tab's root.
+     */
+    fun selectTab(route: Route) {
+        require(route.isTabRoot) { "selectTab expects a tab root, got $route" }
+        if (current == route) return
+        val routes = _stack.value
+        val tabIndex = routes.indexOfLast { it.isTabRoot }
+        when {
+            route == Route.ForumList -> popToRoot()
+            tabIndex < 0 -> push(route)
+            routes[tabIndex] == route -> {
+                // Pop the entries above the tab. The count is computed
+                // once from the current mirror: _stack resyncs from the
+                // controller asynchronously, so a loop re-reading `size`
+                // here would not see its own pops and never terminate.
+                repeat(routes.size - 1 - tabIndex) { pop() }
+            }
+            tabIndex == 0 && routes.size == 1 -> push(route)
+            tabIndex == routes.lastIndex -> replace(route)
+            else -> push(route)
+        }
+    }
+
     fun contains(predicate: (Route) -> Boolean): Boolean = _stack.value.any(predicate)
 
     private fun effectFor(route: Route): TransitionEffect =
-        if (route is Route.PersonalCenter) tabEffect else pushEffect
+        // All four dock tab roots use the softer tab transition (a gentle
+        // fade/scale, no slide) since v1.8.0; everything else pushes.
+        if (route.isTabRoot) tabEffect else pushEffect
 
     /** Renders [route]'s screen; called from [RouteDestination.Content]. */
     @Composable
@@ -175,6 +208,13 @@ class Navigator {
 sealed class Route {
     /** Root forum list (also the implicit root of the main stack). */
     data object ForumList : Route()
+
+    /**
+     * The 版面 (forum directory) tab root (v1.8.0): MIUIX-layout directory
+     * with the user's pinned 常逛版面 on top and every category below.
+     * Distinct from [ForumList], which stays the 主页 tab root.
+     */
+    data object Forums : Route()
 
     data class TopicList(
         val forumId: com.bugenzhao.mnga.protos.datamodel.ForumId,
@@ -225,6 +265,11 @@ sealed class Route {
     data object Notifications : Route()
     data object ClockIn : Route()
     data object PersonalCenter : Route()
+
+    /** The four bottom-dock tab roots (主页 / 版面 / 收藏 / 我的). */
+    val isTabRoot: Boolean
+        get() = this is ForumList || this is Forums ||
+            this is Favorites || this is PersonalCenter
 }
 
 enum class TopicListMode { NORMAL, HOT, RECOMMENDED }

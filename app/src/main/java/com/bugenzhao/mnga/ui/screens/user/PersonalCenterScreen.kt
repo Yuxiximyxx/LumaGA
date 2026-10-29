@@ -203,7 +203,9 @@ private fun PersonalCenterContent(
                         icon = Icons.Filled.Bookmark,
                         title = L.str(context, "Favorite Topics"),
                     ) {
-                        navigator.push(Route.Favorites)
+                        // Favorites is a dock tab root (v1.8.0): switch
+                        // tabs instead of stacking it over Mine.
+                        navigator.selectTab(Route.Favorites)
                     }
                     MenuRow(
                         icon = Icons.Filled.HistoryEdu,

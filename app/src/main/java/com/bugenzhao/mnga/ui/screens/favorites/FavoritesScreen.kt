@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Create
@@ -42,15 +41,13 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.extra.WindowDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
-import com.bugenzhao.mnga.ui.root.rememberScreenBackdropSourceModifier
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -117,14 +114,15 @@ private val favoriteDeleteMutex = Mutex()
  */
 @OptIn(ExperimentalMaterial3Api::class)
 /**
- * Entry point: publishes this screen's backdrop (v1.7.6) — recorded by
- * the content root below for the screen's whole lifetime, sampled by
- * its popup menus from the Scaffold's host (see ScreenBackdrop.kt).
+ * Entry point: publishes the dock backdrop as this screen's backdrop
+ * (v1.8.0, when Favorites became a dock tab root): the favorite list
+ * records into it while this tab is current — one recording serving
+ * the dock below and this screen's popup menus, the same arrangement
+ * as the home tab (see DockBackdrop.kt / ScreenBackdrop.kt).
  */
 @Composable
 fun FavoritesScreen(navigator: Navigator, initialFolderId: String? = null) {
-    val screenBackdrop = rememberLayerBackdrop()
-    ScreenBackdropProvider(screenBackdrop) {
+    ScreenBackdropProvider(com.bugenzhao.mnga.ui.root.LocalDockBackdrop.current) {
         FavoritesScreenContent(navigator, initialFolderId)
     }
 }
@@ -222,16 +220,10 @@ private fun FavoritesScreenContent(navigator: Navigator, initialFolderId: String
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
             .exclude(WindowInsets.navigationBars),
         topBar = {
-            SmallTopAppBar(
+            // A dock tab root since v1.8.0: no back button; the large
+            // TopAppBar matches the home tab's title bar.
+            TopAppBar(
                 title = L.str(context, "Favorite Topics"),
-                navigationIcon = {
-                    IconButton(onClick = { navigator.pop() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
-                        )
-                    }
-                },
                 actions = {
                     // Box anchor so the folder popup attaches to this
                     // button (phase 3 Miuix menu anchoring).
@@ -579,10 +571,17 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
         }
     }
 
+    // While this tab root is current, its list is the dock's glass
+    // sample source (see DockBackdrop.kt); the recorded texture doubles
+    // as this screen's menu backdrop via the entry-point provider.
+    val navStack by navigator.stack.collectAsState()
+    val dockSource = com.bugenzhao.mnga.ui.root.rememberDockBackdropSourceModifier(
+        navStack.lastOrNull() is Route.Favorites,
+    )
     PullToRefresh(
         isRefreshing = state.isRefreshing,
         onRefresh = { dataSource.refreshAsync(sleepMillis = 500) },
-        modifier = Modifier.fillMaxSize().then(rememberScreenBackdropSourceModifier()),
+        modifier = Modifier.fillMaxSize().then(dockSource),
     ) {
         when {
             dataSource.isInitialLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -599,7 +598,13 @@ private fun FavoriteTopicList(folder: FavoriteTopicFolder, navigator: Navigator)
             else -> LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                // Bottom clears the floating tab dock (tab-root screen).
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 8.dp,
+                    bottom = com.bugenzhao.mnga.ui.root.tabDockContentBottomPadding(),
+                ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(visibleItems, key = { _, topic -> topic.id }) { _, topic ->

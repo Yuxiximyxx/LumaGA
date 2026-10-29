@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -275,6 +276,13 @@ fun TopicRow(
      * within one list the key must be unique per row — topic ids are.
      */
     sharedContainerKey: String? = null,
+    /**
+     * Flat mode (v1.8.0 grouped-card lists): no Miuix Card of its own —
+     * the host paints one grouped card behind a run of flat rows and
+     * draws the hairline dividers; the row keeps its click/long-press
+     * and shared-container behavior.
+     */
+    flat: Boolean = false,
 ) {
     val blockWords by App.blockWords.words.collectAsState()
     if (blockWords.contains(BlockWordsStorage.fromUser(topicAuthorName(topic)))) return
@@ -294,25 +302,20 @@ fun TopicRow(
     // on the right — the classic forum-list vernacular.
     val avatarless by App.prefs.topicListRowStyle.flow.collectAsState()
 
-    // Miuix Card container (row internals/subject rendering unchanged).
-    top.yukonga.miuix.kmp.basic.Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(
-                if (sharedContainerKey != null) {
-                    Modifier.sharedContainer(
-                        key = sharedContainerKey,
-                        shape = RoundedCornerShape(16.dp),
-                        containerColor = null,
-                    )
-                } else {
-                    Modifier
-                }
-            ),
-        insideMargin = PaddingValues(0.dp),
-        onClick = onClick,
-        onLongPress = onLongClick,
-    ) {
+    // Row internals (subject + metadata), shared by the two containers
+    // below: the Miuix Card of the classic list, or a plain clickable
+    // box in flat (grouped-card) mode.
+    val sharedModifier =
+        if (sharedContainerKey != null) {
+            Modifier.sharedContainer(
+                key = sharedContainerKey,
+                shape = RoundedCornerShape(16.dp),
+                containerColor = null,
+            )
+        } else {
+            Modifier
+        }
+    val body: @Composable () -> Unit = {
         if (avatarless) {
             Column(
                 Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -400,6 +403,29 @@ fun TopicRow(
                     fallbackForumName = fallbackForumName,
                 )
             }
+        }
+    }
+    if (flat) {
+        Box(
+            modifier
+                .fillMaxWidth()
+                .then(sharedModifier)
+                .combinedClickable(
+                    onClick = { onClick?.invoke() },
+                    onLongClick = onLongClick,
+                ),
+        ) {
+            body()
+        }
+    } else {
+        // Miuix Card container (row internals/subject rendering unchanged).
+        top.yukonga.miuix.kmp.basic.Card(
+            modifier = modifier.fillMaxWidth().then(sharedModifier),
+            insideMargin = PaddingValues(0.dp),
+            onClick = onClick,
+            onLongPress = onLongClick,
+        ) {
+            body()
         }
     }
 }

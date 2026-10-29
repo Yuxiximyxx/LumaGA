@@ -1,6 +1,8 @@
 package com.bugenzhao.mnga.ui.screens.topiclist
 
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,7 +39,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
@@ -46,7 +47,6 @@ import top.yukonga.miuix.kmp.extra.SuperListPopup
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
@@ -63,6 +63,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -302,144 +303,6 @@ private fun TopicListScreenContent(
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
             .exclude(WindowInsets.navigationBars),
-        topBar = {
-            SmallTopAppBar(
-                title = screenTitle.ifEmpty { forumId.idDisplay() },
-                navigationIcon = {
-                    // 与详情页一致的返回按钮。
-                    IconButton(onClick = { navigator.pop() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
-                        )
-                    }
-                },
-                actions = {
-                    if (mode == TopicListMode.HOT) {
-                        Box {
-                            IconButton(onClick = { rangeMenuExpanded = true }) {
-                                Icon(
-                                    Icons.Outlined.DateRange,
-                                    contentDescription = L.str(context, "Range"),
-                                )
-                            }
-                            // Flat single-choice menu (text + check only):
-                            // natively expressible with Miuix ListPopup.
-                            SuperListPopup(
-                                show = rangeMenuExpanded,
-                                alignment = PopupPositionProvider.Align.End,
-                                onDismissRequest = { rangeMenuExpanded = false },
-                            ) {
-                                ListPopupColumn {
-                                    // Same glass panel layer as
-                                    // MiuixDropdownMenu (v1.7.6): the
-                                    // library paints its opaque panel
-                                    // under the column content, so the
-                                    // glass layer rides as the first
-                                    // child of a wrapping Box.
-                                    Box {
-                                        GlassPanelBackground(
-                                            shape = RoundedCornerShape(16.dp),
-                                            lensScale = GlassVariantScale.MEDIUM,
-                                            debugColor = Color(0xFFFF9800),
-                                        )
-                                        Column {
-                                    val ranges = listOf(
-                                        HotTopicListRequest.DateRange.DAY to "Last 24 hours",
-                                        HotTopicListRequest.DateRange.WEEK to "Last week",
-                                        HotTopicListRequest.DateRange.MONTH to "Last month",
-                                    )
-                                    ranges.forEachIndexed { index, (range, label) ->
-                                        key(index) {
-                                            DropdownImpl(
-                                                text = L.str(context, label),
-                                                optionSize = ranges.size,
-                                                isSelected = range == hotRange,
-                                                index = index,
-                                                onSelectedIndexChange = {
-                                                    hotRange = ranges[it].first
-                                                    rangeMenuExpanded = false
-                                                },
-                                            )
-                                        }
-                                    }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        if (!mock && signedIn && editor != null) {
-                            IconButton(onClick = { newTopic() }) {
-                                Icon(
-                                    Icons.Outlined.Edit,
-                                    contentDescription = L.str(context, "New Topic"),
-                                )
-                            }
-                        }
-                        Box {
-                            IconButton(onClick = { moreMenuExpanded = true }) {
-                                Icon(
-                                    Icons.Outlined.MoreVert,
-                                    contentDescription = L.str(context, "More"),
-                                )
-                            }
-                            TopicListMoreMenu(
-                                expanded = moreMenuExpanded,
-                                onDismiss = { moreMenuExpanded = false },
-                                orderMenuExpanded = orderMenuExpanded,
-                                onOrderMenuShow = { orderMenuExpanded = true },
-                                onOrderMenuDismiss = { orderMenuExpanded = false },
-                                shareMenuExpanded = shareMenuExpanded,
-                                onShareMenuShow = { shareMenuExpanded = true },
-                                onShareMenuDismiss = { shareMenuExpanded = false },
-                                mock = mock,
-                                debugName = forumId.idDisplay() +
-                                    " " + (responseForum?.name ?: ""),
-                                orderOrDefault = orderOrDefault,
-                                onOrderChange = { order = it },
-                                onHotTopics = {
-                                    navigator.push(
-                                        Route.TopicList(forumId = forumId, mode = TopicListMode.HOT)
-                                    )
-                                },
-                                onRecommended = {
-                                    navigator.push(
-                                        Route.TopicList(
-                                            forumId = forumId,
-                                            mode = TopicListMode.RECOMMENDED,
-                                        )
-                                    )
-                                },
-                                toppedTopicID = toppedTopicID,
-                                onToppedTopic = { id ->
-                                    navigator.push(Route.TopicDetails(topicId = id))
-                                },
-                                hasSubforums = subforums.isNotEmpty(),
-                                onSubforums = {
-                                    navigator.push(Route.SubforumList(forumId = forumId))
-                                },
-                                onTopicSearch = {
-                                    navigator.push(Route.TopicSearch(forumId = forumId))
-                                },
-                                onHistory = { navigator.push(Route.History) },
-                                onRefresh = { triggerRefresh() },
-                                signedIn = signedIn,
-                                isFavorite = isForumFavorite,
-                                onToggleFavorite = {
-                                    App.favoriteForums.toggle(forum) {
-                                        Haptics.lightImpact(view)
-                                    }
-                                },
-                                shareTitle = forum.name,
-                                mngaURL = navID.mngaURL,
-                                webpageURL = navID.webpageURL,
-                            )
-                        }
-                    }
-                },
-            )
-        },
         floatingActionButton = {
             if (showRefreshButton && !dataSource.isInitialLoading) {
                 GlassButton(
@@ -470,36 +333,267 @@ private fun TopicListScreenContent(
             }
         },
     ) { padding ->
-        // Miuix 0.8.8 SmallTopAppBar has no subtitle slot; the subtitle
-        // (parent forum / forum name) is folded into the list header label
-        // so the information stays on screen.
-        val baseHeaderLabel = when (mode) {
-            TopicListMode.HOT -> L.str(context, hotRangeLabel(hotRange))
-            TopicListMode.RECOMMENDED -> null
-            TopicListMode.NORMAL -> L.str(
-                context,
-                if (orderOrDefault == TopicListOrder.POST_DATE) "Latest Topics" else "Latest Replies",
-            )
-        }
-        val headerLabel = when {
-            subtitle.isNullOrEmpty() -> baseHeaderLabel
-            baseHeaderLabel == null -> subtitle
-            else -> "$subtitle · $baseHeaderLabel"
-        }
-        val header: (@Composable () -> Unit)? = headerLabel?.let { label ->
-            {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            // Large-title header (v1.8.0 MIUIX layout, per the confirmed
+            // mock): back chevron, the forum name as a big title (the
+            // parent forum rides as its subtitle), round action buttons.
+            Row(
+                Modifier.fillMaxWidth()
+                    .padding(start = 4.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = { navigator.pop() }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                    )
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        screenTitle.ifEmpty { forumId.idDisplay() },
+                        style = MiuixTheme.textStyles.title2,
+                        fontWeight = FontWeight.Bold,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                    if (!subtitle.isNullOrEmpty()) {
+                        Text(
+                            subtitle,
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (mode == TopicListMode.HOT) {
+                    Box {
+                        TopicListRoundButton(onClick = { rangeMenuExpanded = true }) {
+                            Icon(
+                                Icons.Outlined.DateRange,
+                                contentDescription = L.str(context, "Range"),
+                                modifier = Modifier.size(20.dp),
+                                tint = MiuixTheme.colorScheme.onSurface,
+                            )
+                        }
+                        // Flat single-choice menu (text + check only):
+                        // natively expressible with Miuix ListPopup.
+                        SuperListPopup(
+                            show = rangeMenuExpanded,
+                            alignment = PopupPositionProvider.Align.End,
+                            onDismissRequest = { rangeMenuExpanded = false },
+                        ) {
+                            ListPopupColumn {
+                                // Same glass panel layer as
+                                // MiuixDropdownMenu (v1.7.6): the
+                                // library paints its opaque panel
+                                // under the column content, so the
+                                // glass layer rides as the first
+                                // child of a wrapping Box.
+                                Box {
+                                    GlassPanelBackground(
+                                        shape = RoundedCornerShape(16.dp),
+                                        lensScale = GlassVariantScale.MEDIUM,
+                                        debugColor = Color(0xFFFF9800),
+                                    )
+                                    Column {
+                                        val ranges = listOf(
+                                            HotTopicListRequest.DateRange.DAY to "Last 24 hours",
+                                            HotTopicListRequest.DateRange.WEEK to "Last week",
+                                            HotTopicListRequest.DateRange.MONTH to "Last month",
+                                        )
+                                        ranges.forEachIndexed { index, (range, label) ->
+                                            key(index) {
+                                                DropdownImpl(
+                                                    text = L.str(context, label),
+                                                    optionSize = ranges.size,
+                                                    isSelected = range == hotRange,
+                                                    index = index,
+                                                    onSelectedIndexChange = {
+                                                        hotRange = ranges[it].first
+                                                        rangeMenuExpanded = false
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if (!mock && signedIn && editor != null) {
+                        IconButton(onClick = { newTopic() }) {
+                            Icon(
+                                Icons.Outlined.Edit,
+                                contentDescription = L.str(context, "New Topic"),
+                            )
+                        }
+                    }
+                    Box {
+                        TopicListRoundButton(onClick = { moreMenuExpanded = true }) {
+                            Icon(
+                                Icons.Outlined.MoreVert,
+                                contentDescription = L.str(context, "More"),
+                                modifier = Modifier.size(20.dp),
+                                tint = MiuixTheme.colorScheme.onSurface,
+                            )
+                        }
+                        TopicListMoreMenu(
+                            expanded = moreMenuExpanded,
+                            onDismiss = { moreMenuExpanded = false },
+                            orderMenuExpanded = orderMenuExpanded,
+                            onOrderMenuShow = { orderMenuExpanded = true },
+                            onOrderMenuDismiss = { orderMenuExpanded = false },
+                            shareMenuExpanded = shareMenuExpanded,
+                            onShareMenuShow = { shareMenuExpanded = true },
+                            onShareMenuDismiss = { shareMenuExpanded = false },
+                            mock = mock,
+                            debugName = forumId.idDisplay() +
+                                " " + (responseForum?.name ?: ""),
+                            orderOrDefault = orderOrDefault,
+                            onOrderChange = { order = it },
+                            onHotTopics = {
+                                navigator.push(
+                                    Route.TopicList(forumId = forumId, mode = TopicListMode.HOT)
+                                )
+                            },
+                            onRecommended = {
+                                navigator.push(
+                                    Route.TopicList(
+                                        forumId = forumId,
+                                        mode = TopicListMode.RECOMMENDED,
+                                    )
+                                )
+                            },
+                            toppedTopicID = toppedTopicID,
+                            onToppedTopic = { id ->
+                                navigator.push(Route.TopicDetails(topicId = id))
+                            },
+                            hasSubforums = subforums.isNotEmpty(),
+                            onSubforums = {
+                                navigator.push(Route.SubforumList(forumId = forumId))
+                            },
+                            onTopicSearch = {
+                                navigator.push(Route.TopicSearch(forumId = forumId))
+                            },
+                            onHistory = { navigator.push(Route.History) },
+                            onRefresh = { triggerRefresh() },
+                            signedIn = signedIn,
+                            isFavorite = isForumFavorite,
+                            onToggleFavorite = {
+                                App.favoriteForums.toggle(forum) {
+                                    Haptics.lightImpact(view)
+                                }
+                            },
+                            shareTitle = forum.name,
+                            mngaURL = navID.mngaURL,
+                            webpageURL = navID.webpageURL,
+                        )
+                    }
+                    Spacer(Modifier.size(10.dp))
+                    TopicListRoundButton(
+                        onClick = { navigator.push(Route.TopicSearch(forumId = forumId)) },
+                    ) {
+                        Icon(
+                            Icons.Outlined.Search,
+                            contentDescription = L.str(context, "Search Topics"),
+                            modifier = Modifier.size(20.dp),
+                            tint = MiuixTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
+
+            // Filter chips (the mock's capsule row): the two sort orders
+            // switch this list in place; 精华 / 热帖 are the sibling
+            // mode destinations (from a mode screen, the sort chips pop
+            // back to the normal list and the other mode replaces).
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+            ) {
+                TopicFilterChip(
+                    text = "最新回复",
+                    selected = mode == TopicListMode.NORMAL &&
+                        orderOrDefault == TopicListOrder.LAST_POST,
+                    onClick = {
+                        if (mode == TopicListMode.NORMAL) {
+                            order = TopicListOrder.LAST_POST
+                        } else {
+                            navigator.pop()
+                        }
+                    },
+                )
+                TopicFilterChip(
+                    text = "最新发布",
+                    selected = mode == TopicListMode.NORMAL &&
+                        orderOrDefault == TopicListOrder.POST_DATE,
+                    onClick = {
+                        if (mode == TopicListMode.NORMAL) {
+                            order = TopicListOrder.POST_DATE
+                        } else {
+                            navigator.pop()
+                        }
+                    },
+                )
+                TopicFilterChip(
+                    text = "精华",
+                    selected = mode == TopicListMode.RECOMMENDED,
+                    onClick = {
+                        when (mode) {
+                            TopicListMode.NORMAL -> navigator.push(
+                                Route.TopicList(
+                                    forumId = forumId,
+                                    mode = TopicListMode.RECOMMENDED,
+                                )
+                            )
+                            TopicListMode.HOT -> navigator.replace(
+                                Route.TopicList(
+                                    forumId = forumId,
+                                    mode = TopicListMode.RECOMMENDED,
+                                )
+                            )
+                            TopicListMode.RECOMMENDED -> Unit
+                        }
+                    },
+                )
+                TopicFilterChip(
+                    text = "热帖",
+                    selected = mode == TopicListMode.HOT,
+                    onClick = {
+                        when (mode) {
+                            TopicListMode.NORMAL -> {
+                                if (PlusModel.checkPlus(PlusFeature.HOT_TOPIC)) {
+                                    navigator.push(
+                                        Route.TopicList(
+                                            forumId = forumId,
+                                            mode = TopicListMode.HOT,
+                                        )
+                                    )
+                                }
+                            }
+                            TopicListMode.RECOMMENDED -> {
+                                if (PlusModel.checkPlus(PlusFeature.HOT_TOPIC)) {
+                                    navigator.replace(
+                                        Route.TopicList(
+                                            forumId = forumId,
+                                            mode = TopicListMode.HOT,
+                                        )
+                                    )
+                                }
+                            }
+                            TopicListMode.HOT -> Unit
+                        }
+                    },
                 )
             }
-        }
-        Box(
-            Modifier.fillMaxSize().padding(padding).layerBackdrop(fabBackdrop)
-                .recordedPageBackground(),
-        ) {
+
+            Box(
+                Modifier.fillMaxSize().layerBackdrop(fabBackdrop)
+                    .recordedPageBackground(),
+            ) {
             PagedList(
                 dataSource = dataSource,
                 key = { it.id },
@@ -507,7 +601,7 @@ private fun TopicListScreenContent(
                 // first page loads; skip the centered one.
                 showInitialLoading = false,
                 emptyPlaceholder = L.str(context, "No Results"),
-                header = header,
+                groupedCard = true,
                 contentPadding = PaddingValues(
                     start = 16.dp,
                     top = 8.dp,
@@ -550,14 +644,60 @@ private fun TopicListScreenContent(
                     )
                 },
             )
+            }
         }
     }
 }
 
-private fun hotRangeLabel(range: HotTopicListRequest.DateRange): String = when (range) {
-    HotTopicListRequest.DateRange.DAY -> "Last 24 hours"
-    HotTopicListRequest.DateRange.WEEK -> "Last week"
-    else -> "Last month"
+/** Round raised button of the topic list's large-title header (mock). */
+@Composable
+private fun TopicListRoundButton(
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        Modifier
+            .size(40.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(MiuixTheme.colorScheme.surfaceContainer)
+            .clickable(onClick = onClick),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        content()
+    }
+}
+
+/** One capsule of the topic list's filter row (the mock's chip bar). */
+@Composable
+private fun TopicFilterChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(percent = 50))
+            .background(
+                if (selected) {
+                    MiuixTheme.colorScheme.primary
+                } else {
+                    MiuixTheme.colorScheme.surfaceContainer
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text,
+            style = MiuixTheme.textStyles.body2,
+            fontWeight = FontWeight.Medium,
+            color = if (selected) {
+                MiuixTheme.colorScheme.onPrimary
+            } else {
+                MiuixTheme.colorScheme.onSurface
+            },
+        )
+    }
 }
 
 private fun ForumId.idDisplay(): String =
@@ -599,6 +739,7 @@ private fun TopicListItem(
                     showIndicators = true,
                     isFavored = favoredOverride,
                     fallbackForumName = fallbackForumName,
+                    flat = true,
                     onClick = onClick,
                     onLongClick = { onContextMenu(topic) },
                     // Morph this card into the topic-details page (SharedNav

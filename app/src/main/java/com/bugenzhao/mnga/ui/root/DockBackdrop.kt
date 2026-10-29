@@ -18,13 +18,13 @@ import com.kyant.backdrop.backdrops.layerBackdrop
  * whose texture can lag or sit stale behind the glass (the "pasted
  * image" look reported on device).
  *
- * Now the two tab-root screens — the only places the dock is visible —
- * record their own scrolling content root directly (ForumList's grid,
- * PersonalCenter's list), the same "sample the real content directly
- * beneath" structure the sister FluxTie fork uses. The shell wrapper
- * only records while some other destination is on top (the dock is
- * hidden then; this keeps the texture warm and correct for the frames
- * around tab-root transitions).
+ * Now the four tab-root screens (v1.8.0; two before) — the only places
+ * the dock is visible — record their own scrolling content root
+ * directly (ForumList's grid, PersonalCenter's list, …), the same
+ * "sample the real content directly beneath" structure the sister
+ * FluxTie fork uses. The shell wrapper only records while some other
+ * destination is on top (the dock is hidden then; this keeps the
+ * texture warm and correct for the frames around tab-root transitions).
  *
  * Exactly one node records at a time: the decision is a pure function
  * of the current route, shared by the shell and both screens, so the
@@ -39,7 +39,8 @@ val LocalDockBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 
 /** The routes whose screens record the dock backdrop themselves. */
 fun Route?.isDockBackdropScreen(): Boolean =
-    this is Route.ForumList || this is Route.PersonalCenter
+    this is Route.ForumList || this is Route.Forums ||
+        this is Route.Favorites || this is Route.PersonalCenter
 
 /** Whether the shell wrapper (not a screen) records the dock backdrop. */
 fun dockShellRecordsBackdrop(current: Route?): Boolean =
