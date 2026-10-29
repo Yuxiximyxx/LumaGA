@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -47,14 +46,12 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import top.yukonga.miuix.kmp.basic.Button
@@ -72,7 +69,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -176,12 +172,14 @@ fun TopicDetailsScreen(
     route: Route.TopicDetails,
     editor: EditorController? = null,
 ) {
-    // The page capsule's backdrop doubles as the screen backdrop
+    // This screen's backdrop doubles as the screen backdrop
     // (v1.7.6): the content root records it for the screen's whole
-    // lifetime and every consumer — the capsule beside the list, the
-    // popup menus (⋮ and per-post) in the Scaffold's host — sits
-    // outside that recording. Hoisted here so the provider can wrap
-    // the Scaffold (see ScreenBackdrop.kt).
+    // lifetime and every consumer — the inline reply bar and the
+    // header round buttons beside the list, the popup menus (⋮ and
+    // per-post) in the Scaffold's host — sits outside that
+    // recording. (The page capsule that also sampled it was deleted
+    // in v1.8.4.) Hoisted here so the provider can wrap the Scaffold
+    // (see ScreenBackdrop.kt).
     val indicatorBackdrop = rememberLayerBackdrop()
     ScreenBackdropProvider(indicatorBackdrop) {
         TopicDetailsScreenContent(navigator, route, editor, indicatorBackdrop)
@@ -321,9 +319,10 @@ private fun TopicDetailsScreenContent(
 
     val listState = rememberLazyListState()
 
-    // The page capsule floats over the list as liquid glass (v1.7.1):
-    // originally the whole content box below was recorded into
-    // indicatorBackdrop and the capsule sampled the post content
+    // Backdrop history (the recording this screen's consumers —
+    // reply bar, header round buttons, menus — sample): originally
+    // (v1.7.1) the whole content box below was recorded into
+    // indicatorBackdrop and the consumers sampled the post content
     // itself. v1.8.1 crash isolation: since v1.7.1 some topics crash
     // on open (v1.7.0 opens them fine), and that content recording —
     // re-recording the richest subtree in the app (tables, inline
@@ -331,8 +330,8 @@ private fun TopicDetailsScreenContent(
     // the only content-dependent code the 1.7.1 window added to the
     // open path. The recording is therefore reduced to the page
     // background layer alone (see the recording node inside the
-    // content box below): the capsule / reply bar / menus keep the
-    // shared glass material over a flat page texture, and no post
+    // content box below): the reply bar / header buttons / menus
+    // keep the shared glass material over a flat page texture, and no post
     // content enters a graphics-layer recording from this screen.
     // v1.8.2 retried the single in-screen content recording (the glass
     // read flat without it) and the crash returned on device, so
@@ -432,29 +431,10 @@ private fun TopicDetailsScreenContent(
     }
     val currentRows by rememberUpdatedState(rows)
 
-    // 胶囊页码指示器：当前页取屏幕顶部第一个可见楼层所在页，
-    // 总页数取数据源。items/totalPages 是普通字段，靠 state
-    // 快照触发重算（数据源每次落盘都伴随 state 发射）。
-    val indicatorCurrentPage by remember(dataSource) {
-        derivedStateOf {
-            state.items
-            state.latestResponse
-            val floor = currentRows.drop(listState.firstVisibleItemIndex)
-                .firstOrNull { it is RowSpec.Reply }
-                ?.let { (it as RowSpec.Reply).post.floor }
-            floor?.let { f ->
-                dataSource.pagedItems()
-                    .firstOrNull { (_, its) -> its.any { it.floor == f } }
-                    ?.first
-            } ?: (dataSource.firstLoadedPage ?: 1)
-        }
-    }
-    val indicatorTotalPages by remember(dataSource) {
-        derivedStateOf {
-            state.latestResponse
-            dataSource.totalPages.coerceAtLeast(1)
-        }
-    }
+    // v1.8.4: the page-indicator capsule and its current/total page
+    // derived states are deleted wholesale (the user asked for the
+    // capsule to go). Page turns stay on the swipe gesture, the
+    // pull/load-back paths and the jump selector.
     LaunchedEffect(action, listState) {
         action.scrollToFloor.collect { floor ->
             if (floor != null) {
@@ -903,7 +883,18 @@ private fun TopicDetailsScreenContent(
                 IconButton(onClick = { navigator.pop() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                 }
-                Column(Modifier.weight(1f)) {
+                // v1.8.4: the title area doubles as a jump entry —
+                // tapping the forum name / floor-count line opens the
+                // jump selector (the ⋮ menu carries the same action).
+                Column(
+                    Modifier.weight(1f).then(
+                        if (!mock && onlyPostId == null) {
+                            Modifier.clickable { showJumpSelector = true }
+                        } else {
+                            Modifier
+                        },
+                    ),
+                ) {
                     Text(
                         atForum?.name
                             ?: topic.parentForum.takeIf { topic.hasParentForum() }?.name
@@ -935,20 +926,27 @@ private fun TopicDetailsScreenContent(
                     CircularProgressIndicator(size = 20.dp, strokeWidth = 2.dp)
                     Spacer(Modifier.size(12.dp))
                 }
-                val unread by App.notis.unreadCountAnimated.collectAsState()
-                IconButton(onClick = { navigator.push(Route.Notifications) }) {
-                    BadgedBox(badge = {
-                        if (unread > 0) Badge { Text(unread.toString()) }
-                    }) {
-                        Icon(Icons.Filled.Notifications, contentDescription = null)
-                    }
-                }
+                // v1.8.4: the header bell (notifications entry) is gone
+                // per the user's call — notifications live on the home
+                // header / personal center, not inside a topic.
                 if (!mock) {
                     // The mock's star button: the same favorite toggle
                     // the More menu carries.
+                    // v1.8.4 glass sweep: the header round buttons are
+                    // glass now, sampling this screen's (flat, by the
+                    // crash-isolation rule) backdrop like the reply bar.
                     Box(
-                        Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(MiuixTheme.colorScheme.surfaceContainer),
+                        Modifier.size(40.dp)
+                            .liquidGlass(
+                                backdrop = indicatorBackdrop,
+                                shape = androidx.compose.foundation.shape.CircleShape,
+                                spec = glass.spec,
+                                scheme = glass.scheme,
+                                shadowRadius = 8.dp,
+                                debugShowSample = glass.debugShowSample,
+                                debugColor = Color.Cyan,
+                            )
+                            .clip(androidx.compose.foundation.shape.CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         IconButton(
@@ -976,8 +974,17 @@ private fun TopicDetailsScreenContent(
                     Spacer(Modifier.size(10.dp))
                 }
                 Box(
-                    Modifier.size(40.dp).clip(androidx.compose.foundation.shape.CircleShape)
-                        .background(MiuixTheme.colorScheme.surfaceContainer),
+                    Modifier.size(40.dp)
+                        .liquidGlass(
+                            backdrop = indicatorBackdrop,
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            spec = glass.spec,
+                            scheme = glass.scheme,
+                            shadowRadius = 8.dp,
+                            debugShowSample = glass.debugShowSample,
+                            debugColor = Color.Cyan,
+                        )
+                        .clip(androidx.compose.foundation.shape.CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     TopicDetailsMoreMenu(
@@ -1012,8 +1019,17 @@ private fun TopicDetailsScreenContent(
                         },
                         onViewCached = { action.navigateToLocalMode.value = true },
                         onGotoForum = { forum -> action.navigateToForum.value = forum },
+                        // v1.8.4: no silent gate here anymore. The
+                        // entry used to wrap the open in
+                        // PlusModel.checkPlus(JUMP) — a silent
+                        // early-return with zero feedback, the same
+                        // pattern that made the topic list's pencil
+                        // button read as "clicks do nothing" — and the
+                        // only other entry was the page capsule, which
+                        // is deleted. Jump now opens directly, from
+                        // this menu and from the header title area.
                         onJump = if (!mock && onlyPostId == null) {
-                            { if (PlusModel.checkPlus(PlusFeature.JUMP)) showJumpSelector = true }
+                            { showJumpSelector = true }
                         } else null,
                         onLoadFirstPage = run {
                             val firstLoaded = dataSource.firstLoadedPage
@@ -1256,41 +1272,33 @@ private fun TopicDetailsScreenContent(
                     }
                 }
             }
-            // 胶囊页码指示器：长按展开横向页码列表，点击页码跳转。
-            // 单页帖子不展示；单帖视图（onlyPostId）与 mock 主题不展示；
-            // 可在设置-主题详情中关闭（底部快速翻页）。
-            val showQuickPageJump by App.prefs.topicDetailsShowQuickPageJump.flow.collectAsState()
-            if (!mock && onlyPostId == null && indicatorTotalPages >= 2 && showQuickPageJump) {
-                PageIndicatorOverlay(
-                    currentPage = indicatorCurrentPage,
-                    totalPages = indicatorTotalPages,
-                    isListScrolling = listState.isScrollInProgress,
-                    onJumpToPage = { page ->
-                        if (page != indicatorCurrentPage) {
-                            // 复用右上角菜单已有的跳转路径：目标页首楼层 + 从目标页重载。
-                            // 楼层是唯一真相来源（TopicJumpSelector）：page = (floor + 20) / 20，
-                            // 反推首楼层 floor = (page - 1) * 20。
-                            floorToJump = (page - 1) * Constants.postPerPage
-                            dataSource.loadFromPage = page
-                        }
-                    },
-                    // 点击胶囊：打开与右上角菜单相同的跳转弹窗。
-                    onTap = { showJumpSelector = true },
-                    backdrop = indicatorBackdrop,
-                    spec = glass.spec,
-                    scheme = glass.scheme,
-                    debugShowSample = glass.debugShowSample,
-                    // v1.8.2: stack above the floating reply bar instead
-                    // of overlapping it at the same bottom slot.
-                    stackAboveReplyBar = showReplyBar,
-                    // v1.8.3: clear the inline bar's target chip row too.
-                    replyBarExtraHeight = if (inlineReplyTarget != null) 36.dp else 0.dp,
-                )
-            }
+            // v1.8.4: the page-indicator capsule that floated here is
+            // deleted (component, stacking offsets and its settings
+            // toggle all gone). Nothing floats at the bottom of this
+            // screen except the inline reply bar below.
             }
         }
         }
         if (showReplyBar) {
+            // v1.8.4 IME follow: up to v1.8.3 the bar only carried
+            // navigationBarsPadding, so when the keyboard opened the
+            // bar stayed sunk at the very bottom, hidden behind the
+            // IME it had just summoned. The bottom inset is now
+            // max(ime, navigationBars): with the keyboard up the bar
+            // parks on the keyboard's top edge, with it down it falls
+            // back to exactly the old slot (nav inset + 12.dp). The
+            // ime inset is read in composition, so it tracks the
+            // system's IME animation frame by frame instead of
+            // jumping. (The list's bottom content padding is sized
+            // for the keyboard-down slot and deliberately unchanged:
+            // while typing, the bar floats over the list tail like
+            // every other messenger's input bar.)
+            val imeDensity = LocalDensity.current
+            val imeBottomPx = WindowInsets.ime.getBottom(imeDensity)
+            val navBottomPx = WindowInsets.navigationBars.getBottom(imeDensity)
+            val replyBarBottom = with(imeDensity) {
+                maxOf(imeBottomPx, navBottomPx).toDp()
+            } + 12.dp
             InlineReplyBar(
                 backdrop = indicatorBackdrop,
                 spec = glass.spec,
@@ -1306,8 +1314,7 @@ private fun TopicDetailsScreenContent(
                 onClearTarget = { inlineReplyTarget = null },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = replyBarBottom),
             )
         }
         }
@@ -1357,8 +1364,7 @@ private fun TopicDetailsScreenContent(
  * The floating reply bar of the topic screen (v1.8.0, per the confirmed
  * mock): a liquid-glass capsule in the shared glass recipe (same
  * resolution and three-material setting as the dock), sampling the
- * screen's own backdrop from OUTSIDE the recorded subtree — the same
- * consumer geometry as the page capsule.
+ * screen's own backdrop from OUTSIDE the recorded subtree.
  *
  * v1.8.3: the bar is a real input now. Up to v1.8.2 the whole bar was
  * a tap target opening the editor sheet (a SuperBottomSheet in its

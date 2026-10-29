@@ -21,7 +21,6 @@ import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.MoreVert
@@ -38,6 +37,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,6 +63,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -77,6 +78,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.model.NavigationIdentifier
 import com.bugenzhao.mnga.ui.components.GlassButton
+import com.bugenzhao.mnga.ui.components.liquidGlass
 import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuHeader
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
@@ -272,11 +274,12 @@ private fun TopicListScreenContent(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // -- New topic flow (Plus-gated, via the global editor controller).
-    fun newTopic() {
-        if (!PlusModel.checkPlus(PlusFeature.NEW_TOPIC)) return
-        editor?.newTopic(forum)
-    }
+    // v1.8.4: the header pencil (new topic) button and its local
+    // newTopic() flow are deleted — the button read as dead on device
+    // (its Plus check silently returned) and the user asked for it to
+    // go. No other new-topic entry exists on this screen (the ⋮ menu
+    // never carried one); the editor's newTopic path itself is
+    // untouched for any other caller.
 
     var moreMenuExpanded by remember { mutableStateOf(false) }
     // v1.8.2: home-forum picker, opened from the tab-root header button.
@@ -310,43 +313,30 @@ private fun TopicListScreenContent(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
             .exclude(WindowInsets.navigationBars),
         floatingActionButton = {
-            if (showRefreshButton && !dataSource.isInitialLoading) {
-                GlassButton(
+            // Pushed (non-tab-root) lists keep the Scaffold FAB slot.
+            // The tab-root form does NOT use this slot anymore (v1.8.4):
+            // the Scaffold anchors the FAB with its own 16.dp spacing
+            // on top of the lift below, so the total distance to the
+            // dock drifted with the scaffold's inset handling and read
+            // as detached from the dock on device. As a tab root the
+            // FAB is an overlay in the content Box instead, placed in
+            // the dock's own coordinate system (see below).
+            if (!asTabRoot && showRefreshButton && !dataSource.isInitialLoading) {
+                TopicListRefreshFab(
                     backdrop = fabBackdrop,
                     spec = glass.spec,
                     scheme = glass.scheme,
-                    // As a tab root the floating dock owns the bottom
-                    // center — lift the FAB clear of it (v1.8.1).
-                    modifier = if (asTabRoot) {
-                        Modifier.padding(bottom = TabDockHeight + TabDockBottomGap)
-                    } else {
-                        Modifier
-                    },
+                    isRefreshing = state.isRefreshing,
                     onClick = {
                         if (!state.isLoading && !state.isRefreshing) triggerRefresh()
                     },
-                    size = 56.dp,
-                    shape = RoundedCornerShape(16.dp),
                     debugShowSample = glass.debugShowSample,
-                    debugColor = Color.Cyan,
-                ) {
-                    if (state.isRefreshing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Icon(
-                            Icons.Outlined.Refresh,
-                            contentDescription = L.str(context, "Refresh"),
-                            tint = glassContentColor(glass.scheme),
-                        )
-                    }
-                }
+                )
             }
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize()) {
             // Large-title header (v1.8.0 MIUIX layout, per the confirmed
             // mock): back chevron, the forum name as a big title (the
             // parent forum rides as its subtitle), round action buttons.
@@ -372,7 +362,13 @@ private fun TopicListScreenContent(
                     // v1.8.2: the home-forum picker entry also lives at
                     // the top-left in the customized home form (same
                     // button as the default home's title bar).
-                    TopicListRoundButton(onClick = { showHomeForumPicker = true }) {
+                    TopicListRoundButton(
+                        onClick = { showHomeForumPicker = true },
+                        backdrop = fabBackdrop,
+                        spec = glass.spec,
+                        scheme = glass.scheme,
+                        debugShowSample = glass.debugShowSample,
+                    ) {
                         Icon(
                             Icons.Outlined.Tune,
                             contentDescription = L.str(context, "Home Forum"),
@@ -403,7 +399,13 @@ private fun TopicListScreenContent(
                 }
                 if (mode == TopicListMode.HOT) {
                     Box {
-                        TopicListRoundButton(onClick = { rangeMenuExpanded = true }) {
+                        TopicListRoundButton(
+                        onClick = { rangeMenuExpanded = true },
+                        backdrop = fabBackdrop,
+                        spec = glass.spec,
+                        scheme = glass.scheme,
+                        debugShowSample = glass.debugShowSample,
+                    ) {
                             Icon(
                                 Icons.Outlined.DateRange,
                                 contentDescription = L.str(context, "Range"),
@@ -457,16 +459,14 @@ private fun TopicListScreenContent(
                         }
                     }
                 } else {
-                    if (!mock && signedIn && editor != null) {
-                        IconButton(onClick = { newTopic() }) {
-                            Icon(
-                                Icons.Outlined.Edit,
-                                contentDescription = L.str(context, "New Topic"),
-                            )
-                        }
-                    }
                     Box {
-                        TopicListRoundButton(onClick = { moreMenuExpanded = true }) {
+                        TopicListRoundButton(
+                        onClick = { moreMenuExpanded = true },
+                        backdrop = fabBackdrop,
+                        spec = glass.spec,
+                        scheme = glass.scheme,
+                        debugShowSample = glass.debugShowSample,
+                    ) {
                             Icon(
                                 Icons.Outlined.MoreVert,
                                 contentDescription = L.str(context, "More"),
@@ -528,6 +528,10 @@ private fun TopicListScreenContent(
                     }
                     Spacer(Modifier.size(10.dp))
                     TopicListRoundButton(
+                            backdrop = fabBackdrop,
+                            spec = glass.spec,
+                            scheme = glass.scheme,
+                            debugShowSample = glass.debugShowSample,
                         onClick = { navigator.push(Route.TopicSearch(forumId = forumId)) },
                     ) {
                         Icon(
@@ -549,6 +553,10 @@ private fun TopicListScreenContent(
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
             ) {
                 TopicFilterChip(
+                    backdrop = fabBackdrop,
+                    spec = glass.spec,
+                    scheme = glass.scheme,
+                    debugShowSample = glass.debugShowSample,
                     text = "最新回复",
                     selected = mode == TopicListMode.NORMAL &&
                         orderOrDefault == TopicListOrder.LAST_POST,
@@ -561,6 +569,10 @@ private fun TopicListScreenContent(
                     },
                 )
                 TopicFilterChip(
+                    backdrop = fabBackdrop,
+                    spec = glass.spec,
+                    scheme = glass.scheme,
+                    debugShowSample = glass.debugShowSample,
                     text = "最新发布",
                     selected = mode == TopicListMode.NORMAL &&
                         orderOrDefault == TopicListOrder.POST_DATE,
@@ -573,6 +585,10 @@ private fun TopicListScreenContent(
                     },
                 )
                 TopicFilterChip(
+                    backdrop = fabBackdrop,
+                    spec = glass.spec,
+                    scheme = glass.scheme,
+                    debugShowSample = glass.debugShowSample,
                     text = "精华",
                     selected = mode == TopicListMode.RECOMMENDED,
                     onClick = {
@@ -594,6 +610,10 @@ private fun TopicListScreenContent(
                     },
                 )
                 TopicFilterChip(
+                    backdrop = fabBackdrop,
+                    spec = glass.spec,
+                    scheme = glass.scheme,
+                    debugShowSample = glass.debugShowSample,
                     text = "热帖",
                     selected = mode == TopicListMode.HOT,
                     onClick = {
@@ -681,6 +701,36 @@ private fun TopicListScreenContent(
             )
             }
         }
+        if (asTabRoot && showRefreshButton && !dataSource.isInitialLoading) {
+            // v1.8.4: the tab-root refresh FAB, grouped with the dock.
+            // Same coordinate system as the dock itself (the root
+            // shell anchors the dock with navigationBarsPadding +
+            // TabDockBottomGap): the FAB's bottom edge sits a fixed
+            // 12.dp above the dock's top edge, on any device, instead
+            // of the old Scaffold-slot placement (a 78.dp lift stacked
+            // on the slot's own spacing and inset handling, which put
+            // it visibly far from the dock on device). The list's
+            // bottom content padding already clears this slot (it
+            // takes the max of the dock padding and 72.dp).
+            TopicListRefreshFab(
+                backdrop = fabBackdrop,
+                spec = glass.spec,
+                scheme = glass.scheme,
+                isRefreshing = state.isRefreshing,
+                onClick = {
+                    if (!state.isLoading && !state.isRefreshing) triggerRefresh()
+                },
+                debugShowSample = glass.debugShowSample,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(
+                        end = 16.dp,
+                        bottom = TabDockHeight + TabDockBottomGap + 12.dp,
+                    ),
+            )
+        }
+        }
     }
 
     if (showHomeForumPicker) {
@@ -690,39 +740,121 @@ private fun TopicListScreenContent(
     }
 }
 
-/** Round raised button of the topic list's large-title header (mock). */
+/**
+ * The topic list's refresh FAB (liquid glass), shared by the two
+ * placements: the Scaffold slot of pushed lists and the dock-grouped
+ * overlay of the tab-root form (v1.8.4).
+ */
+@Composable
+private fun TopicListRefreshFab(
+    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
+    spec: com.bugenzhao.mnga.ui.root.GlassSpec,
+    scheme: com.bugenzhao.mnga.ui.root.DockScheme,
+    isRefreshing: Boolean,
+    onClick: () -> Unit,
+    debugShowSample: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    GlassButton(
+        backdrop = backdrop,
+        spec = spec,
+        scheme = scheme,
+        modifier = modifier,
+        onClick = onClick,
+        size = 56.dp,
+        shape = RoundedCornerShape(16.dp),
+        debugShowSample = debugShowSample,
+        debugColor = Color.Cyan,
+    ) {
+        if (isRefreshing) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+            )
+        } else {
+            Icon(
+                Icons.Outlined.Refresh,
+                contentDescription = L.str(context, "Refresh"),
+                tint = glassContentColor(scheme),
+            )
+        }
+    }
+}
+
+/**
+ * Round button of the topic list's large-title header. v1.8.4 glass
+ * sweep: liquid glass sampling the list's backdrop — the header sits
+ * in the Column ABOVE the recorded list box, so the button is a
+ * consumer outside the recorded subtree (the same geometry as this
+ * screen's menus); at the header's position the texture's top edge
+ * is page background, so the buttons read as frosted pills over the
+ * page, exactly the reply-bar treatment on the topic screen.
+ */
 @Composable
 private fun TopicListRoundButton(
     onClick: () -> Unit,
+    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
+    spec: com.bugenzhao.mnga.ui.root.GlassSpec,
+    scheme: com.bugenzhao.mnga.ui.root.DockScheme,
+    debugShowSample: Boolean,
     content: @Composable () -> Unit,
 ) {
     Box(
         Modifier
             .size(40.dp)
+            .liquidGlass(
+                backdrop = backdrop,
+                shape = androidx.compose.foundation.shape.CircleShape,
+                spec = spec,
+                scheme = scheme,
+                shadowRadius = 8.dp,
+                debugShowSample = debugShowSample,
+                debugColor = Color.Cyan,
+            )
             .clip(androidx.compose.foundation.shape.CircleShape)
-            .background(MiuixTheme.colorScheme.surfaceContainer)
             .clickable(onClick = onClick),
-        contentAlignment = androidx.compose.ui.Alignment.Center,
+        contentAlignment = Alignment.Center,
     ) {
         content()
     }
 }
 
-/** One capsule of the topic list's filter row (the mock's chip bar). */
+/**
+ * One capsule of the topic list's filter row (the mock's chip bar).
+ * v1.8.4 glass sweep: unselected chips are liquid glass (same
+ * consumer geometry as [TopicListRoundButton]); the selected chip
+ * stays solid primary — it is a state indicator, not a floating
+ * surface, and glass-on-primary would wash the affordance out.
+ */
 @Composable
 private fun TopicFilterChip(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
+    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
+    spec: com.bugenzhao.mnga.ui.root.GlassSpec,
+    scheme: com.bugenzhao.mnga.ui.root.DockScheme,
+    debugShowSample: Boolean,
 ) {
+    val chipShape = RoundedCornerShape(percent = 50)
     Box(
         Modifier
-            .clip(RoundedCornerShape(percent = 50))
-            .background(
+            .then(
                 if (selected) {
-                    MiuixTheme.colorScheme.primary
+                    Modifier
+                        .clip(chipShape)
+                        .background(MiuixTheme.colorScheme.primary)
                 } else {
-                    MiuixTheme.colorScheme.surfaceContainer
+                    Modifier.liquidGlass(
+                        backdrop = backdrop,
+                        shape = chipShape,
+                        spec = spec,
+                        scheme = scheme,
+                        shadowRadius = 8.dp,
+                        debugShowSample = debugShowSample,
+                        debugColor = Color.Cyan,
+                    ).clip(chipShape)
                 },
             )
             .clickable(onClick = onClick)

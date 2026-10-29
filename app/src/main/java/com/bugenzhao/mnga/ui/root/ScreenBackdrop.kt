@@ -83,6 +83,26 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * IS true glass: the viewer records and consumes inside its own
  * window (see ImageViewer.kt), which works because the sampled
  * content lives in the same window.
+ *
+ * Second sweep (v1.8.4) — the header control layer joins:
+ * - The topic list's header round buttons (home-forum picker, range,
+ *   more, search) and its unselected filter chips are glass now: the
+ *   header and chip row sit in the Column ABOVE that screen's
+ *   recorded list box — consumers outside the recorded subtree,
+ *   sampling the texture's top edge (page background), the same
+ *   frosted read as the topic screen's consumers. The selected chip
+ *   stays solid primary (a state indicator, not a floating surface).
+ * - The home tab's TopAppBar icon buttons (picker, bell, search,
+ *   more) are glass circles sampling this screen's published
+ *   backdrop; the bar is a Scaffold slot, sibling of the recorded
+ *   content. The topic screen's header star / more circles joined
+ *   the same way (over its flat, crash-isolated backdrop).
+ * - NOT converted, by geometry: the forum directory's title-row
+ *   buttons and the favorites / personal-center headers live INSIDE
+ *   their screens' recorded scrolling content (the tab roots record
+ *   the whole scrolling root for the dock) — glass there would be a
+ *   consumer inside its own recording, the forbidden geometry.
+ *   Same for every in-list row button everywhere.
  */
 val LocalScreenBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 
