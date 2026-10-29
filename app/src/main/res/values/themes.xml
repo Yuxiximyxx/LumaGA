@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Status-bar immersion (v1.8.3): the bars are transparent and the
+         content draws edge-to-edge. The static light-bar flags are NOT
+         set here on purpose — they would force dark status icons even
+         in the dark scheme for the frames before Compose runs; the
+         insets controller in LumaGATheme (Theme.kt) owns the icon
+         appearance and follows the active color scheme. -->
     <style name="Theme.LumaGA" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

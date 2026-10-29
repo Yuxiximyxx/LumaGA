@@ -57,9 +57,25 @@ fun Route?.isDockBackdropScreen(): Boolean =
  * The dock is hidden while a topic is open, and the tab roots record
  * themselves again on return, so skipping the shell recording here
  * costs nothing on screen.
+ *
+ * The search routes are excluded (v1.8.3, "search tap crashes"
+ * device report): since v1.8.2 the search destinations (GlobalSearch
+ * and TopicSearch both render SearchScreen) are floating windows
+ * whose panel samples the registry's active backdrop — which for the
+ * tab roots IS this shared dock backdrop — from INSIDE the navigation
+ * host. With the shell recording the whole host into that very layer,
+ * the panel was a backdrop consumer sitting inside its own recording:
+ * the v1.7.3 crash geometry (see GlassOverlaySurface.kt), fatal the
+ * moment the window opened. The toast host can sample the same layer
+ * safely only because it lives OUTSIDE the host. With search on top
+ * nothing records the dock backdrop (the covered tab root is no
+ * longer "current" either), so the panel samples the layer's last
+ * recorded frame — a still of the covered page, which is all a blurred
+ * window background needs.
  */
 fun dockShellRecordsBackdrop(current: Route?): Boolean =
-    !current.isDockBackdropScreen() && current !is Route.TopicDetails
+    !current.isDockBackdropScreen() && current !is Route.TopicDetails &&
+        current !is Route.GlobalSearch && current !is Route.TopicSearch
 
 /**
  * The recording modifier for a tab-root screen's content root: records

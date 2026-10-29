@@ -23,6 +23,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Reply
@@ -38,6 +41,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
@@ -92,6 +97,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -99,6 +110,7 @@ import androidx.compose.ui.unit.sp
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.logicCall
 import com.bugenzhao.mnga.model.GenericPostModel
+import com.bugenzhao.mnga.model.display
 import com.bugenzhao.mnga.model.NavigationIdentifier
 import com.bugenzhao.mnga.model.PlusFeature
 import com.bugenzhao.mnga.model.PlusModel
@@ -310,18 +322,23 @@ private fun TopicDetailsScreenContent(
     val listState = rememberLazyListState()
 
     // The page capsule floats over the list as liquid glass (v1.7.1):
-    // the whole content box below is recorded into indicatorBackdrop
-    // and the capsule / reply bar / menus sample the post content
-    // itself. History: v1.8.1 crash isolation reduced that recording to
-    // the page background layer alone (since v1.7.1 some topics crashed
-    // on open, and content recording was the only content-dependent
-    // code the 1.7.1 window added to the open path) — the crash was
-    // confirmed fixed by the user on v1.8.1, but the glass read as a
-    // flat solid fill. v1.8.2 therefore restores the SINGLE in-screen
-    // content recording while keeping the other half of the isolation:
-    // the shell's dock backdrop still never records while a
-    // TopicDetails is on top (DockBackdrop.kt), so this subtree is
-    // recorded exactly once, never twice nested as in 1.8.0.
+    // originally the whole content box below was recorded into
+    // indicatorBackdrop and the capsule sampled the post content
+    // itself. v1.8.1 crash isolation: since v1.7.1 some topics crash
+    // on open (v1.7.0 opens them fine), and that content recording —
+    // re-recording the richest subtree in the app (tables, inline
+    // images, quote layers) into a graphics layer on every draw — is
+    // the only content-dependent code the 1.7.1 window added to the
+    // open path. The recording is therefore reduced to the page
+    // background layer alone (see the recording node inside the
+    // content box below): the capsule / reply bar / menus keep the
+    // shared glass material over a flat page texture, and no post
+    // content enters a graphics-layer recording from this screen.
+    // v1.8.2 retried the single in-screen content recording (the glass
+    // read flat without it) and the crash returned on device, so
+    // v1.8.3 restores this isolation for good; the shell's dock
+    // backdrop likewise never records while a TopicDetails is on top
+    // (DockBackdrop.kt).
     // (The backdrop itself is remembered by the entry point above,
     // which also publishes it as this screen's menu/toast sampling
     // source.)
@@ -631,6 +648,75 @@ private fun TopicDetailsScreenContent(
     // under exactly the conditions of the More menu's Reply entry.
     val showReplyBar = onlyPostId == null && !mock && first != null && editor != null
 
+    // Inline reply state (v1.8.3): the bar is a REAL text field in
+    // this window now, not a tap target that opens the editor sheet —
+    // two rounds of sheet focus/IME fixes never made the sheet's field
+    // accept input on device ("tap animates, nothing can be typed").
+    // [inlineReplyTarget] is the post the next send replies to; null
+    // means the OP, the bar's historic target. A floor's Reply action
+    // is routed here (focus the field, show the target chip); every
+    // other post action (quote / comment / modify / report) keeps the
+    // editor-sheet path via [onPostAction].
+    var inlineReplyTarget by remember(route) { mutableStateOf<Post?>(null) }
+    var inlineReplyText by remember(route) { mutableStateOf(TextFieldValue("")) }
+    var inlineReplySending by remember(route) { mutableStateOf(false) }
+    val inlineReplyFocus = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var inlineFocusEpoch by remember(route) { mutableStateOf(0) }
+    LaunchedEffect(inlineFocusEpoch) {
+        if (inlineFocusEpoch > 0) {
+            runCatching { inlineReplyFocus.requestFocus() }
+            keyboardController?.show()
+        }
+    }
+    val focusInlineReply: (Post) -> Unit = { post ->
+        inlineReplyTarget = post.takeIf { it.id != first?.id }
+        inlineFocusEpoch++
+    }
+    val effectiveOnPostAction: ((action: String, post: Post) -> Unit)? =
+        if (onPostAction == null) {
+            null
+        } else {
+            { postAction, post ->
+                if (postAction == PostRowAction.REPLY) {
+                    focusInlineReply(post)
+                } else {
+                    onPostAction(postAction, post)
+                }
+            }
+        }
+
+    /** Send the bar's text as a reply to the current target. */
+    fun sendInlineReply() {
+        val ctrl = editor ?: return
+        val targetPost = inlineReplyTarget ?: first ?: return
+        val content = inlineReplyText.text
+        if (content.isBlank() || inlineReplySending) return
+        inlineReplySending = true
+        ctrl.sendReplyInline(ctrl.replyTask(targetPost), content) { ok ->
+            inlineReplySending = false
+            if (ok) {
+                inlineReplyText = TextFieldValue("")
+                inlineReplyTarget = null
+                keyboardController?.hide()
+            }
+        }
+    }
+
+    /** Hand the bar's text and target over to the full editor. */
+    fun expandInlineReply() {
+        val ctrl = editor ?: return
+        val targetPost = inlineReplyTarget ?: first ?: return
+        if (ctrl.postReply.showEditor.value) return
+        val draft = inlineReplyText.text
+        ctrl.replyWithDraft(targetPost, draft)
+        // The editor owns the text now; clear the bar so the same
+        // words cannot be sent twice.
+        inlineReplyText = TextFieldValue("")
+        inlineReplyTarget = null
+        keyboardController?.hide()
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
             .exclude(WindowInsets.navigationBars),
@@ -939,7 +1025,7 @@ private fun TopicDetailsScreenContent(
                             } else null
                         },
                         onReply = if (onlyPostId == null && !mock && first != null) {
-                            { onPostAction?.invoke(PostRowAction.REPLY, first) }
+                            { focusInlineReply(first) }
                         } else null,
                         onGotoTopic = if (onlyPostId != null && topic.id.isNotEmpty()) {
                             {
@@ -968,17 +1054,22 @@ private fun TopicDetailsScreenContent(
             modifier = Modifier.weight(1f),
         ) {
             Box(
+                Modifier.fillMaxSize().recordedPageBackground(),
+            ) {
+            // v1.8.1 crash isolation, restored in v1.8.3 (see the note
+            // at rememberGlassSettings above and DockBackdrop.kt):
+            // ONLY this page-background layer is recorded into
+            // indicatorBackdrop — same bounds as the content box, so
+            // consumer coordinates are unchanged — never the post
+            // content itself. It paints the same surface color the
+            // Scaffold already puts beneath the content, so nothing
+            // changes on screen. v1.8.2 retried the single in-screen
+            // content recording and the device crash returned with it;
+            // do not record post content from this screen again.
+            Box(
                 Modifier.fillMaxSize().layerBackdrop(indicatorBackdrop)
                     .recordedPageBackground(),
-            ) {
-            // v1.8.2: the single in-screen content recording is back (the
-            // v1.8.0 geometry above) so the page capsule / reply bar /
-            // menus sample the real post content again — v1.8.1 had cut
-            // this to a flat page-color layer and the glass read as a
-            // solid fill. This remains the ONLY recording of this
-            // subtree: the shell-level dock recording stays excluded for
-            // TopicDetails (see DockBackdrop.kt), so the 1.8.0-era
-            // double nested recording is NOT restored.
+            )
             if (localMode) {
                 LocalCacheBanner(
                     reason = response?.localReason ?: "",
@@ -1049,7 +1140,13 @@ private fun TopicDetailsScreenContent(
                         start = 16.dp,
                         end = 16.dp,
                         top = 8.dp,
-                        bottom = if (showReplyBar) 100.dp else 8.dp,
+                        // Reply bar slot: 100.dp for the single-row bar;
+                        // the target chip row adds its height on top.
+                        bottom = if (showReplyBar) {
+                            if (inlineReplyTarget != null) 136.dp else 100.dp
+                        } else {
+                            8.dp
+                        },
                     ),
                 ) {
                     // 自动加载上一页时，顶部居中显示加载提示。
@@ -1126,7 +1223,7 @@ private fun TopicDetailsScreenContent(
                                 locateFloor = childLocateFloor,
                                 dataSource = dataSource,
                                 currentViewingFloor = currentViewingFloor,
-                                onPostAction = onPostAction,
+                                onPostAction = effectiveOnPostAction,
                                 onLoadNewReplies = {
                                     dataSource.reloadLastPage(evenIfNotLoaded = true) {
                                         Haptics.vibrate(context, Haptics.NotificationType.SUCCESS)
@@ -1186,20 +1283,27 @@ private fun TopicDetailsScreenContent(
                     // v1.8.2: stack above the floating reply bar instead
                     // of overlapping it at the same bottom slot.
                     stackAboveReplyBar = showReplyBar,
+                    // v1.8.3: clear the inline bar's target chip row too.
+                    replyBarExtraHeight = if (inlineReplyTarget != null) 36.dp else 0.dp,
                 )
             }
             }
         }
         }
         if (showReplyBar) {
-            FloatingReplyBar(
+            InlineReplyBar(
                 backdrop = indicatorBackdrop,
                 spec = glass.spec,
                 scheme = glass.scheme,
                 debugShowSample = glass.debugShowSample,
-                onClick = {
-                    first?.let { onPostAction?.invoke(PostRowAction.REPLY, it) }
-                },
+                target = inlineReplyTarget,
+                text = inlineReplyText,
+                onTextChange = { inlineReplyText = it },
+                focusRequester = inlineReplyFocus,
+                sending = inlineReplySending,
+                onSend = { sendInlineReply() },
+                onExpand = { expandInlineReply() },
+                onClearTarget = { inlineReplyTarget = null },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
@@ -1253,25 +1357,46 @@ private fun TopicDetailsScreenContent(
  * The floating reply bar of the topic screen (v1.8.0, per the confirmed
  * mock): a liquid-glass capsule in the shared glass recipe (same
  * resolution and three-material setting as the dock), sampling the
- * screen's own content recording from OUTSIDE the recorded subtree —
- * the same consumer geometry as the page capsule. The whole bar (and
- * its 发送 pill) opens the editor replying to the OP, the exact path
- * of the More menu's Reply entry.
+ * screen's own backdrop from OUTSIDE the recorded subtree — the same
+ * consumer geometry as the page capsule.
+ *
+ * v1.8.3: the bar is a real input now. Up to v1.8.2 the whole bar was
+ * a tap target opening the editor sheet (a SuperBottomSheet in its
+ * own Dialog window), and on device the tap animated but text could
+ * never be entered — two rounds of focus/IME hardening inside that
+ * sheet did not change it. The field below lives in THIS window:
+ * tapping it focuses and raises the IME directly, the 发送 pill posts
+ * through PostReplyModel.sendDirect (the editor's own requests), and
+ * the expand button hands the typed text to the full editor for the
+ * flows that need it (attachments, stickers, …). When a floor's Reply
+ * action targeted another post, a chip row names that target and can
+ * clear it back to the OP.
  */
 @Composable
-private fun FloatingReplyBar(
+private fun InlineReplyBar(
     backdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
     spec: GlassSpec,
     scheme: DockScheme,
     debugShowSample: Boolean,
-    onClick: () -> Unit,
+    target: Post?,
+    text: TextFieldValue,
+    onTextChange: (TextFieldValue) -> Unit,
+    focusRequester: FocusRequester,
+    sending: Boolean,
+    onSend: () -> Unit,
+    onExpand: () -> Unit,
+    onClearTarget: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(percent = 50)
-    Row(
+    val context = LocalContext.current
+    val shape = if (target != null) {
+        RoundedCornerShape(26.dp)
+    } else {
+        RoundedCornerShape(percent = 50)
+    }
+    Column(
         modifier
             .fillMaxWidth()
-            .height(56.dp)
             .liquidGlass(
                 backdrop = backdrop,
                 shape = shape,
@@ -1282,29 +1407,102 @@ private fun FloatingReplyBar(
                 debugColor = Color.Cyan,
             )
             .clip(shape)
-            .clickable(onClick = onClick)
-            .padding(start = 20.dp, end = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
     ) {
-        Text(
-            "回复楼主…",
-            style = MiuixTheme.textStyles.body1,
-            color = glassContentColor(scheme),
-        )
-        Spacer(Modifier.weight(1f))
-        Box(
-            Modifier
-                .clip(RoundedCornerShape(percent = 50))
-                .background(MiuixTheme.colorScheme.primary)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 22.dp, vertical = 10.dp),
+        if (target != null) {
+            val authorName = App.users.cachedUser(target.authorId)
+                ?.name?.display()?.takeIf { it.isNotEmpty() }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 4.dp, bottom = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (authorName != null) {
+                        "回复 #${target.floor} 楼 · $authorName"
+                    } else {
+                        "回复 #${target.floor} 楼"
+                    },
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = glassContentColor(scheme),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    Icons.Outlined.Close,
+                    contentDescription = "取消回复目标",
+                    tint = glassContentColor(scheme),
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(percent = 50))
+                        .clickable(onClick = onClearTarget)
+                        .padding(5.dp),
+                )
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                "发送",
-                style = MiuixTheme.textStyles.body1,
-                fontWeight = FontWeight.SemiBold,
-                color = MiuixTheme.colorScheme.onPrimary,
-            )
+            Box(
+                Modifier.weight(1f).padding(start = 4.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (text.text.isEmpty()) {
+                    Text(
+                        if (target != null) "回复这一楼…" else "回复楼主…",
+                        style = MiuixTheme.textStyles.body1,
+                        color = glassContentColor(scheme).copy(alpha = 0.6f),
+                        maxLines = 1,
+                    )
+                }
+                BasicTextField(
+                    value = text,
+                    onValueChange = onTextChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                    textStyle = MiuixTheme.textStyles.body1.copy(
+                        color = glassContentColor(scheme),
+                    ),
+                    cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { onSend() }),
+                    maxLines = 4,
+                )
+            }
+            IconButton(onClick = onExpand) {
+                Icon(
+                    Icons.Outlined.OpenInFull,
+                    contentDescription = L.str(context, "Open Editor"),
+                    tint = glassContentColor(scheme),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            val canSend = text.text.isNotBlank() && !sending
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(
+                        if (canSend) {
+                            MiuixTheme.colorScheme.primary
+                        } else {
+                            MiuixTheme.colorScheme.primary.copy(alpha = 0.45f)
+                        }
+                    )
+                    .clickable(enabled = canSend, onClick = onSend)
+                    .padding(horizontal = 22.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    if (sending) "发送中…" else "发送",
+                    style = MiuixTheme.textStyles.body1,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MiuixTheme.colorScheme.onPrimary,
+                )
+            }
         }
     }
 }

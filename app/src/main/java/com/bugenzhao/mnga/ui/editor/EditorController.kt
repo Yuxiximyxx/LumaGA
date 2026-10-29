@@ -10,6 +10,9 @@ import com.bugenzhao.mnga.protos.datamodel.PostId
 import com.bugenzhao.mnga.protos.datamodel.PostReplyAction
 import com.bugenzhao.mnga.protos.datamodel.Topic
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Facade over the two editor models, mirroring the SwiftUI environment
@@ -93,6 +96,51 @@ class EditorController(val scope: CoroutineScope) {
                     .build(),
             ),
         )
+    }
+
+    /**
+     * The REPLY task for [post], exposed for the topic screen's inline
+     * reply bar (v1.8.3): identical to what [reply] would show the
+     * editor — same operation, post id, forum id and reload page — so
+     * an inline send is semantically the editor's reply send.
+     */
+    fun replyTask(post: Post): PostReplyTask =
+        replyAction(post, PostReplyAction.Operation.REPLY)
+
+    /**
+     * Send [content] as a reply per [task] without opening the editor
+     * (see PostReplyModel.sendDirect). [onResult] reports success; the
+     * shared `sent` flow fires on success either way.
+     */
+    fun sendReplyInline(
+        task: PostReplyTask,
+        content: String,
+        onResult: (Boolean) -> Unit,
+    ) {
+        postReply.sendDirect(task, content, onResult)
+    }
+
+    /**
+     * Open the full editor replying to [post], carrying [draft] (text
+     * already typed into the inline reply bar) into the editor's
+     * content once its context is built. No-op while the editor is
+     * already open, mirroring [GenericPostModel.show]'s own guard.
+     */
+    fun replyWithDraft(post: Post, draft: String) {
+        if (postReply.showEditor.value) return
+        val task = replyAction(post, PostReplyAction.Operation.REPLY)
+        postReply.show(task)
+        if (draft.isBlank()) return
+        scope.launch {
+            val built = withTimeoutOrNull(5_000) {
+                postReply.context.first {
+                    it?.task?.hashKey == task.hashKey
+                }
+            }
+            if (built != null) {
+                postReply.update { it.copy(content = draft) }
+            }
+        }
     }
 
     private fun replyAction(

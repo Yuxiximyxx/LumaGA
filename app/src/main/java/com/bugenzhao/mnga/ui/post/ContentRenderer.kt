@@ -1076,7 +1076,14 @@ internal class ContentCombiner(
             when (tokens[i].lowercase()) {
                 "innerhtml" -> { innerHTML = value; i++ }
                 "font" -> {
-                    value?.toFloatOrNull()?.let { fontScale = styleFontScale(it) }
+                    // toFloatOrNull accepts "NaN"/"Infinity": either
+                    // would poison the scale and throw when the font
+                    // size is measured. Non-finite steps are ignored
+                    // (v1.8.3 fault-tolerance pass over this parser —
+                    // every other parse here is already null-safe:
+                    // toLongOrNull for colors, getOrNull for tokens).
+                    value?.toFloatOrNull()?.takeIf { it.isFinite() }
+                        ?.let { fontScale = styleFontScale(it) }
                     i++
                 }
                 "background" -> {

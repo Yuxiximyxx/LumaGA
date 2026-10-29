@@ -16,6 +16,7 @@ import com.bugenzhao.mnga.protos.service.UploadAttachmentRequest
 import com.bugenzhao.mnga.protos.service.UploadAttachmentResponse
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * One posting intent, ported from `PostReplyTask` in `PostEditorView.swift`.
@@ -71,7 +72,7 @@ data class PostReplyTask(
  * Compose-and-send model for every topic posting flow (reply, quote, comment,
  * modify, report, new topic), ported from `PostReplyModel`.
  */
-class PostReplyModel(scope: CoroutineScope) : GenericPostModel(scope) {
+class PostReplyModel(private val modelScope: CoroutineScope) : GenericPostModel(modelScope) {
 
     override suspend fun buildContext(task: GenericPostModel.Task) {
         if (task !is PostReplyTask) return
@@ -121,7 +122,16 @@ class PostReplyModel(scope: CoroutineScope) : GenericPostModel(scope) {
     }
 
     override suspend fun doSend(context: GenericPostModel.Context) {
-        val task = context.task as? PostReplyTask ?: return
+        if (performSend(context)) onSendSuccess(context) else onSendError()
+    }
+
+    /**
+     * The raw PostReply request for [context] — everything [doSend]
+     * does except the editor state transitions. Shows the error toast
+     * on failure, like the editor path.
+     */
+    private suspend fun performSend(context: GenericPostModel.Context): Boolean {
+        val task = context.task as? PostReplyTask ?: return false
         val builder =
             PostReplyRequest.newBuilder()
                 .setAction(task.action)
@@ -136,13 +146,67 @@ class PostReplyModel(scope: CoroutineScope) : GenericPostModel(scope) {
                 PostReplyResponse.parser(),
             )
 
-        response.fold(
-            onSuccess = { onSendSuccess(context) },
+        return response.fold(
+            onSuccess = { true },
             onFailure = { e ->
                 ToastModel.editorAlert.show(ToastModel.Message.Error(e.message ?: "error"))
-                onSendError()
+                false
             },
         )
+    }
+
+    /**
+     * Headless send for the topic screen's inline reply bar (v1.8.3):
+     * the same two requests the editor makes — fetch the verbatim for
+     * [task], then post — without ever opening the editor sheet. On
+     * success the shared [GenericPostModel.sent] flow fires via
+     * [onSendSuccess], so the details screen's post-send page reload
+     * works exactly as it does for an editor send. The sheet's focus /
+     * IME state machine is not involved at all.
+     */
+    fun sendDirect(
+        task: PostReplyTask,
+        content: String,
+        onResult: (Boolean) -> Unit,
+    ) {
+        modelScope.launch {
+            val fetch =
+                logicCallAsync(
+                    AsyncRequest.newBuilder()
+                        .setPostReplyFetchContent(
+                            PostReplyFetchContentRequest.newBuilder()
+                                .setAction(task.action)
+                                .build(),
+                        )
+                        .build(),
+                    PostReplyFetchContentResponse.parser(),
+                )
+            fetch.fold(
+                onSuccess = { resp ->
+                    val newTask =
+                        task.copy(
+                            action = task.action.toBuilder()
+                                .setVerbatim(resp.verbatim)
+                                .build()
+                        )
+                    val context =
+                        GenericPostModel.Context(
+                            task = newTask,
+                            content = content,
+                            anonymous = false,
+                        )
+                    val ok = performSend(context)
+                    if (ok) onSendSuccess(context)
+                    onResult(ok)
+                },
+                onFailure = { e ->
+                    ToastModel.editorAlert.show(
+                        ToastModel.Message.Error(e.message ?: "error")
+                    )
+                    onResult(false)
+                },
+            )
+        }
     }
 
     /** Push an edited field back into the live context (and its draft slot). */

@@ -126,6 +126,9 @@ fun PageIndicatorOverlay(
     // (nav inset + 12.dp padding + 56.dp tall) lives — so the two glass
     // pills overlapped and the capsule's sliver peeked out under the bar.
     stackAboveReplyBar: Boolean = false,
+    // v1.8.3: extra reply-bar height to clear (the inline bar's target
+    // chip row) on top of the single-row assumption below.
+    replyBarExtraHeight: Dp = 0.dp,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val view = LocalView.current
@@ -141,7 +144,8 @@ fun PageIndicatorOverlay(
     val navBottom: Dp = with(density) {
         WindowInsets.navigationBars.getBottom(density).toDp()
     }
-    val capsuleBottom: Dp = if (stackAboveReplyBar) navBottom + 76.dp else 20.dp
+    val capsuleBottom: Dp =
+        if (stackAboveReplyBar) navBottom + 76.dp + replyBarExtraHeight else 20.dp
 
     Box(modifier.fillMaxSize()) {
         if (expanded) {

@@ -57,7 +57,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -107,8 +106,6 @@ import com.bugenzhao.mnga.ui.root.recordedPageBackground
 import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.bugenzhao.mnga.ui.components.SwipeToFavorBox
-import com.bugenzhao.mnga.ui.components.toggleTopicFavor
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.ui.nav.RouteDestination
@@ -236,9 +233,6 @@ private fun TopicListScreenContent(
     val isForumFavorite = favoriteForums.any { it.id == forum.id }
     val authInfo by App.authStorage.authInfo.collectAsState()
     val signedIn = authInfo.token.isNotEmpty()
-
-    // -- Local favorite-topic overrides (kept after the swipe action).
-    val favoredOverrides = remember(forumId) { mutableStateMapOf<String, Boolean>() }
 
     // -- Toolbar-triggered refresh (SS0.6): refresh then success haptic. The
     // refresh also resets the scroll to the top (via scrollToTopSignal) so
@@ -668,7 +662,6 @@ private fun TopicListScreenContent(
                         // Topics of this very forum name no parent of their
                         // own; the forum being browsed is the answer for them.
                         fallbackForumName = forum.name.takeIf { !mock },
-                        favoredOverride = favoredOverrides[topic.id],
                         contextMenuTopic = contextMenuTopic,
                         onContextMenu = { contextMenuTopic = it },
                         onDismissMenu = { contextMenuTopic = null },
@@ -678,15 +671,6 @@ private fun TopicListScreenContent(
                                     topicId = topic.id,
                                     fav = topic.fav.takeIf { it.isNotEmpty() },
                                 )
-                            )
-                        },
-                        onToggleFavor = {
-                            toggleTopicFavor(
-                                scope = scope,
-                                view = view,
-                                topicId = topic.id,
-                                currentFavored = favoredOverrides[topic.id] ?: topic.isFavored,
-                                onResult = { favored -> favoredOverrides[topic.id] = favored },
                             )
                         },
                         onNavigateToForum = { id ->
@@ -761,27 +745,25 @@ private fun ForumId.idDisplay(): String =
     if (hasFid()) "#$fid" else "st#$stid"
 
 /**
- * One topic entry: swipe-to-favorite wrapper around either a forum-shortcut
- * row or the standard topic row with its long-press context menu.
+ * One topic entry: either a forum-shortcut row or the standard topic
+ * row with its long-press context menu. (The swipe-to-favorite wrapper
+ * was removed in v1.8.3 with its star background; see TopicFavor.kt.)
  */
 @Composable
 private fun TopicListItem(
     topic: Topic,
     useTopicPostDate: Boolean,
     fallbackForumName: String?,
-    favoredOverride: Boolean?,
     contextMenuTopic: Topic?,
     onContextMenu: (Topic?) -> Unit,
     onDismissMenu: () -> Unit,
     onClick: () -> Unit,
-    onToggleFavor: () -> Unit,
     onNavigateToForum: (ForumId) -> Unit,
 ) {
     val context = LocalContext.current
     var shareMenuExpanded by remember { mutableStateOf(false) }
 
-    SwipeToFavorBox(onFavor = onToggleFavor) {
-        Box {
+    Box {
             if (topic.hasShortcutForum()) {
                 ForumShortcutRow(
                     topic = topic,
@@ -794,7 +776,6 @@ private fun TopicListItem(
                     useTopicPostDate = useTopicPostDate,
                     dimmedSubject = true,
                     showIndicators = true,
-                    isFavored = favoredOverride,
                     fallbackForumName = fallbackForumName,
                     flat = true,
                     onClick = onClick,
@@ -860,7 +841,6 @@ private fun TopicListItem(
                 }
             }
         }
-    }
 }
 
 /** The three share entries (LumaGA link / NGA link / open in browser). */

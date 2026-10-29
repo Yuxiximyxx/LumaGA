@@ -126,10 +126,17 @@ fun LumaGATheme(
     }
     val accent = Color(if (dark) themeColor.darkColor else themeColor.lightColor)
     
-    // Sync system bar icon colors with theme (for transparent nav bar)
+    // Sync system bar icon colors with theme (for transparent nav bar),
+    // and re-assert full bar transparency on every scheme change
+    // (v1.8.3 status-bar immersion: no screen may leave a colored or
+    // white band in the status area; the icon appearance follows the
+    // active scheme so the clock/battery stay readable).
     val view = LocalView.current
     SideEffect {
         val window = (view.context as? Activity)?.window ?: return@SideEffect
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         val controller = WindowCompat.getInsetsController(window, view)
         controller.isAppearanceLightStatusBars = !dark
         controller.isAppearanceLightNavigationBars = !dark

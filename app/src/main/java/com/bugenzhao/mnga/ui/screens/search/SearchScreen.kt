@@ -287,7 +287,18 @@ fun SearchScreen(
     // deep-link entry and the ON_STOP result snapshots keep working
     // exactly as they did for the full page.
     val glass = rememberGlassSettings()
+    // v1.8.3 crash fix: while a search route is on top the shell no
+    // longer records the navigation host into the shared dock backdrop
+    // (see dockShellRecordsBackdrop), so sampling it here can no longer
+    // recurse into the panel's own recording — the v1.8.2 form crashed
+    // on open from every tab root. The remaining guard: only sample
+    // when a covered destination exists beneath this window; with
+    // nothing beneath (a cold-start deep link that lands here first)
+    // the layer may hold no frame at all, so fall back to the opaque
+    // surface instead of sampling an empty layer.
+    val navStack by navigator.stack.collectAsState()
     val searchBackdrop = LocalScreenBackdropRegistry.current?.activeBackdrop
+        .takeIf { navStack.size > 1 }
     val panelShape = RoundedCornerShape(28.dp)
     Box(Modifier.fillMaxSize()) {
         Box(

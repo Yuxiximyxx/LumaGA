@@ -78,9 +78,10 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * The 版面 tab (v1.8.0): the forum directory in the confirmed MIUIX
- * layout — a large title, a search capsule, the user's pinned
- * 「常逛版面」 as the first grouped card, then one grouped card per
- * forum category.
+ * layout — a large title (its search button is the page's only search
+ * entry since v1.8.3; the duplicate search capsule is gone), the
+ * user's pinned 「常逛版面」 as the first grouped card, then one
+ * grouped card per forum category.
  *
  * Relation to the 主页 tab ([ForumListScreen]): home keeps its dense
  * favorites grid untouched; this screen is the browse-and-organize
@@ -229,6 +230,11 @@ private fun ForumDirectoryScreenContent(navigator: Navigator) {
                             }
                         }
                         Spacer(Modifier.width(10.dp))
+                        // The page's only search entry (v1.8.3): the
+                        // title-row button, the same pattern as the home
+                        // and topic-list headers. The search capsule that
+                        // used to sit under the title duplicated it and
+                        // is gone.
                         RoundBarButton(
                             onClick = { navigator.push(Route.GlobalSearch()) },
                             contentDescription = L.str(context, "Search"),
@@ -240,33 +246,6 @@ private fun ForumDirectoryScreenContent(navigator: Navigator) {
                                 tint = MiuixTheme.colorScheme.onSurface,
                             )
                         }
-                    }
-                }
-
-                // ---- Search capsule.
-                item(key = "directory-search") {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(MiuixTheme.colorScheme.surfaceContainer)
-                            .clickable { navigator.push(Route.GlobalSearch()) }
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Outlined.Search,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            "搜索版面、帖子、用户",
-                            style = MiuixTheme.textStyles.body1,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
                     }
                 }
 

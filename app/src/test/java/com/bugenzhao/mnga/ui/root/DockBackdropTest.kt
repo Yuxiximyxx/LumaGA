@@ -44,4 +44,12 @@ class DockBackdropTest {
     fun `shell does not record while a topic is open (v1_8_1 crash isolation)`() {
         assertFalse(dockShellRecordsBackdrop(Route.TopicDetails(topicId = "47690428")))
     }
+
+    @Test
+    fun `shell does not record while search is open (v1_8_3 self-sampling crash)`() {
+        // The search window samples the shared dock backdrop from inside
+        // the host; the shell must not be recording the host into it.
+        assertFalse(dockShellRecordsBackdrop(Route.GlobalSearch()))
+        assertFalse(dockShellRecordsBackdrop(Route.TopicSearch(forumId = null)))
+    }
 }
