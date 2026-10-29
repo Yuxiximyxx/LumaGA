@@ -23,6 +23,7 @@ import com.bugenzhao.mnga.storage.PreferencesStorage
 import com.bugenzhao.mnga.storage.SearchHistoryStorage
 import com.bugenzhao.mnga.logicInitialConfigure
 import com.bugenzhao.mnga.model.appScope
+import com.bugenzhao.mnga.util.CrashReporter
 import kotlinx.coroutines.launch
 
 /** Application-scoped singletons, mirroring the SwiftUI environment objects. */
@@ -141,6 +142,12 @@ class LumaGAApplication : Application() {
             .forEach { model ->
                 model.haptic = { type -> com.bugenzhao.mnga.util.Haptics.vibrate(this, type) }
             }
+
+        // Diagnostic build (v1.7.11): record uncaught-exception stacks to
+        // a private file so the next launch can show them (CrashReporter).
+        // Installed last on purpose: the previous handler captured here is
+        // Bugly's/system's, which still runs after ours via the chain.
+        CrashReporter.install(this)
     }
 
     private fun autoClockInOn(): Boolean =

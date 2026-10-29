@@ -409,6 +409,7 @@ fun GlobalOverlays(
     editor: com.bugenzhao.mnga.ui.editor.EditorController? = null,
 ) {
     com.bugenzhao.mnga.ui.components.toast.ToastHost()
+    CrashReportDialog()
     DeepLinkDestination(navigator)
     InAppBrowserOverlay()
     GlobalSheets(navigator, editor)
