@@ -13,6 +13,11 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -216,10 +221,10 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
 
 /** The dock's four tabs, in slot order （主页 / 版面 / 收藏 / 我的）. */
 private val MainDockTabs = listOf(
-    DockTab(androidx.compose.material.icons.Icons.Filled.Home, "主页"),
-    DockTab(androidx.compose.material.icons.Icons.Filled.GridView, "版面"),
-    DockTab(androidx.compose.material.icons.Icons.Filled.Star, "收藏"),
-    DockTab(androidx.compose.material.icons.Icons.Filled.Person, "我的"),
+    DockTab(Icons.Filled.Home, "主页"),
+    DockTab(Icons.Filled.GridView, "版面"),
+    DockTab(Icons.Filled.Star, "收藏"),
+    DockTab(Icons.Filled.Person, "我的"),
 )
 
 private val MainTabRoutes = listOf(
