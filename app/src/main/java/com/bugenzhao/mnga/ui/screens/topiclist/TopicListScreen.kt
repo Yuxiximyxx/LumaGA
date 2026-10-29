@@ -97,6 +97,9 @@ import com.bugenzhao.mnga.ui.components.PagedList
 import com.bugenzhao.mnga.ui.components.GlassPanelBackground
 import com.bugenzhao.mnga.ui.root.GlassVariantScale
 import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
+import com.bugenzhao.mnga.ui.root.TabDockBottomGap
+import com.bugenzhao.mnga.ui.root.TabDockHeight
+import com.bugenzhao.mnga.ui.root.tabDockContentBottomPadding
 import com.bugenzhao.mnga.ui.root.glassContentColor
 import com.bugenzhao.mnga.ui.root.recordedPageBackground
 import com.bugenzhao.mnga.ui.root.rememberGlassSettings
@@ -130,6 +133,7 @@ fun TopicListScreen(
     mode: TopicListMode = TopicListMode.NORMAL,
     dateRange: Int = 0,
     editor: com.bugenzhao.mnga.ui.editor.EditorController? = null,
+    asTabRoot: Boolean = false,
 ) {
     // The FAB's backdrop doubles as the screen backdrop (v1.7.6): the
     // list content root records it for the screen's whole lifetime and
@@ -138,7 +142,10 @@ fun TopicListScreen(
     // the provider can wrap the Scaffold (see ScreenBackdrop.kt).
     val fabBackdrop = rememberLayerBackdrop()
     ScreenBackdropProvider(fabBackdrop) {
-        TopicListScreenContent(navigator, forumId, mode, dateRange, editor, fabBackdrop)
+        TopicListScreenContent(
+            navigator, forumId, mode, dateRange, editor, fabBackdrop,
+            asTabRoot = asTabRoot,
+        )
     }
 }
 
@@ -151,6 +158,7 @@ private fun TopicListScreenContent(
     dateRange: Int = 0,
     editor: com.bugenzhao.mnga.ui.editor.EditorController? = null,
     fabBackdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
+    asTabRoot: Boolean = false,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -309,6 +317,13 @@ private fun TopicListScreenContent(
                     backdrop = fabBackdrop,
                     spec = glass.spec,
                     scheme = glass.scheme,
+                    // As a tab root the floating dock owns the bottom
+                    // center — lift the FAB clear of it (v1.8.1).
+                    modifier = if (asTabRoot) {
+                        Modifier.padding(bottom = TabDockHeight + TabDockBottomGap)
+                    } else {
+                        Modifier
+                    },
                     onClick = {
                         if (!state.isLoading && !state.isRefreshing) triggerRefresh()
                     },
@@ -339,14 +354,22 @@ private fun TopicListScreenContent(
             // parent forum rides as its subtitle), round action buttons.
             Row(
                 Modifier.fillMaxWidth()
-                    .padding(start = 4.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
+                    .padding(
+                        start = if (asTabRoot) 16.dp else 4.dp,
+                        end = 16.dp, top = 4.dp, bottom = 4.dp,
+                    ),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
             ) {
-                IconButton(onClick = { navigator.pop() }) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = null,
-                    )
+                // As the home tab root (v1.8.1 custom home forum) there is
+                // nothing to pop to — the back chevron goes away and the
+                // title takes its place at the content edge.
+                if (!asTabRoot) {
+                    IconButton(onClick = { navigator.pop() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null,
+                        )
+                    }
                 }
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -606,7 +629,18 @@ private fun TopicListScreenContent(
                     start = 16.dp,
                     top = 8.dp,
                     end = 16.dp,
-                    bottom = if (showRefreshButton) 72.dp else 8.dp,
+                    // As a tab root the list must also clear the floating
+                    // dock at the bottom (v1.8.1).
+                    bottom = if (asTabRoot) {
+                        maxOf(
+                            tabDockContentBottomPadding(),
+                            if (showRefreshButton) 72.dp else 8.dp,
+                        )
+                    } else if (showRefreshButton) {
+                        72.dp
+                    } else {
+                        8.dp
+                    },
                 ),
                 scrollToTopSignal = refreshScrollEpoch,
                 itemContent = { _, topic ->

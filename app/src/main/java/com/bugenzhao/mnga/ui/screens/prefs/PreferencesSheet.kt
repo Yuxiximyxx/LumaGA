@@ -51,6 +51,7 @@ import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.extra.WindowDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -93,6 +94,7 @@ private enum class PickerKind {
     COLOR_SCHEME,
     THEME_COLOR,
     DOCK_GLASS,
+    HOME_FORUM,
     ORDER,
     HIDE_BLOCKED,
     WEB_API,
@@ -124,6 +126,14 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
     val scope = rememberCoroutineScope()
 
     val useRemote by App.favoriteForums.useRemote.flow.collectAsState()
+
+    // v1.8.1 custom home forum: current value for the 主页版面 row, plus
+    // the forum catalog the picker chooses from (loaded on demand —
+    // the settings page otherwise never needs the directory data).
+    val homeForum by App.homeForum.forum.collectAsState()
+    val forumListVM: com.bugenzhao.mnga.ui.screens.forumlist.ForumListViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel()
+    val forumListState by forumListVM.dataSource.state.collectAsState()
 
     val colorSchemeRaw by prefs.colorSchemeRaw.flow.collectAsState()
     val themeColorRaw by prefs.themeColorRaw.flow.collectAsState()
@@ -199,6 +209,11 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
 
 
     var picker by remember { mutableStateOf<PickerKind?>(null) }
+    LaunchedEffect(picker) {
+        if (picker == PickerKind.HOME_FORUM && forumListVM.dataSource.notLoaded) {
+            forumListVM.dataSource.initialLoad()
+        }
+    }
     var baseURLText by remember(requestOption.baseUrlV2) {
         mutableStateOf(requestOption.baseUrlV2)
     }
@@ -416,6 +431,15 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
                             prefs.useClassicIcon.value = next
                             applyLauncherIcon(context, next)
                         },
+                    )
+                    // v1.8.1: the home tab can point at any forum; the
+                    // picker lists every forum of the directory plus
+                    // the default (the classic forum-list home).
+                    PickerRow(
+                        title = L.str(context, "Home Forum"),
+                        valueLabel = homeForum?.name
+                            ?: L.str(context, "Default Home"),
+                        onClick = { picker = PickerKind.HOME_FORUM },
                     )
                 }
             }
@@ -660,6 +684,33 @@ fun PreferencesSheet(onDismiss: () -> Unit, navigator: Navigator? = null) {
                 },
                 onDismiss = { picker = null },
             )
+        PickerKind.HOME_FORUM -> {
+            val allForums = forumListState.items
+                .filterNot { it.id == "mnga" }
+                .flatMap { it.forumsList }
+                .distinctBy {
+                    com.bugenzhao.mnga.ui.screens.forumlist.forumIdKey(it.id)
+                }
+            val byKey = allForums.associateBy {
+                com.bugenzhao.mnga.ui.screens.forumlist.forumIdKey(it.id)
+            }
+            PickerDialog(
+                title = L.str(context, "Home Forum"),
+                options = listOf(
+                    PickerOption("", L.str(context, "Default Home")),
+                ) + allForums.map {
+                    PickerOption(
+                        com.bugenzhao.mnga.ui.screens.forumlist.forumIdKey(it.id),
+                        it.name,
+                    )
+                },
+                selected = homeForum?.let {
+                    com.bugenzhao.mnga.ui.screens.forumlist.forumIdKey(it.id)
+                } ?: "",
+                onSelect = { key: String -> App.homeForum.set(byKey[key]) },
+                onDismiss = { picker = null },
+            )
+        }
         PickerKind.ORDER ->
             PickerDialog(
                 title = L.str(context, "Default Order"),

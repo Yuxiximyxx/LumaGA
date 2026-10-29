@@ -42,6 +42,47 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * FAB's, TopicDetails its page capsule's), that same recording is the
  * screen backdrop — one recording, several consumers, all outside the
  * recorded subtree.
+ *
+ * Full-surface glass audit (v1.8.1) — what is NOT backdrop glass, and
+ * why each item stays that way:
+ * - **Miuix SuperBottomSheet panels** (post editor, attachments,
+ *   jump-to-floor selector, signature editor): Miuix 0.8.8 composes
+ *   them in their own Dialog window. A backdrop texture lives in the
+ *   activity window's graphics layer; another window cannot sample
+ *   it — the same hard limit as the v1.7.4 menu crash, not a styling
+ *   choice. The in-window alternative would be Miuix's Overlay*
+ *   family, which needs an overlay host installed at the root plus a
+ *   per-sheet migration of dismissal/IME semantics; not attempted
+ *   blind (no runtime verification available for the editor flow).
+ * - **WindowDialog dialogs** (settings pickers, login, cache, update
+ *   flow, delete confirmations, …): separate windows, same limit.
+ *   Menus anchored *inside* such windows take the tint fallback via
+ *   the `windowPopup` path in MiuixMenu.kt for the same reason.
+ * - **Switches** (Miuix SuperSwitch): drawn by the library with no
+ *   backdrop hook, and every switch sits inside the scrolling content
+ *   that is itself the recorded subtree — a backdrop consumer there
+ *   would sample its own recording, the forbidden geometry above.
+ *   A tint-styled app-drawn switch would be a global settings-UI
+ *   restyle; it needs the user's visual sign-off first, not a blind
+ *   swap.
+ * - **Attached top bars** on secondary screens (Miuix
+ *   SmallTopAppBar / Material TopAppBar in Scaffold slots): attached
+ *   chrome, not floating surfaces — content does not scroll beneath
+ *   them, so there is nothing for glass to sample. The app's glass
+ *   top elements are the floating in-content headers, which are
+ *   already glass.
+ * - **System Toasts** (`android.widget.Toast`): rendered by the
+ *   system, not the app. The app's own toast host IS glass (it reads
+ *   the registry above).
+ * - Screens that publish no screen backdrop (search, history,
+ *   messages, settings, misc) have no in-window floating consumers —
+ *   their menus/dialogs are all window-based (above) — so recording
+ *   one would buy nothing; if a floating consumer is ever added to
+ *   such a screen, it joins this plumbing first.
+ * The image viewer's buttons are the one Dialog-window exception that
+ * IS true glass: the viewer records and consumes inside its own
+ * window (see ImageViewer.kt), which works because the sampled
+ * content lives in the same window.
  */
 val LocalScreenBackdrop = compositionLocalOf<LayerBackdrop?> { null }
 

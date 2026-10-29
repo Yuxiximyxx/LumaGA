@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PlaylistAddCheck
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
@@ -114,6 +115,7 @@ private fun ForumDirectoryScreenContent(navigator: Navigator) {
     val categories = state.items
 
     val pinnedForums by App.pinnedForums.forums.collectAsState()
+    val favoriteForums by App.favoriteForums.forumsFlow().collectAsState()
 
     LaunchedEffect(dataSource) {
         if (dataSource.notLoaded) {
@@ -264,6 +266,49 @@ private fun ForumDirectoryScreenContent(navigator: Navigator) {
                                     onDismissMenu = { contextMenuForum = null },
                                     navigator = navigator,
                                 )
+                            }
+                        }
+                    }
+                }
+
+                // ---- Favorite forums, merged in from the old home
+                // (v1.8.1): the directory is now the complete forum
+                // overview — pinned, favorites and every category on
+                // one page. Rendered as the classic home's 3-column
+                // icon grid inside a group card; tap opens the forum,
+                // long-press opens the pin/favorite/home menu.
+                item(key = "favorites-header") {
+                    DirectorySectionHeader(title = "收藏版面")
+                }
+                item(key = "favorites-card") {
+                    val favorites = favoriteForums.distinctBy { forumIdKey(it.id) }
+                    if (favorites.isEmpty()) {
+                        Text(
+                            "还没有收藏版面。长按下方任意版面即可收藏。",
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                        )
+                    } else {
+                        DirectoryGroupCard {
+                            Column(Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
+                                favorites.chunked(3).forEach { rowForums ->
+                                    Row(Modifier.fillMaxWidth()) {
+                                        rowForums.forEach { forum ->
+                                            DirectoryFavoriteCell(
+                                                forum = forum,
+                                                contextMenuForum = contextMenuForum,
+                                                onContextMenu = { contextMenuForum = it },
+                                                onDismissMenu = { contextMenuForum = null },
+                                                navigator = navigator,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                        }
+                                        repeat(3 - rowForums.size) {
+                                            Spacer(Modifier.weight(1f))
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -467,6 +512,10 @@ private fun DirectoryForumRow(
         }
         val pinned = App.pinnedForums.isPinned(forum.id)
         val favorite = App.favoriteForums.isFavorite(forum.id)
+        val homeForum by App.homeForum.forum.collectAsState()
+        val isHome = homeForum?.let {
+            forumIdKey(it.id) == forumIdKey(forum.id)
+        } == true
         MiuixDropdownMenu(
             expanded = contextMenuForum == forum,
             onDismissRequest = onDismissMenu,
@@ -488,6 +537,92 @@ private fun DirectoryForumRow(
                 icon = if (favorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
                 onClick = {
                     App.favoriteForums.toggle(forum) { Haptics.lightImpact(view) }
+                    onDismissMenu()
+                },
+            )
+            MiuixMenuItem(
+                text = if (isHome) "取消设为主页" else "设为主页",
+                icon = Icons.Outlined.Home,
+                onClick = {
+                    App.homeForum.set(if (isHome) null else forum)
+                    onDismissMenu()
+                },
+            )
+        }
+    }
+}
+
+/**
+ * One cell of the favorites grid on the directory page (v1.8.1): the
+ * classic home's icon-over-name tile, living inside the favorites
+ * group card. Tap opens the forum; long-press opens the same
+ * pin/favorite/home context menu as the list rows, trimmed to the
+ * actions that make sense for an already-favorite forum.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun DirectoryFavoriteCell(
+    forum: Forum,
+    contextMenuForum: Forum?,
+    onContextMenu: (Forum?) -> Unit,
+    onDismissMenu: () -> Unit,
+    navigator: Navigator,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val view = LocalView.current
+    Box(modifier) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = { navigator.push(Route.TopicList(forumId = forum.id)) },
+                    onLongClick = { onContextMenu(forum) },
+                )
+                .padding(vertical = 8.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            ForumIcon(iconUrl = forum.iconUrl, name = forum.name, size = 36.dp)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                forum.name,
+                style = MiuixTheme.textStyles.footnote2,
+                color = MiuixTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        val pinned = App.pinnedForums.isPinned(forum.id)
+        val homeForum by App.homeForum.forum.collectAsState()
+        val isHome = homeForum?.let {
+            forumIdKey(it.id) == forumIdKey(forum.id)
+        } == true
+        MiuixDropdownMenu(
+            expanded = contextMenuForum == forum,
+            onDismissRequest = onDismissMenu,
+            alignment = PopupPositionProvider.Align.Start,
+        ) {
+            MiuixMenuItem(
+                text = if (pinned) "移出常逛版面" else "加入常逛版面",
+                icon = Icons.Outlined.PushPin,
+                onClick = {
+                    App.pinnedForums.toggle(forum)
+                    onDismissMenu()
+                },
+            )
+            MiuixMenuItem(
+                text = L.str(context, "Remove from Favorites"),
+                icon = Icons.Outlined.Star,
+                onClick = {
+                    App.favoriteForums.toggle(forum) { Haptics.lightImpact(view) }
+                    onDismissMenu()
+                },
+            )
+            MiuixMenuItem(
+                text = if (isHome) "取消设为主页" else "设为主页",
+                icon = Icons.Outlined.Home,
+                onClick = {
+                    App.homeForum.set(if (isHome) null else forum)
                     onDismissMenu()
                 },
             )

@@ -169,6 +169,8 @@
     <string name="goto_forum">前往版块</string>
     <string name="color_scheme">配色方案</string>
     <string name="glass_material">玻璃材质</string>
+    <string name="home_forum">主页版面</string>
+    <string name="default_home">默认主页</string>
     <string name="glass_clear">毛玻璃</string>
     <string name="glass_frosted">磨砂玻璃</string>
     <string name="glass_liquid">液态玻璃</string>

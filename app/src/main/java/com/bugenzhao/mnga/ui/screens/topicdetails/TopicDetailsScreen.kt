@@ -310,10 +310,21 @@ private fun TopicDetailsScreenContent(
     val listState = rememberLazyListState()
 
     // The page capsule floats over the list as liquid glass (v1.7.1):
-    // the content box below is recorded into indicatorBackdrop and the
-    // capsule samples it. (The backdrop itself is remembered by the
-    // entry point above, which also publishes it as this screen's
-    // menu/toast sampling source.)
+    // originally the whole content box below was recorded into
+    // indicatorBackdrop and the capsule sampled the post content
+    // itself. v1.8.1 crash isolation: since v1.7.1 some topics crash
+    // on open (v1.7.0 opens them fine), and that content recording —
+    // re-recording the richest subtree in the app (tables, inline
+    // images, quote layers) into a graphics layer on every draw — is
+    // the only content-dependent code the 1.7.1 window added to the
+    // open path. The recording is therefore reduced to the page
+    // background layer alone (see the recording node inside the
+    // content box below): the capsule / reply bar / menus keep the
+    // shared glass material over a flat page texture, and no post
+    // content enters a graphics-layer recording from this screen.
+    // (The backdrop itself is remembered by the entry point above,
+    // which also publishes it as this screen's menu/toast sampling
+    // source.)
     val glass = rememberGlassSettings()
 
     // Jump selector state.
@@ -957,9 +968,19 @@ private fun TopicDetailsScreenContent(
             modifier = Modifier.weight(1f),
         ) {
             Box(
+                Modifier.fillMaxSize().recordedPageBackground(),
+            ) {
+            // v1.8.1 crash isolation (see the note at rememberGlassSettings
+            // above and DockBackdrop.kt): ONLY this page-background layer
+            // is recorded into indicatorBackdrop — same bounds as the
+            // content box, so consumer coordinates are unchanged — never
+            // the post content itself. It paints the same surface color
+            // the Scaffold already puts beneath the content, so nothing
+            // changes on screen.
+            Box(
                 Modifier.fillMaxSize().layerBackdrop(indicatorBackdrop)
                     .recordedPageBackground(),
-            ) {
+            )
             if (localMode) {
                 LocalCacheBanner(
                     reason = response?.localReason ?: "",

@@ -172,6 +172,8 @@ object StringsMap {
         "Goto Forum" to "goto_forum",
         "Color Scheme" to "color_scheme",
         "Glass Material" to "glass_material",
+        "Home Forum" to "home_forum",
+        "Default Home" to "default_home",
         "Glass Opacity" to "glass_opacity",
         "Refraction Strength" to "glass_refraction_strength",
         "Refraction Range" to "glass_refraction_range",

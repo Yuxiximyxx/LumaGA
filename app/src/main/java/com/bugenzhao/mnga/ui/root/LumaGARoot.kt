@@ -42,7 +42,6 @@ import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
 import com.bugenzhao.mnga.ui.nav.TopicListMode
 import com.bugenzhao.mnga.ui.screens.favorites.FavoritesScreen
-import com.bugenzhao.mnga.ui.screens.forumlist.ForumListScreen
 import com.bugenzhao.mnga.ui.screens.history.HistoryScreen
 import com.bugenzhao.mnga.ui.screens.messages.ShortMessageDetailsScreen
 import com.bugenzhao.mnga.ui.screens.messages.ShortMessageListScreen
@@ -365,7 +364,7 @@ fun RouteDispatcher(
 ) {
     when (route) {
         is Route.ForumList ->
-            ForumListScreen(navigator)
+            com.bugenzhao.mnga.ui.screens.forumlist.HomeTabScreen(navigator)
         is Route.Forums ->
             com.bugenzhao.mnga.ui.screens.forumlist.ForumDirectoryScreen(navigator)
         is Route.TopicList ->

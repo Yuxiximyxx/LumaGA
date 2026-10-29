@@ -169,6 +169,8 @@
     <string name="goto_forum">Goto Forum</string>
     <string name="color_scheme">Color Scheme</string>
     <string name="glass_material">Glass Material</string>
+    <string name="home_forum">Home Forum</string>
+    <string name="default_home">Default Home</string>
     <string name="glass_clear">Clear Glass</string>
     <string name="glass_frosted">Frosted Glass</string>
     <string name="glass_liquid">Liquid Glass</string>

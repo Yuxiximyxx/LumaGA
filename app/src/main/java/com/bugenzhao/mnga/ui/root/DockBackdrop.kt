@@ -42,9 +42,24 @@ fun Route?.isDockBackdropScreen(): Boolean =
     this is Route.ForumList || this is Route.Forums ||
         this is Route.Favorites || this is Route.PersonalCenter
 
-/** Whether the shell wrapper (not a screen) records the dock backdrop. */
+/**
+ * Whether the shell wrapper (not a screen) records the dock backdrop.
+ *
+ * TopicDetails is excluded (v1.8.1 crash isolation): the shell
+ * recording wraps the whole navigation host, so while a topic is open
+ * it re-records the rendered post content (tables, inline images,
+ * quote layers — the richest subtree in the app) into a graphics layer
+ * on every content draw. That recording, introduced together with the
+ * details screen's own content recording in v1.7.1, is the regression
+ * window for the "some topics crash on open since v1.7.1" device
+ * report (v1.7.0 opens the same topics fine); the details screen's own
+ * recording was reduced to its page background in the same version.
+ * The dock is hidden while a topic is open, and the tab roots record
+ * themselves again on return, so skipping the shell recording here
+ * costs nothing on screen.
+ */
 fun dockShellRecordsBackdrop(current: Route?): Boolean =
-    !current.isDockBackdropScreen()
+    !current.isDockBackdropScreen() && current !is Route.TopicDetails
 
 /**
  * The recording modifier for a tab-root screen's content root: records

@@ -32,6 +32,7 @@ object App {
     lateinit var blockWords: BlockWordsStorage
     lateinit var favoriteForums: FavoriteForumsStorage
     lateinit var pinnedForums: com.bugenzhao.mnga.storage.PinnedForumsStorage
+    lateinit var homeForum: com.bugenzhao.mnga.storage.HomeForumStorage
     lateinit var searchHistory: SearchHistoryStorage
     lateinit var users: UsersModel
     lateinit var currentUser: CurrentUserModel
@@ -82,6 +83,9 @@ class LumaGAApplication : Application() {
         App.pinnedForums =
             com.bugenzhao.mnga.storage.PinnedForumsStorage(prefs)
                 .also { com.bugenzhao.mnga.storage.PinnedForumsStorage.shared = it }
+        App.homeForum =
+            com.bugenzhao.mnga.storage.HomeForumStorage(prefs)
+                .also { com.bugenzhao.mnga.storage.HomeForumStorage.shared = it }
         App.searchHistory =
             SearchHistoryStorage(prefs).also { SearchHistoryStorage.shared = it }
         App.users = UsersModel().also { UsersModel.shared = it }

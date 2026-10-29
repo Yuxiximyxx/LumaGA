@@ -39,4 +39,9 @@ class DockBackdropTest {
         assertTrue(dockShellRecordsBackdrop(Route.Settings))
         assertTrue(dockShellRecordsBackdrop(null))
     }
+
+    @Test
+    fun `shell does not record while a topic is open (v1_8_1 crash isolation)`() {
+        assertFalse(dockShellRecordsBackdrop(Route.TopicDetails(topicId = "47690428")))
+    }
 }

@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.OpenInBrowser
@@ -578,13 +579,22 @@ private fun ForumGridCellWithMenu(
             onLongClick = if (editMode) null else ({ onContextMenu(forum) }),
             onRemove = onRemove,
         )
+        val homeForum by App.homeForum.forum.collectAsState()
+        val isHomeForum = homeForum?.let {
+            forumIdKey(it.id) == forumIdKey(forum.id)
+        } == true
         ForumContextMenu(
             expanded = contextMenuForum == forum,
             onDismiss = onDismissMenu,
             isFavorite = isFavorite,
+            isHome = isHomeForum,
             navID = navID,
             onToggleFavorite = {
                 onToggleFavorite()
+                onDismissMenu()
+            },
+            onToggleHome = {
+                App.homeForum.set(if (isHomeForum) null else forum)
                 onDismissMenu()
             },
         )
@@ -648,8 +658,10 @@ private fun ForumContextMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     isFavorite: Boolean,
+    isHome: Boolean,
     navID: NavigationIdentifier,
     onToggleFavorite: () -> Unit,
+    onToggleHome: () -> Unit,
 ) {
     val context = LocalContext.current
     // Miuix menu (phase 3) replacing the Material DropdownMenu.
@@ -665,6 +677,11 @@ private fun ForumContextMenu(
             ),
             icon = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
             onClick = onToggleFavorite,
+        )
+        MiuixMenuItem(
+            text = if (isHome) "取消设为主页" else "设为主页",
+            icon = Icons.Outlined.Home,
+            onClick = onToggleHome,
         )
         navID.mngaURL?.let { url ->
             MiuixMenuItem(
