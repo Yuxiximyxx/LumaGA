@@ -599,7 +599,7 @@ private fun FavoritesEmptyHint() {
  */
 @Composable
 private fun HomeTopBarGlassButton(
-    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop?,
+    backdrop: com.kyant.backdrop.Backdrop?,
     spec: com.bugenzhao.mnga.ui.root.GlassSpec,
     scheme: com.bugenzhao.mnga.ui.root.DockScheme,
     debugShowSample: Boolean,

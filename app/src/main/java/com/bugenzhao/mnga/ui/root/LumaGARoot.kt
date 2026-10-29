@@ -154,7 +154,7 @@ fun LumaGARoot(onNewIntent: (android.content.Intent) -> Unit) {
         // current screen's recording. Provided around BOTH the
         // navigation surface and the global overlays for that reason.
         val screenBackdropRegistry =
-            remember { ScreenBackdropRegistry<com.kyant.backdrop.backdrops.LayerBackdrop>() }
+            remember { ScreenBackdropRegistry<com.kyant.backdrop.Backdrop>() }
         CompositionLocalProvider(
             LocalScreenBackdropRegistry provides screenBackdropRegistry,
         ) {

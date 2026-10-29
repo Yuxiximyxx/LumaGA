@@ -140,12 +140,14 @@ import com.bugenzhao.mnga.ui.components.imageviewer.ImageViewerDialog
 import com.bugenzhao.mnga.ui.editor.EditorController
 import com.bugenzhao.mnga.ui.root.DockScheme
 import com.bugenzhao.mnga.ui.root.GlassSpec
+import com.bugenzhao.mnga.ui.root.LowResLayerBackdrop
 import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
 import com.bugenzhao.mnga.ui.root.glassContentColor
+import com.bugenzhao.mnga.ui.root.lowResLayerBackdrop
 import com.bugenzhao.mnga.ui.root.recordedPageBackground
 import com.bugenzhao.mnga.ui.root.rememberGlassSettings
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.bugenzhao.mnga.ui.root.rememberLowResLayerBackdrop
+import com.kyant.backdrop.Backdrop
 import com.bugenzhao.mnga.ui.editor.PostReplyTask
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
@@ -159,6 +161,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+/**
+ * v1.8.5-exp experiment knob: the linear resolution the topic-details
+ * content recording runs at — 0.25 ⇒ the recording texture holds
+ * 1/16 the pixels of the v1.8.2 full-resolution recording that
+ * crashed heavy topics. If tid 47690428 still crashes on device at
+ * 1/4, the next rung down is 1/8 — or the experiment is abandoned
+ * and the v1.8.3 flat-color isolation restored. See
+ * [LowResLayerBackdrop].
+ */
+private const val DETAILS_BACKDROP_SCALE = 0.25f
 
 /**
  * Topic details reading screen, ported from `Shared/Views/TopicDetailsView.swift`.
@@ -180,7 +193,15 @@ fun TopicDetailsScreen(
     // recording. (The page capsule that also sampled it was deleted
     // in v1.8.4.) Hoisted here so the provider can wrap the Scaffold
     // (see ScreenBackdrop.kt).
-    val indicatorBackdrop = rememberLayerBackdrop()
+    //
+    // v1.8.5-exp (experiment branch): the backdrop is a LOW-RES
+    // recording — the content root records the real post content
+    // into it at [DETAILS_BACKDROP_SCALE] linear resolution (see
+    // LowResBackdrop.kt and the backdrop note in the content below).
+    // Whether heavy topics survive that raster load is decided on
+    // device (tid 47690428); until then the v1.8.3 flat isolation is
+    // suspended, not repealed.
+    val indicatorBackdrop = rememberLowResLayerBackdrop(DETAILS_BACKDROP_SCALE)
     ScreenBackdropProvider(indicatorBackdrop) {
         TopicDetailsScreenContent(navigator, route, editor, indicatorBackdrop)
     }
@@ -192,7 +213,7 @@ private fun TopicDetailsScreenContent(
     navigator: Navigator,
     route: Route.TopicDetails,
     editor: EditorController? = null,
-    indicatorBackdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
+    indicatorBackdrop: Backdrop,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -328,16 +349,28 @@ private fun TopicDetailsScreenContent(
     // re-recording the richest subtree in the app (tables, inline
     // images, quote layers) into a graphics layer on every draw — is
     // the only content-dependent code the 1.7.1 window added to the
-    // open path. The recording is therefore reduced to the page
-    // background layer alone (see the recording node inside the
-    // content box below): the reply bar / header buttons / menus
-    // keep the shared glass material over a flat page texture, and no post
-    // content enters a graphics-layer recording from this screen.
+    // open path. The recording was therefore reduced to the page
+    // background layer alone (the flat recording node that sat
+    // inside the content box until this experiment): the reply bar /
+    // header buttons / menus kept the shared glass material over a
+    // flat page texture, and no post content entered a
+    // graphics-layer recording from this screen.
     // v1.8.2 retried the single in-screen content recording (the glass
     // read flat without it) and the crash returned on device, so
-    // v1.8.3 restores this isolation for good; the shell's dock
-    // backdrop likewise never records while a TopicDetails is on top
-    // (DockBackdrop.kt).
+    // v1.8.3 restored that isolation; the shell's dock backdrop
+    // likewise never records while a TopicDetails is on top
+    // (DockBackdrop.kt) — still true in the experiment below.
+    //
+    // v1.8.5-exp (this branch): the isolation is suspended for a
+    // controlled retry. The content box records the REAL content
+    // again — the v1.8.0/v1.8.2 geometry — but through
+    // LowResLayerBackdrop at DETAILS_BACKDROP_SCALE (1/4 linear,
+    // ~1/16 the pixels), cutting the recording's raster load while
+    // keeping its draw-op count. Experiment in progress: the
+    // verdict comes from the device (tid 47690428). If it crashes
+    // again, this recording change is reverted wholesale and the
+    // v1.8.3 flat isolation stands as the final form — do not
+    // iterate the scale blindly without a device verdict.
     // (The backdrop itself is remembered by the entry point above,
     // which also publishes it as this screen's menu/toast sampling
     // source.)
@@ -1070,22 +1103,22 @@ private fun TopicDetailsScreenContent(
             modifier = Modifier.weight(1f),
         ) {
             Box(
-                Modifier.fillMaxSize().recordedPageBackground(),
-            ) {
-            // v1.8.1 crash isolation, restored in v1.8.3 (see the note
-            // at rememberGlassSettings above and DockBackdrop.kt):
-            // ONLY this page-background layer is recorded into
-            // indicatorBackdrop — same bounds as the content box, so
-            // consumer coordinates are unchanged — never the post
-            // content itself. It paints the same surface color the
-            // Scaffold already puts beneath the content, so nothing
-            // changes on screen. v1.8.2 retried the single in-screen
-            // content recording and the device crash returned with it;
-            // do not record post content from this screen again.
-            Box(
-                Modifier.fillMaxSize().layerBackdrop(indicatorBackdrop)
+                Modifier.fillMaxSize().lowResLayerBackdrop(indicatorBackdrop)
                     .recordedPageBackground(),
-            )
+            ) {
+            // v1.8.5-exp: THIS content box is the recording node (see
+            // the backdrop note at rememberGlassSettings above): the
+            // post content itself is recorded into indicatorBackdrop
+            // — the v1.8.0/v1.8.2 geometry — but at
+            // DETAILS_BACKDROP_SCALE linear resolution via
+            // LowResLayerBackdrop (~1/16 the pixels of the full-res
+            // recordings that crashed heavy topics in v1.8.1/v1.8.2).
+            // This replaces the v1.8.1/v1.8.3 flat page-background
+            // node that sat here recording only the surface color.
+            // The background underlay stays in the chain, inward of
+            // the recording node, so undrawn regions of the texture
+            // hold the page color (the v1.7.8 rule) and consumer
+            // coordinates are unchanged (same bounds as before).
             if (localMode) {
                 LocalCacheBanner(
                     reason = response?.localReason ?: "",
@@ -1380,7 +1413,7 @@ private fun TopicDetailsScreenContent(
  */
 @Composable
 private fun InlineReplyBar(
-    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
+    backdrop: Backdrop,
     spec: GlassSpec,
     scheme: DockScheme,
     debugShowSample: Boolean,

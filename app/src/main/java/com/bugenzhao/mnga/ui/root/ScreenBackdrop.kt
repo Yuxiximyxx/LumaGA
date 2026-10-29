@@ -7,6 +7,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
+import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -104,7 +105,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  *   consumer inside its own recording, the forbidden geometry.
  *   Same for every in-list row button everywhere.
  */
-val LocalScreenBackdrop = compositionLocalOf<LayerBackdrop?> { null }
+val LocalScreenBackdrop = compositionLocalOf<Backdrop?> { null }
 
 /**
  * Which participating screen is on top, for root-level consumers (the
@@ -118,7 +119,9 @@ val LocalScreenBackdrop = compositionLocalOf<LayerBackdrop?> { null }
  *
  * Generic over the backdrop type so the stack semantics are unit
  * testable without a graphics layer; production uses
- * `ScreenBackdropRegistry<LayerBackdrop>`.
+ * `ScreenBackdropRegistry<Backdrop>` (most screens publish a Kyant
+ * `LayerBackdrop`; the topic-details screen publishes a
+ * [LowResLayerBackdrop] in the v1.8.5-exp experiment).
  */
 class ScreenBackdropRegistry<T : Any> {
     private val entries = mutableStateListOf<T>()
@@ -138,7 +141,7 @@ class ScreenBackdropRegistry<T : Any> {
 /** Provided once by the root, above both the navigation surface and the
  * global overlays, so screens can register and the toast host can read. */
 val LocalScreenBackdropRegistry =
-    compositionLocalOf<ScreenBackdropRegistry<LayerBackdrop>?> { null }
+    compositionLocalOf<ScreenBackdropRegistry<Backdrop>?> { null }
 
 /**
  * Publishes [backdrop] as this screen's [LocalScreenBackdrop] (menus in
@@ -152,7 +155,7 @@ val LocalScreenBackdropRegistry =
  */
 @Composable
 fun ScreenBackdropProvider(
-    backdrop: LayerBackdrop?,
+    backdrop: Backdrop?,
     content: @Composable () -> Unit,
 ) {
     val registry = LocalScreenBackdropRegistry.current
@@ -180,10 +183,12 @@ fun ScreenBackdropProvider(
 @Composable
 fun rememberScreenBackdropSourceModifier(): Modifier {
     val backdrop = LocalScreenBackdrop.current
-    return if (backdrop != null) {
-        Modifier.layerBackdrop(backdrop).recordedPageBackground()
-    } else {
-        Modifier
+    return when (backdrop) {
+        is LayerBackdrop ->
+            Modifier.layerBackdrop(backdrop).recordedPageBackground()
+        is LowResLayerBackdrop ->
+            Modifier.lowResLayerBackdrop(backdrop).recordedPageBackground()
+        else -> Modifier
     }
 }
 

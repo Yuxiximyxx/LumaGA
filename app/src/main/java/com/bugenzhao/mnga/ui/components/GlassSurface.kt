@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.bugenzhao.mnga.ui.root.DockScheme
 import com.bugenzhao.mnga.ui.root.GlassSpec
 import com.bugenzhao.mnga.ui.root.glassTintBase
-import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.colorControls
@@ -49,7 +49,7 @@ fun glassTintColor(spec: GlassSpec, scheme: DockScheme): Color =
  * keeps the plain default-color shadow every other surface shares.
  */
 fun Modifier.liquidGlass(
-    backdrop: LayerBackdrop,
+    backdrop: Backdrop,
     shape: Shape,
     spec: GlassSpec,
     scheme: DockScheme,
@@ -134,7 +134,7 @@ fun Modifier.liquidGlass(
  */
 @Composable
 fun GlassButton(
-    backdrop: LayerBackdrop,
+    backdrop: Backdrop,
     spec: GlassSpec,
     scheme: DockScheme,
     onClick: () -> Unit,
