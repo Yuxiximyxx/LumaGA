@@ -972,7 +972,7 @@ internal class ContentCombiner(
         combiner.visit(tagged.spansList)
         val cell = combiner.build()
         appendOther(
-            ContentNode.View(weight = (colSpan ?: 1).toFloat()) {
+            ContentNode.View(weight = (colSpan ?: 1).coerceAtLeast(1).toFloat()) {
                 Box(Modifier.padding(horizontal = 8.dp)) { RenderNode(cell) }
             }
         )

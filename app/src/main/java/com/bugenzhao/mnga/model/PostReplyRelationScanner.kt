@@ -79,10 +79,14 @@ object PostReplyRelationScanner {
                         }
                     }
                     "tid" -> {
-                        hit = PostId.newBuilder()
-                            .setPid("0")
-                            .setTid(tagged.attributesList[0])
-                            .build()
+                        // Guarded like the "pid" branch above: a [tid] tag
+                        // with no attributes must not crash the whole post.
+                        if (tagged.attributesList.isNotEmpty()) {
+                            hit = PostId.newBuilder()
+                                .setPid("0")
+                                .setTid(tagged.attributesList[0])
+                                .build()
+                        }
                     }
                     else -> walk(tagged.spansList)
                 }
