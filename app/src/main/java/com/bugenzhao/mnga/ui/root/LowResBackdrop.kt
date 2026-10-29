@@ -128,9 +128,20 @@ fun rememberLowResLayerBackdrop(scaleFactor: Float): LowResLayerBackdrop {
  * the backdrop's reduced resolution. Attach to the subtree root that
  * should be sampled; it lives and dies with that subtree, exactly
  * like the full-res recording nodes elsewhere in the app.
+ *
+ * The parameter is typed as the [Backdrop] interface (call sites hold
+ * the backdrop widened to the interface, like every other backdrop in
+ * the app) and dispatched safely: a non-[LowResLayerBackdrop] value
+ * records nothing and the modifier is a pass-through. The recording
+ * node itself needs the concrete class (it reads `scaleFactor` and
+ * writes `layerCoordinates` while recording), hence the cast here
+ * rather than in the node — same dispatch shape as
+ * `rememberScreenBackdropSourceModifier`.
  */
-fun Modifier.lowResLayerBackdrop(backdrop: LowResLayerBackdrop): Modifier =
-    this then LowResLayerBackdropElement(backdrop)
+fun Modifier.lowResLayerBackdrop(backdrop: Backdrop): Modifier {
+    val lowRes = backdrop as? LowResLayerBackdrop ?: return this
+    return this then LowResLayerBackdropElement(lowRes)
+}
 
 private class LowResLayerBackdropElement(
     val backdrop: LowResLayerBackdrop,
