@@ -102,16 +102,29 @@ fun SwipeToFavorBox(
         state = boxState,
         modifier = modifier,
         backgroundContent = {
-            Box(
-                Modifier.fillMaxSize(),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Icon(
-                    Icons.Outlined.Star,
-                    contentDescription = L.str(context, "Mark as Favorite"),
-                    tint = MiuixTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 32.dp),
-                )
+            // Gate the star on the swipe progress (v1.8.2): it used to be
+            // drawn unconditionally and was only hidden because the classic
+            // row painted an opaque Card over this background layer. The
+            // v1.8.0 flat rows have no opaque background of their own (the
+            // grouped card surface sits UNDER this dismiss box), so the
+            // star leaked through the row's transparent areas and showed
+            // on every row next to the avatar. At rest progress is 0 and
+            // nothing is drawn; the star fades in only while swiping.
+            val progress = boxState.progress
+            if (progress > 0.01f) {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Icon(
+                        Icons.Outlined.Star,
+                        contentDescription = L.str(context, "Mark as Favorite"),
+                        tint = MiuixTheme.colorScheme.primary.copy(
+                            alpha = progress.coerceIn(0f, 1f),
+                        ),
+                        modifier = Modifier.padding(start = 32.dp),
+                    )
+                }
             }
         },
         enableDismissFromStartToEnd = true,

@@ -197,6 +197,9 @@ class PreferencesStorage(private val prefs: SharedPreferences) {
     val postRowDimImagesInDarkMode = boolPref("postRowDimImagesInDarkMode", false)
     val autoOpenInBrowserWhenBanned = boolPref("autoOpenInBrowserWhenBannedNew", false)
     val topicDetailsShowQuickPageJump = boolPref("topicDetailsShowQuickPageJump", true)
+    // v1.8.2: 版面页两节的显示开关（顶部「显示」菜单）。
+    val directoryShowPinned = boolPref("directoryShowPinned", true)
+    val directoryShowFavorites = boolPref("directoryShowFavorites", true)
     val alwaysShareImageAsFile = boolPref("alwaysShareImageAsFile", false)
     val useClassicIcon = boolPref("useClassicIcon", false)
     val downloadDirectoryUri = stringPref("downloadDirectoryUri", "")

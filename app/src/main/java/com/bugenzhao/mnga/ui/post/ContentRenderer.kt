@@ -2,6 +2,7 @@ package com.bugenzhao.mnga.ui.post
 
 import android.content.Context
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.border
@@ -277,6 +278,11 @@ internal class ContentCombiner(
         private const val STRIKETHROUGH = 1 shl 1
         private val ignoredTags = setOf("font")
         private val durationRegex = Regex("""duration=([^&]+)""", RegexOption.IGNORE_CASE)
+        // v1.8.2: `$votedata_*` template variables and attributed close
+        // tags (`[/comment oth_title_cn]`) that leak into plain text.
+        private val templateVariableRegex = Regex("""\$votedata_[A-Za-z0-9_]+""")
+        private val attributedCloseTagRegex =
+            Regex("""\[/[A-Za-z][A-Za-z0-9_]*\s[^\]]*\]""")
     }
 
     private val subviews = mutableListOf<Subview>()
@@ -443,11 +449,21 @@ internal class ContentCombiner(
     }
 
     private fun visitPlain(plain: Span.Plain) {
-        if (!plain.text.contains("[*]")) {
-            appendPlainText(plain.text)
+        // v1.8.2 template cleanup: server-templated posts (novel-rating
+        // cards etc.) leak two artifacts into plain text — `$votedata_*`
+        // variables (the API payload carries no rating data to fill
+        // them, so never show the raw variable) and attributed close
+        // tags like `[/comment oth_title_cn]`, which the BBCode parser
+        // cannot recognize as tags and passes through as text.
+        val text = plain.text
+            .replace(templateVariableRegex, "")
+            .replace(attributedCloseTagRegex, "")
+        if (text.isEmpty()) return
+        if (!text.contains("[*]")) {
+            appendPlainText(text)
             return
         }
-        val segments = plain.text.split("[*]")
+        val segments = text.split("[*]")
         segments.forEachIndexed { index, segment ->
             if (segment.isEmpty()) return@forEachIndexed
             if (index == 0) {
@@ -551,6 +567,16 @@ internal class ContentCombiner(
             tagged.tag == "dice" -> visitDice(tagged)
             tagged.tag == "at" -> visitAt(tagged)
             tagged.tag == "_mnga" -> visitMnga(tagged)
+            // v1.8.2: NGA server-template tags (novel-rating cards in
+            // 漩涡书院 and similar). They used to fall through to
+            // visitDefaultTagged and print as raw code.
+            tagged.tag == "style" -> visitStyleBox(tagged)
+            // Transparent containers: the tag itself carries layout the
+            // renderer does not reproduce (random pick / fixed-size
+            // box / metadata comment), but the content must show.
+            tagged.tag == "randomblock" ||
+                tagged.tag == "fixsize" ||
+                tagged.tag == "comment" -> visit(tagged.spansList)
             else -> visitDefaultTagged(tagged)
         }
     }
@@ -993,6 +1019,142 @@ internal class ContentCombiner(
         val fn = tagged.attributesList.firstOrNull() ?: return
         if (fn != "version") return
         appendPlainText(host.appVersion)
+    }
+
+    /** Parses a template color token: palette name or `#rgb`/`#rrggbb`. */
+    private fun parseTemplateColor(token: String): Color? {
+        ContentPalette[token.lowercase()]?.let { return it }
+        val hex = token.removePrefix("#")
+        if (!token.startsWith("#")) return null
+        val value = hex.toLongOrNull(16) ?: return null
+        return when (hex.length) {
+            3 -> Color(
+                red = ((value shr 8) and 0xF).toInt() * 17,
+                green = ((value shr 4) and 0xF).toInt() * 17,
+                blue = (value and 0xF).toInt() * 17,
+            )
+            6 -> Color(0xFF000000 or value)
+            else -> null
+        }
+    }
+
+    /** `[style font N]` steps, approximated as font scales. */
+    private fun styleFontScale(step: Float): Float = when {
+        step <= 0f -> 0.8f
+        step < 5f -> 0.8f + step * 0.2f
+        else -> 1.8f + (step - 5f) * 0.3f
+    }
+
+    /**
+     * NGA template `[style ...]` boxes (v1.8.2) — the building block of
+     * the server-templated novel-rating cards. The web renderer treats
+     * the space-separated attribute list as CSS-ish properties; map what
+     * translates to this renderer's styling and ignore the rest:
+     * - `font N` → font scale (see [styleFontScale])
+     * - `background <color>` → chip background behind the content
+     * - `color <color>` or a bare color token (the `#fff` in
+     *   `font 0 #fff`) → text color
+     * - `align center|left|right` → block alignment
+     * - `innerHTML $votedata_*` → the rating value on the web; the app
+     *   API carries no vote data for these topics, so the element
+     *   renders nothing rather than leaking the raw variable. A literal
+     *   (non-variable) innerHTML renders as styled text.
+     * Layout-only properties (float / margin / width / height /
+     * line-height / border-radius / dybg / positions) are dropped; the
+     * wrapped content always renders.
+     */
+    private fun visitStyleBox(tagged: Span.Tagged) {
+        val tokens = tagged.complexAttributesList + tagged.attributesList
+        var innerHTML: String? = null
+        var fontScale: Float? = null
+        var textColor: Color? = null
+        var bgColor: Color? = null
+        var align: HAlign? = null
+        var i = 0
+        while (i < tokens.size) {
+            val value = tokens.getOrNull(i + 1)
+            when (tokens[i].lowercase()) {
+                "innerhtml" -> { innerHTML = value; i++ }
+                "font" -> {
+                    value?.toFloatOrNull()?.let { fontScale = styleFontScale(it) }
+                    i++
+                }
+                "background" -> {
+                    value?.let { parseTemplateColor(it) }?.let { bgColor = it }
+                    i++
+                }
+                "color" -> {
+                    value?.let { parseTemplateColor(it) }?.let { textColor = it }
+                    i++
+                }
+                "align" -> {
+                    align = when (value?.lowercase()) {
+                        "center" -> HAlign.CENTER
+                        "right" -> HAlign.END
+                        "left" -> HAlign.START
+                        else -> align
+                    }
+                    i++
+                }
+                else -> {
+                    // A bare color token with no key is the foreground.
+                    if (textColor == null) {
+                        parseTemplateColor(tokens[i])?.let { textColor = it }
+                    }
+                }
+            }
+            i++
+        }
+
+        val scale = fontScale
+        val combiner = ContentCombiner(
+            host, parent = this,
+            fontModifier = { f ->
+                if (f == null || scale == null) f else {
+                    val size = f.fontSize
+                    f.copy(
+                        fontSize = if (size == TextUnit.Unspecified) size
+                        else size * scale,
+                    )
+                }
+            },
+            colorModifier = { c -> textColor ?: c },
+            overrideAlignment = align,
+        )
+        if (innerHTML != null) {
+            val html = innerHTML!!
+            if (html.startsWith("$")) return // $votedata_*: no data, no leak
+            combiner.visit(listOf(plainSpan(html)))
+        } else {
+            combiner.visit(tagged.spansList)
+        }
+        val inner = combiner.build() ?: return
+        if (bgColor == null && align == null) {
+            appendBuilt(inner)
+            return
+        }
+        val background = bgColor
+        val alignment = align
+        appendOther(ContentNode.View {
+            Box(
+                Modifier.fillMaxWidth(),
+                contentAlignment = when (alignment) {
+                    HAlign.CENTER -> Alignment.Center
+                    HAlign.END -> Alignment.CenterEnd
+                    else -> Alignment.CenterStart
+                },
+            ) {
+                if (background != null) {
+                    Box(
+                        Modifier
+                            .background(background, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    ) { RenderNode(inner) }
+                } else {
+                    RenderNode(inner)
+                }
+            }
+        })
     }
 
     private fun visitDefaultTagged(tagged: Span.Tagged) {

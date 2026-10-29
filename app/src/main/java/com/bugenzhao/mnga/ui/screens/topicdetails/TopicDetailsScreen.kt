@@ -310,18 +310,18 @@ private fun TopicDetailsScreenContent(
     val listState = rememberLazyListState()
 
     // The page capsule floats over the list as liquid glass (v1.7.1):
-    // originally the whole content box below was recorded into
-    // indicatorBackdrop and the capsule sampled the post content
-    // itself. v1.8.1 crash isolation: since v1.7.1 some topics crash
-    // on open (v1.7.0 opens them fine), and that content recording —
-    // re-recording the richest subtree in the app (tables, inline
-    // images, quote layers) into a graphics layer on every draw — is
-    // the only content-dependent code the 1.7.1 window added to the
-    // open path. The recording is therefore reduced to the page
-    // background layer alone (see the recording node inside the
-    // content box below): the capsule / reply bar / menus keep the
-    // shared glass material over a flat page texture, and no post
-    // content enters a graphics-layer recording from this screen.
+    // the whole content box below is recorded into indicatorBackdrop
+    // and the capsule / reply bar / menus sample the post content
+    // itself. History: v1.8.1 crash isolation reduced that recording to
+    // the page background layer alone (since v1.7.1 some topics crashed
+    // on open, and content recording was the only content-dependent
+    // code the 1.7.1 window added to the open path) — the crash was
+    // confirmed fixed by the user on v1.8.1, but the glass read as a
+    // flat solid fill. v1.8.2 therefore restores the SINGLE in-screen
+    // content recording while keeping the other half of the isolation:
+    // the shell's dock backdrop still never records while a
+    // TopicDetails is on top (DockBackdrop.kt), so this subtree is
+    // recorded exactly once, never twice nested as in 1.8.0.
     // (The backdrop itself is remembered by the entry point above,
     // which also publishes it as this screen's menu/toast sampling
     // source.)
@@ -968,19 +968,17 @@ private fun TopicDetailsScreenContent(
             modifier = Modifier.weight(1f),
         ) {
             Box(
-                Modifier.fillMaxSize().recordedPageBackground(),
-            ) {
-            // v1.8.1 crash isolation (see the note at rememberGlassSettings
-            // above and DockBackdrop.kt): ONLY this page-background layer
-            // is recorded into indicatorBackdrop — same bounds as the
-            // content box, so consumer coordinates are unchanged — never
-            // the post content itself. It paints the same surface color
-            // the Scaffold already puts beneath the content, so nothing
-            // changes on screen.
-            Box(
                 Modifier.fillMaxSize().layerBackdrop(indicatorBackdrop)
                     .recordedPageBackground(),
-            )
+            ) {
+            // v1.8.2: the single in-screen content recording is back (the
+            // v1.8.0 geometry above) so the page capsule / reply bar /
+            // menus sample the real post content again — v1.8.1 had cut
+            // this to a flat page-color layer and the glass read as a
+            // solid fill. This remains the ONLY recording of this
+            // subtree: the shell-level dock recording stays excluded for
+            // TopicDetails (see DockBackdrop.kt), so the 1.8.0-era
+            // double nested recording is NOT restored.
             if (localMode) {
                 LocalCacheBanner(
                     reason = response?.localReason ?: "",
@@ -1185,6 +1183,9 @@ private fun TopicDetailsScreenContent(
                     spec = glass.spec,
                     scheme = glass.scheme,
                     debugShowSample = glass.debugShowSample,
+                    // v1.8.2: stack above the floating reply bar instead
+                    // of overlapping it at the same bottom slot.
+                    stackAboveReplyBar = showReplyBar,
                 )
             }
             }

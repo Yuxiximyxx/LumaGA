@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,7 +74,6 @@ import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
@@ -131,6 +131,10 @@ private fun ForumDirectoryScreenContent(navigator: Navigator) {
 
     var editMode by remember { mutableStateOf(false) }
     var contextMenuForum by remember { mutableStateOf<Forum?>(null) }
+    // v1.8.2: section visibility switches, from the title row's 显示 menu.
+    var displayMenuExpanded by remember { mutableStateOf(false) }
+    val showPinned by App.prefs.directoryShowPinned.flow.collectAsState()
+    val showFavorites by App.prefs.directoryShowFavorites.flow.collectAsState()
 
     val refresh: () -> Unit = {
         scope.launch {
@@ -187,6 +191,44 @@ private fun ForumDirectoryScreenContent(navigator: Navigator) {
                             )
                         }
                         Spacer(Modifier.width(10.dp))
+                        // v1.8.2: 显示 menu — the two section switches.
+                        // (The pinned section's own 管理 button was the
+                        // duplicate of the manage toggle above and is
+                        // gone; this button carries display options.)
+                        Box {
+                            RoundBarButton(
+                                onClick = { displayMenuExpanded = true },
+                                contentDescription = "显示设置",
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Visibility,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MiuixTheme.colorScheme.onSurface,
+                                )
+                            }
+                            MiuixDropdownMenu(
+                                expanded = displayMenuExpanded,
+                                onDismissRequest = { displayMenuExpanded = false },
+                                alignment = PopupPositionProvider.Align.End,
+                            ) {
+                                MiuixMenuItem(
+                                    text = "显示常逛版面",
+                                    showCheck = showPinned,
+                                    onClick = {
+                                        App.prefs.directoryShowPinned.value = !showPinned
+                                    },
+                                )
+                                MiuixMenuItem(
+                                    text = "显示收藏版面",
+                                    showCheck = showFavorites,
+                                    onClick = {
+                                        App.prefs.directoryShowFavorites.value = !showFavorites
+                                    },
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(10.dp))
                         RoundBarButton(
                             onClick = { navigator.push(Route.GlobalSearch()) },
                             contentDescription = L.str(context, "Search"),
@@ -228,17 +270,13 @@ private fun ForumDirectoryScreenContent(navigator: Navigator) {
                     }
                 }
 
-                // ---- Pinned （常逛版面）.
+                // ---- Pinned （常逛版面）. Renders only while its 显示
+                // switch is on (v1.8.2). Management lives solely in the
+                // title row's toggle — the section header used to carry
+                // a duplicate 管理 button, now removed.
+                if (showPinned) {
                 item(key = "pinned-header") {
-                    DirectorySectionHeader(
-                        title = "常逛版面",
-                        trailing = {
-                            TextButton(
-                                text = if (editMode) "完成" else "管理",
-                                onClick = { editMode = !editMode },
-                            )
-                        },
-                    )
+                    DirectorySectionHeader(title = "常逛版面")
                 }
                 item(key = "pinned-card") {
                     if (pinnedForums.isEmpty()) {
@@ -270,6 +308,7 @@ private fun ForumDirectoryScreenContent(navigator: Navigator) {
                         }
                     }
                 }
+                }
 
                 // ---- Favorite forums, merged in from the old home
                 // (v1.8.1): the directory is now the complete forum
@@ -277,6 +316,8 @@ private fun ForumDirectoryScreenContent(navigator: Navigator) {
                 // one page. Rendered as the classic home's 3-column
                 // icon grid inside a group card; tap opens the forum,
                 // long-press opens the pin/favorite/home menu.
+                // Renders only while its 显示 switch is on (v1.8.2).
+                if (showFavorites) {
                 item(key = "favorites-header") {
                     DirectorySectionHeader(title = "收藏版面")
                 }
@@ -312,6 +353,7 @@ private fun ForumDirectoryScreenContent(navigator: Navigator) {
                             }
                         }
                     }
+                }
                 }
 
                 // ---- All forums per category.

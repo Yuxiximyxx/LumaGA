@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.HistoryEdu
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
@@ -283,6 +285,8 @@ private fun TopicListScreenContent(
     }
 
     var moreMenuExpanded by remember { mutableStateOf(false) }
+    // v1.8.2: home-forum picker, opened from the tab-root header button.
+    var showHomeForumPicker by remember { mutableStateOf(false) }
     var orderMenuExpanded by remember { mutableStateOf(false) }
     var shareMenuExpanded by remember { mutableStateOf(false) }
     var rangeMenuExpanded by remember { mutableStateOf(false) }
@@ -370,6 +374,19 @@ private fun TopicListScreenContent(
                             contentDescription = null,
                         )
                     }
+                } else {
+                    // v1.8.2: the home-forum picker entry also lives at
+                    // the top-left in the customized home form (same
+                    // button as the default home's title bar).
+                    TopicListRoundButton(onClick = { showHomeForumPicker = true }) {
+                        Icon(
+                            Icons.Outlined.Tune,
+                            contentDescription = L.str(context, "Home Forum"),
+                            modifier = Modifier.size(20.dp),
+                            tint = MiuixTheme.colorScheme.onSurface,
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
                 }
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -680,6 +697,12 @@ private fun TopicListScreenContent(
             )
             }
         }
+    }
+
+    if (showHomeForumPicker) {
+        com.bugenzhao.mnga.ui.screens.forumlist.HomeForumPickerDialog(
+            onDismiss = { showHomeForumPicker = false },
+        )
     }
 }
 

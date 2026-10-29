@@ -176,12 +176,25 @@ private fun GenericEditorSheet(
         }
     }
 
+    // v1.8.2 keyboard hardening: the sheet lives in the SuperBottomSheet
+    // dialog window, and a focus request fired the moment the context
+    // lands can race that window becoming the active one — focus lands
+    // (or silently drops) but the IME never rises, which read on device
+    // as "tap the reply bar and no keyboard appears". Retry the request
+    // after a beat and explicitly ask the keyboard to show.
+    val keyboardController =
+        androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     LaunchedEffect(ctx?.seed) {
-        when {
-            ctx?.to?.isEmpty() == true -> requestFocusSafely(sendToFocus)
-            ctx?.subject?.isEmpty() == true -> requestFocusSafely(subjectFocus)
-            ctx != null -> requestFocusSafely(contentFocus)
-        }
+        val target = when {
+            ctx?.to?.isEmpty() == true -> sendToFocus
+            ctx?.subject?.isEmpty() == true -> subjectFocus
+            ctx != null -> contentFocus
+            else -> null
+        } ?: return@LaunchedEffect
+        requestFocusSafely(target)
+        delay(250)
+        requestFocusSafely(target)
+        keyboardController?.show()
     }
 
     fun pushContent(newText: String) {

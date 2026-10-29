@@ -40,11 +40,8 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.exclude
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.union
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
@@ -71,6 +68,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
@@ -91,7 +89,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.bugenzhao.mnga.storage.SearchHistoryScope
+import com.bugenzhao.mnga.ui.components.liquidGlass
 import com.bugenzhao.mnga.ui.nav.Navigator
+import com.bugenzhao.mnga.ui.root.GlassVariantScale
+import com.bugenzhao.mnga.ui.root.LocalScreenBackdropRegistry
+import com.bugenzhao.mnga.ui.root.rememberGlassSettings
+import com.bugenzhao.mnga.ui.root.withLensScale
 import com.bugenzhao.mnga.util.L
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -271,18 +274,76 @@ fun SearchScreen(
 
     // Data sources are rebuilt whenever the committed text or an option
     // changes, like `SearchModel`'s `commitedText -> dataSource` mapping.
-    Scaffold(
-        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
-            .exclude(WindowInsets.navigationBars),
-        topBar = {
-            // Miuix 0.8.8 SmallTopAppBar takes a String title only — there is
-            // no slot for the SearchCapsule field — so the Material TopAppBar
-            // stays as the capsule's host; its colors are pinned to the Miuix
-            // surface so the bar and the tab strip below stay one zone.
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MiuixTheme.colorScheme.surface,
+    //
+    // v1.8.2: search is presented as a floating window over the current
+    // page instead of a full-screen destination page — a dim scrim
+    // (tap outside = back, like the system back that still pops this
+    // route) plus a rounded glass panel holding the unchanged search
+    // UI. The panel samples the covered screen's published backdrop
+    // through the root registry (the toast host's arrangement), at the
+    // large-surface lens scale; screens that publish no backdrop fall
+    // back to the opaque surface. Route hosting is deliberate: result
+    // taps keep pushing their destinations over the window, and the
+    // deep-link entry and the ON_STOP result snapshots keep working
+    // exactly as they did for the full page.
+    val glass = rememberGlassSettings()
+    val searchBackdrop = LocalScreenBackdropRegistry.current?.activeBackdrop
+    val panelShape = RoundedCornerShape(28.dp)
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.36f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { navigator.pop() },
                 ),
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .padding(horizontal = 14.dp, vertical = 14.dp)
+                .clip(panelShape)
+                // Swallow taps on panel chrome so they cannot fall
+                // through to the scrim and dismiss mid-interaction.
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {},
+                ),
+        ) {
+            if (searchBackdrop != null) {
+                Box(
+                    Modifier.fillMaxSize().liquidGlass(
+                        backdrop = searchBackdrop,
+                        shape = panelShape,
+                        spec = glass.spec.withLensScale(GlassVariantScale.LARGE),
+                        scheme = glass.scheme,
+                        shadowRadius = 16.dp,
+                        debugShowSample = glass.debugShowSample,
+                        debugColor = Color.Magenta,
+                    ),
+                )
+            } else {
+                Box(
+                    Modifier.fillMaxSize()
+                        .background(MiuixTheme.colorScheme.surface, panelShape),
+                )
+            }
+            Scaffold(
+                containerColor = Color.Transparent,
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                topBar = {
+                    // Miuix 0.8.8 SmallTopAppBar takes a String title only — there is
+                    // no slot for the SearchCapsule field — so the Material TopAppBar
+                    // stays as the capsule's host; its colors are transparent so the
+                    // panel's glass stays one zone from bar to tab strip.
+                    TopAppBar(
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent,
+                        ),
                 title = {
                     SearchCapsule(
                         text = text,
@@ -310,9 +371,9 @@ fun SearchScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            // Continues the app bar's surface so the strip belongs to the
-            // chrome, not to the page.
-            Surface(color = MiuixTheme.colorScheme.surface) {
+            // Transparent over the panel glass (v1.8.2): the strip
+            // belongs to the window chrome, not to a page surface.
+            Surface(color = Color.Transparent) {
                 SegmentedTabs(
                     titles = SearchTab.entries.map { L.str(context, it.titleKey) },
                     // Follows the swipe itself, not just the settled page.
@@ -367,6 +428,8 @@ fun SearchScreen(
                         )
                     }
                 }
+            }
+        }
             }
         }
     }

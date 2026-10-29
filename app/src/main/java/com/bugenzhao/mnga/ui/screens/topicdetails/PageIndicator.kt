@@ -116,6 +116,12 @@ fun PageIndicatorOverlay(
     scheme: DockScheme,
     modifier: Modifier = Modifier,
     debugShowSample: Boolean = false,
+    // v1.8.2: while the floating reply bar is shown, the capsule stacks
+    // ABOVE it instead of sharing its slot. The capsule used to sit at a
+    // fixed 20.dp from the bottom — exactly where the v1.8.0 reply bar
+    // (nav inset + 12.dp padding + 56.dp tall) lives — so the two glass
+    // pills overlapped and the capsule's sliver peeked out under the bar.
+    stackAboveReplyBar: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val view = LocalView.current
@@ -124,6 +130,15 @@ fun PageIndicatorOverlay(
     LaunchedEffect(isListScrolling) {
         if (isListScrolling) expanded = false
     }
+
+    // Reply bar top edge = nav-bar inset + 12.dp vertical padding +
+    // 56.dp bar height; the capsule parks 8.dp above that.
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val navBottom = with(density) {
+        androidx.compose.foundation.layout.WindowInsets.navigationBars
+            .getBottom(density).toDp()
+    }
+    val capsuleBottom = if (stackAboveReplyBar) navBottom + 76.dp else 20.dp
 
     Box(modifier.fillMaxSize()) {
         if (expanded) {
@@ -157,7 +172,7 @@ fun PageIndicatorOverlay(
             debugShowSample = debugShowSample,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 20.dp),
+                .padding(bottom = capsuleBottom),
         )
     }
 }

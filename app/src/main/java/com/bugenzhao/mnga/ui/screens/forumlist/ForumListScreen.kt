@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.displayCutout
@@ -188,6 +189,9 @@ private fun ForumListScreenContent(
     // -- Toolbar state.
     val unreadCount by App.notis.unreadCountAnimated.collectAsState()
     var editMode by remember { mutableStateOf(false) }
+    // v1.8.2: the home-forum picker's primary entry is the top-left
+    // button of this title bar (Settings keeps its own entry).
+    var showHomeForumPicker by remember { mutableStateOf(false) }
     var moreMenuExpanded by remember { mutableStateOf(false) }
     var filterSubmenuExpanded by remember { mutableStateOf(false) }
     var contextMenuForum by remember { mutableStateOf<Forum?>(null) }
@@ -220,6 +224,18 @@ private fun ForumListScreenContent(
         topBar = {
             TopAppBar(
                 title = "泥坛",
+                navigationIcon = {
+                    // v1.8.2: home-forum customization lives at the home
+                    // tab's top-left now (was Settings-only before).
+                    if (!editMode) {
+                        IconButton(onClick = { showHomeForumPicker = true }) {
+                            Icon(
+                                Icons.Outlined.Tune,
+                                contentDescription = L.str(context, "Home Forum"),
+                            )
+                        }
+                    }
+                },
                 actions = {
                     if (editMode) {
                         // Edit-favorites mode: hide every other action and show
@@ -461,6 +477,10 @@ private fun ForumListScreenContent(
                 }
             }
         }
+    }
+
+    if (showHomeForumPicker) {
+        HomeForumPickerDialog(onDismiss = { showHomeForumPicker = false })
     }
 }
 
