@@ -21,10 +21,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
@@ -51,8 +53,10 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bugenzhao.mnga.ui.components.liquidGlass
@@ -133,12 +137,11 @@ fun PageIndicatorOverlay(
 
     // Reply bar top edge = nav-bar inset + 12.dp vertical padding +
     // 56.dp bar height; the capsule parks 8.dp above that.
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val navBottom = with(density) {
-        androidx.compose.foundation.layout.WindowInsets.navigationBars
-            .getBottom(density).toDp()
+    val density = LocalDensity.current
+    val navBottom: Dp = with(density) {
+        WindowInsets.navigationBars.getBottom(density).toDp()
     }
-    val capsuleBottom = if (stackAboveReplyBar) navBottom + 76.dp else 20.dp
+    val capsuleBottom: Dp = if (stackAboveReplyBar) navBottom + 76.dp else 20.dp
 
     Box(modifier.fillMaxSize()) {
         if (expanded) {

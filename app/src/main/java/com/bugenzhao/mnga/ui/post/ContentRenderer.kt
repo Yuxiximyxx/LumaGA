@@ -280,7 +280,7 @@ internal class ContentCombiner(
         private val durationRegex = Regex("""duration=([^&]+)""", RegexOption.IGNORE_CASE)
         // v1.8.2: `$votedata_*` template variables and attributed close
         // tags (`[/comment oth_title_cn]`) that leak into plain text.
-        private val templateVariableRegex = Regex("""\$votedata_[A-Za-z0-9_]+""")
+        private val templateVariableRegex = Regex("""\${'$'}votedata_[A-Za-z0-9_]+""")
         private val attributedCloseTagRegex =
             Regex("""\[/[A-Za-z][A-Za-z0-9_]*\s[^\]]*\]""")
     }
