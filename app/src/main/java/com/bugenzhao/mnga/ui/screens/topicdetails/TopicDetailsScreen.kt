@@ -120,9 +120,9 @@ import com.bugenzhao.mnga.protos.service.TopicDetailsResponse
 import com.bugenzhao.mnga.protos.service.UpdateTopicProgressRequest
 import com.bugenzhao.mnga.storage.TopicResumeFrom
 import com.bugenzhao.mnga.ui.components.DateTimeText
-import com.bugenzhao.mnga.ui.components.GlassButton
+import com.bugenzhao.mnga.ui.components.FrostedGlassButton
+import com.bugenzhao.mnga.ui.components.frostedGlass
 import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
-import com.bugenzhao.mnga.ui.components.liquidGlass
 import com.bugenzhao.mnga.ui.components.MiuixMenuDivider
 import com.bugenzhao.mnga.ui.components.MiuixMenuHeader
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
@@ -166,11 +166,13 @@ fun TopicDetailsScreen(
 ) {
     // This screen's backdrop doubles as the screen backdrop
     // (v1.7.6): the content root records it for the screen's whole
-    // lifetime and every consumer — the inline reply bar and the
-    // header round buttons beside the list, the popup menus (⋮ and
-    // per-post) in the Scaffold's host — sits outside that
-    // recording. (The page capsule that also sampled it was deleted
-    // in v1.8.4.) Hoisted here so the provider can wrap the Scaffold
+    // lifetime and the remaining consumers — the popup menus (⋮ and
+    // per-post) in the Scaffold's host, and the root toast host via
+    // the registry — sit outside that recording. (The page capsule
+    // that also sampled it was deleted in v1.8.4; the header round
+    // buttons and the round reply button stopped sampling it in
+    // v1.8.7 and use the non-sampling frosted material instead.)
+    // Hoisted here so the provider can wrap the Scaffold
     // (see ScreenBackdrop.kt).
     val indicatorBackdrop = rememberLayerBackdrop()
     ScreenBackdropProvider(indicatorBackdrop) {
@@ -333,6 +335,15 @@ private fun TopicDetailsScreenContent(
     // (The backdrop itself is remembered by the entry point above,
     // which also publishes it as this screen's menu/toast sampling
     // source.)
+    // v1.8.7: the header star / more circles and the round reply
+    // button no longer sample even this flat backdrop — device
+    // screenshots showed faceted ghosts, a washed-out fill and an
+    // orange dispersion wedge inside them under the liquid preset
+    // (the header pair samples outside the recording's bounds; the
+    // library exposes no clamp). They use the non-sampling frosted
+    // material now (frostedGlass / FrostedGlassButton). The backdrop
+    // and its recording stay for the menus and the toast host, whose
+    // larger, veil-dominant panels have no reported artifact.
     val glass = rememberGlassSettings()
 
     // Jump selector state.
@@ -860,19 +871,22 @@ private fun TopicDetailsScreenContent(
                 if (!mock) {
                     // The mock's star button: the same favorite toggle
                     // the More menu carries.
-                    // v1.8.4 glass sweep: the header round buttons are
-                    // glass now, sampling this screen's (flat, by the
-                    // crash-isolation rule) backdrop like the reply bar.
+                    // v1.8.4 glass sweep made the header round buttons
+                    // sampled glass over this screen's (flat, by the
+                    // crash-isolation rule) backdrop; v1.8.7 converts
+                    // them to the non-sampling frosted material — on
+                    // device the sampled version showed faceted ghosts
+                    // and a washed-out fill (the header pair also sits
+                    // outside the recording's bounds, and Kyant exposes
+                    // no sample clamp). See frostedGlass in
+                    // GlassSurface.kt.
                     Box(
                         Modifier.size(40.dp)
-                            .liquidGlass(
-                                backdrop = indicatorBackdrop,
+                            .frostedGlass(
                                 shape = androidx.compose.foundation.shape.CircleShape,
                                 spec = glass.spec,
                                 scheme = glass.scheme,
                                 shadowRadius = 8.dp,
-                                debugShowSample = glass.debugShowSample,
-                                debugColor = Color.Cyan,
                             )
                             .clip(androidx.compose.foundation.shape.CircleShape),
                         contentAlignment = Alignment.Center,
@@ -903,14 +917,11 @@ private fun TopicDetailsScreenContent(
                 }
                 Box(
                     Modifier.size(40.dp)
-                        .liquidGlass(
-                            backdrop = indicatorBackdrop,
+                        .frostedGlass(
                             shape = androidx.compose.foundation.shape.CircleShape,
                             spec = glass.spec,
                             scheme = glass.scheme,
                             shadowRadius = 8.dp,
-                            debugShowSample = glass.debugShowSample,
-                            debugColor = Color.Cyan,
                         )
                         .clip(androidx.compose.foundation.shape.CircleShape),
                     contentAlignment = Alignment.Center,
@@ -1210,24 +1221,24 @@ private fun TopicDetailsScreenContent(
         }
         }
         if (showReplyButton) {
-            // v1.8.6: the round glass reply button — the shared
-            // GlassButton over this screen's own backdrop (the flat,
-            // crash-isolated recording; the same source and recipe
-            // as the header star / more circles above). It carries no
-            // input of its own: a tap opens the full editor replying
-            // to the OP via the standard post-action path
-            // (EditorController.reply), whose post-send reload is the
-            // sentContext effect at the top of this screen.
-            GlassButton(
-                backdrop = indicatorBackdrop,
+            // v1.8.6: the round glass reply button. v1.8.7: it is the
+            // non-sampling FrostedGlassButton, not a sampled
+            // GlassButton — on device the sampled version (over this
+            // screen's flat, crash-isolated recording, under the
+            // liquid preset's lens + dispersion) rendered a faceted
+            // ghost and an orange dispersion wedge inside the circle.
+            // Same size, position and tap path as v1.8.6: no input of
+            // its own, a tap opens the full editor replying to the OP
+            // via the standard post-action path (EditorController
+            // .reply), whose post-send reload is the sentContext
+            // effect at the top of this screen.
+            FrostedGlassButton(
                 spec = glass.spec,
                 scheme = glass.scheme,
                 onClick = {
                     first?.let { onPostAction?.invoke(PostRowAction.REPLY, it) }
                 },
                 size = 56.dp,
-                debugShowSample = glass.debugShowSample,
-                debugColor = Color.Cyan,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .navigationBarsPadding()

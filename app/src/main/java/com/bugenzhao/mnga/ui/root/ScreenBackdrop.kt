@@ -107,9 +107,22 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  *   more) were made glass circles in v1.8.4 with the same
  *   above-the-recording sampling of the dock backdrop — reverted
  *   to plain IconButtons in v1.8.6 for the same reason. The topic
- *   screen's header star / more circles stay glass: their backdrop
- *   is the flat, crash-isolated recording (a uniform texture, so
- *   the offset error is invisible there).
+ *   screen's header star / more circles were kept glass then on the
+ *   assumption that their flat, crash-isolated recording made the
+ *   offset error invisible; v1.8.6's device screenshots falsified
+ *   that too — faceted ghost shapes and a washed-out fill inside
+ *   the circles, and an orange dispersion wedge inside the round
+ *   reply button (also sampled, in-bounds) under the liquid
+ *   preset's 24/24dp lens + dispersion. v1.8.7 converts all three
+ *   topic-details buttons to the NON-sampling frosted material
+ *   (frostedGlass / FrostedGlassButton in GlassSurface.kt): no
+ *   texture, no effect chain, deterministic. The details backdrop
+ *   itself stays, still sampled by that screen's menus and the
+ *   toast host (large, veil-dominant faces; no reported artifact).
+ *   Lesson: a uniform recorded texture does NOT make a sampled
+ *   consumer safe — the lens/dispersion chain and out-of-bounds
+ *   sampling can still fabricate structure, and Kyant exposes no
+ *   clamp to rule it out.
  * - v1.8.5's GlassTopBarBackground (a full-width glass layer under
  *   the transparent TopAppBar of the home / favorites /
  *   personal-center tab roots, sampling the same backdrops from

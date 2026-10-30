@@ -127,6 +127,45 @@ fun Modifier.liquidGlass(
 }
 
 /**
+ * The NON-sampling frosted material: the same veil hue as [liquidGlass]
+ * at the denser alpha the API < 31 fallback uses, plus a rim border
+ * standing in for the lens edge the sampled version gets for free, and
+ * the shared cast shadow. Nothing is recorded and nothing is sampled,
+ * so the surface is deterministic by construction — it can only ever
+ * show its own veil over whatever the window compositor puts beneath
+ * it, never a texture, a stale frame or a shader artifact.
+ *
+ * Used where sampling has proven unreliable on device despite a
+ * structurally sound backdrop: the topic-details header circles and
+ * round reply button (v1.8.7). Their backdrop is a flat page-color
+ * recording by crash-isolation design, yet under the liquid preset
+ * (24/24dp lens + dispersion) the Kyant effect chain rendered faceted
+ * ghosts and dispersed color wedges inside them — the header pair also
+ * sits outside the recording's bounds — and the library exposes no
+ * sample clamp/offset control to correct the mapping. Over the
+ * details page's near-uniform background the frosted read is visually
+ * the same material minus the artifacts.
+ */
+fun Modifier.frostedGlass(
+    shape: Shape,
+    spec: GlassSpec,
+    scheme: DockScheme,
+    shadowRadius: Dp = 12.dp,
+): Modifier {
+    val tint = glassTintColor(spec, scheme)
+    val frost = tint.copy(alpha = (tint.alpha * 1.5f).coerceAtMost(0.95f))
+    val rim = when (scheme) {
+        DockScheme.Dark -> Color.White.copy(alpha = 0.28f)
+        DockScheme.Light -> Color.White.copy(alpha = 0.55f)
+        DockScheme.Classic -> Color.White.copy(alpha = 0.5f)
+    }
+    return this
+        .shadow(shadowRadius, shape, clip = false)
+        .background(frost, shape)
+        .border(1.dp, rim, shape)
+}
+
+/**
  * A floating glass button: [size] × [size] (or as given) of liquid glass
  * with centered content. Used for the topic-list refresh FAB, the
  * page-indicator siblings and the image viewer's overlay buttons — all
@@ -155,6 +194,34 @@ fun GlassButton(
                 debugShowSample = debugShowSample,
                 debugColor = debugColor,
             )
+            .clip(shape)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
+}
+
+/**
+ * [GlassButton]'s non-sampling sibling on the [frostedGlass] material:
+ * same geometry and shadow language, no backdrop. Used by the
+ * topic-details round reply button (v1.8.7 — see [frostedGlass]).
+ */
+@Composable
+fun FrostedGlassButton(
+    spec: GlassSpec,
+    scheme: DockScheme,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 48.dp,
+    shape: Shape = CircleShape,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier
+            .size(size)
+            .frostedGlass(shape, spec, scheme, shadowRadius = 8.dp)
             .clip(shape)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
