@@ -968,8 +968,12 @@ private fun TopicDetailsScreenContent(
                                 }
                             } else null
                         },
+                        // v1.8.6: the header menu's Reply entry takes
+                        // the same editor path as the round glass reply
+                        // button below — it used to focus the inline
+                        // reply bar, which this version removed.
                         onReply = if (onlyPostId == null && !mock && first != null) {
-                            { focusInlineReply(first) }
+                            { first?.let { onPostAction?.invoke(PostRowAction.REPLY, it) } }
                         } else null,
                         onGotoTopic = if (onlyPostId != null && topic.id.isNotEmpty()) {
                             {
