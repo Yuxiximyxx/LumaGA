@@ -127,43 +127,6 @@ fun Modifier.liquidGlass(
 }
 
 /**
- * Background layer for a transparent top bar (v1.8.5, the user's
- * "no solid band at the top of any screen" pass): the library bars
- * on the three dock tab roots are painted with
- * `color = Color.Transparent` over this full-size glass layer, which
- * samples the screen's own published backdrop — the consumer is the
- * Scaffold's topBar slot, a sibling of the recorded content root, so
- * the sampling geometry is the header glass buttons' (the texture's
- * top edge: a live frosted read of the page head). On screens
- * without a published backdrop the bars are transparent-only (see
- * the per-screen list in the v1.8.5 change notes): an attached bar
- * has no content scrolling beneath it, so transparency alone is
- * what removes the band there. A null [backdrop] degrades this
- * layer to plain transparency as well.
- */
-@Composable
-fun GlassTopBarBackground(
-    backdrop: LayerBackdrop?,
-    spec: GlassSpec,
-    scheme: DockScheme,
-    debugShowSample: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    if (backdrop == null) return
-    Box(
-        modifier.liquidGlass(
-            backdrop = backdrop,
-            shape = androidx.compose.ui.graphics.RectangleShape,
-            spec = spec,
-            scheme = scheme,
-            shadowRadius = 0.dp,
-            debugShowSample = debugShowSample,
-            debugColor = Color.Cyan,
-        ),
-    )
-}
-
-/**
  * A floating glass button: [size] × [size] (or as given) of liquid glass
  * with centered content. Used for the topic-list refresh FAB, the
  * page-indicator siblings and the image viewer's overlay buttons — all

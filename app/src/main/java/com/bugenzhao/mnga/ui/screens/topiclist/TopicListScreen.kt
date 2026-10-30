@@ -78,7 +78,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bugenzhao.mnga.App
 import com.bugenzhao.mnga.model.NavigationIdentifier
 import com.bugenzhao.mnga.ui.components.GlassButton
-import com.bugenzhao.mnga.ui.components.liquidGlass
 import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuHeader
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
@@ -364,10 +363,6 @@ private fun TopicListScreenContent(
                     // button as the default home's title bar).
                     TopicListRoundButton(
                         onClick = { showHomeForumPicker = true },
-                        backdrop = fabBackdrop,
-                        spec = glass.spec,
-                        scheme = glass.scheme,
-                        debugShowSample = glass.debugShowSample,
                     ) {
                         Icon(
                             Icons.Outlined.Tune,
@@ -401,10 +396,6 @@ private fun TopicListScreenContent(
                     Box {
                         TopicListRoundButton(
                         onClick = { rangeMenuExpanded = true },
-                        backdrop = fabBackdrop,
-                        spec = glass.spec,
-                        scheme = glass.scheme,
-                        debugShowSample = glass.debugShowSample,
                     ) {
                             Icon(
                                 Icons.Outlined.DateRange,
@@ -462,10 +453,6 @@ private fun TopicListScreenContent(
                     Box {
                         TopicListRoundButton(
                         onClick = { moreMenuExpanded = true },
-                        backdrop = fabBackdrop,
-                        spec = glass.spec,
-                        scheme = glass.scheme,
-                        debugShowSample = glass.debugShowSample,
                     ) {
                             Icon(
                                 Icons.Outlined.MoreVert,
@@ -528,10 +515,6 @@ private fun TopicListScreenContent(
                     }
                     Spacer(Modifier.size(10.dp))
                     TopicListRoundButton(
-                            backdrop = fabBackdrop,
-                            spec = glass.spec,
-                            scheme = glass.scheme,
-                            debugShowSample = glass.debugShowSample,
                         onClick = { navigator.push(Route.TopicSearch(forumId = forumId)) },
                     ) {
                         Icon(
@@ -553,10 +536,6 @@ private fun TopicListScreenContent(
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
             ) {
                 TopicFilterChip(
-                    backdrop = fabBackdrop,
-                    spec = glass.spec,
-                    scheme = glass.scheme,
-                    debugShowSample = glass.debugShowSample,
                     text = "最新回复",
                     selected = mode == TopicListMode.NORMAL &&
                         orderOrDefault == TopicListOrder.LAST_POST,
@@ -569,10 +548,6 @@ private fun TopicListScreenContent(
                     },
                 )
                 TopicFilterChip(
-                    backdrop = fabBackdrop,
-                    spec = glass.spec,
-                    scheme = glass.scheme,
-                    debugShowSample = glass.debugShowSample,
                     text = "最新发布",
                     selected = mode == TopicListMode.NORMAL &&
                         orderOrDefault == TopicListOrder.POST_DATE,
@@ -585,10 +560,6 @@ private fun TopicListScreenContent(
                     },
                 )
                 TopicFilterChip(
-                    backdrop = fabBackdrop,
-                    spec = glass.spec,
-                    scheme = glass.scheme,
-                    debugShowSample = glass.debugShowSample,
                     text = "精华",
                     selected = mode == TopicListMode.RECOMMENDED,
                     onClick = {
@@ -610,10 +581,6 @@ private fun TopicListScreenContent(
                     },
                 )
                 TopicFilterChip(
-                    backdrop = fabBackdrop,
-                    spec = glass.spec,
-                    scheme = glass.scheme,
-                    debugShowSample = glass.debugShowSample,
                     text = "热帖",
                     selected = mode == TopicListMode.HOT,
                     onClick = {
@@ -785,36 +752,28 @@ private fun TopicListRefreshFab(
 }
 
 /**
- * Round button of the topic list's large-title header. v1.8.4 glass
- * sweep: liquid glass sampling the list's backdrop — the header sits
- * in the Column ABOVE the recorded list box, so the button is a
- * consumer outside the recorded subtree (the same geometry as this
- * screen's menus); at the header's position the texture's top edge
- * is page background, so the buttons read as frosted pills over the
- * page, exactly the reply-bar treatment on the topic screen.
+ * Round button of the topic list's large-title header.
+ *
+ * v1.8.6: back to the v1.8.3 plain circle. The v1.8.4 glass version
+ * sampled the list's backdrop from the header, which sits in the
+ * Column ABOVE the recorded list box — the consumer's position maps
+ * outside the recorded texture, and on device (v1.8.5, light theme)
+ * the buttons showed magnified glyph fragments of the first topic
+ * titles instead of the page background the sampling was supposed
+ * to read. Kyant's drawBackdrop exposes no sample-offset/clamp
+ * control to correct the mapping in place, so correctness wins
+ * over glass coverage here (see ScreenBackdrop.kt).
  */
 @Composable
 private fun TopicListRoundButton(
     onClick: () -> Unit,
-    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
-    spec: com.bugenzhao.mnga.ui.root.GlassSpec,
-    scheme: com.bugenzhao.mnga.ui.root.DockScheme,
-    debugShowSample: Boolean,
     content: @Composable () -> Unit,
 ) {
     Box(
         Modifier
             .size(40.dp)
-            .liquidGlass(
-                backdrop = backdrop,
-                shape = androidx.compose.foundation.shape.CircleShape,
-                spec = spec,
-                scheme = scheme,
-                shadowRadius = 8.dp,
-                debugShowSample = debugShowSample,
-                debugColor = Color.Cyan,
-            )
             .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(MiuixTheme.colorScheme.surfaceContainer)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -824,39 +783,26 @@ private fun TopicListRoundButton(
 
 /**
  * One capsule of the topic list's filter row (the mock's chip bar).
- * v1.8.4 glass sweep: unselected chips are liquid glass (same
- * consumer geometry as [TopicListRoundButton]); the selected chip
- * stays solid primary — it is a state indicator, not a floating
- * surface, and glass-on-primary would wash the affordance out.
+ * v1.8.6: unselected chips are back to the v1.8.3 plain
+ * surfaceContainer — they shared the header buttons' wrong-region
+ * sampling as v1.8.4 glass (see [TopicListRoundButton]). The
+ * selected chip stays solid primary, as it always was.
  */
 @Composable
 private fun TopicFilterChip(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
-    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
-    spec: com.bugenzhao.mnga.ui.root.GlassSpec,
-    scheme: com.bugenzhao.mnga.ui.root.DockScheme,
-    debugShowSample: Boolean,
 ) {
     val chipShape = RoundedCornerShape(percent = 50)
     Box(
         Modifier
-            .then(
+            .clip(chipShape)
+            .background(
                 if (selected) {
-                    Modifier
-                        .clip(chipShape)
-                        .background(MiuixTheme.colorScheme.primary)
+                    MiuixTheme.colorScheme.primary
                 } else {
-                    Modifier.liquidGlass(
-                        backdrop = backdrop,
-                        shape = chipShape,
-                        spec = spec,
-                        scheme = scheme,
-                        shadowRadius = 8.dp,
-                        debugShowSample = debugShowSample,
-                        debugColor = Color.Cyan,
-                    ).clip(chipShape)
+                    MiuixTheme.colorScheme.surfaceContainer
                 },
             )
             .clickable(onClick = onClick)

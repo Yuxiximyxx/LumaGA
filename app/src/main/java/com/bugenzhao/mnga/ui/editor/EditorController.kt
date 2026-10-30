@@ -95,28 +95,6 @@ class EditorController(val scope: CoroutineScope) {
         )
     }
 
-    /**
-     * The REPLY task for [post], exposed for the topic screen's inline
-     * reply bar (v1.8.3): identical to what [reply] would show the
-     * editor — same operation, post id, forum id and reload page — so
-     * an inline send is semantically the editor's reply send.
-     */
-    fun replyTask(post: Post): PostReplyTask =
-        replyAction(post, PostReplyAction.Operation.REPLY)
-
-    /**
-     * Send [content] as a reply per [task] without opening the editor
-     * (see PostReplyModel.sendDirect). [onResult] reports success; the
-     * shared `sent` flow fires on success either way.
-     */
-    fun sendReplyInline(
-        task: PostReplyTask,
-        content: String,
-        onResult: (Boolean) -> Unit,
-    ) {
-        postReply.sendDirect(task, content, onResult)
-    }
-
     private fun replyAction(
         post: Post,
         operation: PostReplyAction.Operation,

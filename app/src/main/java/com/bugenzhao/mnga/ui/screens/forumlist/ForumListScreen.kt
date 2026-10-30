@@ -3,7 +3,6 @@ package com.bugenzhao.mnga.ui.screens.forumlist
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -73,7 +72,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -88,17 +86,13 @@ import com.bugenzhao.mnga.model.PlusFeature
 import com.bugenzhao.mnga.model.PlusModel
 import com.bugenzhao.mnga.protos.datamodel.Forum
 import com.bugenzhao.mnga.protos.service.AsyncRequest
-import com.bugenzhao.mnga.ui.components.GlassTopBarBackground
 import com.bugenzhao.mnga.ui.components.LoadingRow
 import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.MiuixMenuItem
 import com.bugenzhao.mnga.ui.nav.Navigator
 import com.bugenzhao.mnga.ui.nav.Route
-import com.bugenzhao.mnga.ui.components.liquidGlass
 import com.bugenzhao.mnga.ui.root.LocalDockBackdrop
-import com.bugenzhao.mnga.ui.root.LocalScreenBackdrop
 import com.bugenzhao.mnga.ui.root.ScreenBackdropProvider
-import com.bugenzhao.mnga.ui.root.rememberGlassSettings
 import com.bugenzhao.mnga.ui.root.rememberDockBackdropSourceModifier
 import com.bugenzhao.mnga.ui.root.tabDockContentBottomPadding
 import com.bugenzhao.mnga.ui.nav.RouteDestination
@@ -224,30 +218,20 @@ private fun ForumListScreenContent(
         }
     }
 
-    // v1.8.4 glass sweep: the top bar's icon buttons become glass
-    // circles (see HomeTopBarGlassButton). The bar is a Scaffold slot,
-    // a sibling of the recorded scrolling content — a consumer outside
-    // the recorded subtree, sampling the same screen backdrop the
-    // menus use (the dock backdrop this tab root records while it is
-    // current).
-    val glass = rememberGlassSettings()
-    val screenBackdrop = LocalScreenBackdrop.current
-
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
             .exclude(WindowInsets.navigationBars),
         topBar = {
-            // v1.8.5: no solid top band — the bar is transparent over
-            // a glass background layer sampling this screen's own
-            // backdrop (the header buttons' frosted read, full width).
-            Box {
-                GlassTopBarBackground(
-                    backdrop = screenBackdrop,
-                    spec = glass.spec,
-                    scheme = glass.scheme,
-                    debugShowSample = glass.debugShowSample,
-                    modifier = Modifier.matchParentSize(),
-                )
+            // Transparent since v1.8.5 (no solid top band) — plain
+            // transparent, no sampling layer under the bar and plain
+            // icon buttons: the v1.8.4 glass circles here and
+            // v1.8.5's full-bar glass background both sampled this
+            // screen's backdrop from the bar slot, above the recorded
+            // content's top edge — the same wrong-region sampling
+            // that put magnified glyph fragments into the topic
+            // list's header buttons, and the crash class that hit
+            // Favorites / Personal Center in v1.8.5. Reverted to
+            // the v1.8.3 plain form in v1.8.6 (see ScreenBackdrop.kt).
             TopAppBar(
                 title = "泥坛",
                 color = Color.Transparent,
@@ -255,13 +239,7 @@ private fun ForumListScreenContent(
                     // v1.8.2: home-forum customization lives at the home
                     // tab's top-left now (was Settings-only before).
                     if (!editMode) {
-                        HomeTopBarGlassButton(
-                            backdrop = screenBackdrop,
-                            spec = glass.spec,
-                            scheme = glass.scheme,
-                            debugShowSample = glass.debugShowSample,
-                            onClick = { showHomeForumPicker = true },
-                        ) {
+                        IconButton(onClick = { showHomeForumPicker = true }) {
                             Icon(
                                 Icons.Outlined.Tune,
                                 contentDescription = L.str(context, "Home Forum"),
@@ -278,14 +256,8 @@ private fun ForumListScreenContent(
                     }
                     val showBell = unreadCount > 0
                     if (showBell) {
-                        BadgedBox(badge = { Badge { Text(unreadCount.toString()) } }) {
-                            HomeTopBarGlassButton(
-                                backdrop = screenBackdrop,
-                                spec = glass.spec,
-                                scheme = glass.scheme,
-                                debugShowSample = glass.debugShowSample,
-                                onClick = { navigator.push(Route.Notifications) },
-                            ) {
+                        IconButton(onClick = { navigator.push(Route.Notifications) }) {
+                            BadgedBox(badge = { Badge { Text(unreadCount.toString()) } }) {
                                 Icon(
                                     Icons.Outlined.Notifications,
                                     contentDescription = L.str(context, "Notifications"),
@@ -293,13 +265,7 @@ private fun ForumListScreenContent(
                             }
                         }
                     }
-                    HomeTopBarGlassButton(
-                        backdrop = screenBackdrop,
-                        spec = glass.spec,
-                        scheme = glass.scheme,
-                        debugShowSample = glass.debugShowSample,
-                        onClick = { navigator.push(Route.GlobalSearch()) },
-                    ) {
+                    IconButton(onClick = { navigator.push(Route.GlobalSearch()) }) {
                         Icon(
                             Icons.Outlined.Search,
                             contentDescription = L.str(context, "Search"),
@@ -307,13 +273,7 @@ private fun ForumListScreenContent(
                     }
                     // "More" menu on the far right, holding the forum filters.
                     Box {
-                        HomeTopBarGlassButton(
-                            backdrop = screenBackdrop,
-                            spec = glass.spec,
-                            scheme = glass.scheme,
-                            debugShowSample = glass.debugShowSample,
-                            onClick = { moreMenuExpanded = true },
-                        ) {
+                        IconButton(onClick = { moreMenuExpanded = true }) {
                             Icon(
                                 Icons.Outlined.MoreVert,
                                 contentDescription = L.str(context, "More"),
@@ -348,7 +308,6 @@ private fun ForumListScreenContent(
                     }
                 },
             )
-            }
         },
     ) { padding ->
         // While this tab root is current, its own scrolling content is
@@ -600,52 +559,6 @@ private fun FavoritesEmptyHint() {
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
         }
-    }
-}
-
-/**
- * A top-bar icon button of the home tab as a glass circle (v1.8.4
- * glass sweep), sampling the screen backdrop published by the entry
- * point (the dock backdrop this tab root records while current). The
- * bar is a Scaffold slot outside the recorded content, so this is a
- * standard outside-the-subtree consumer; with no backdrop published
- * it falls back to the plain circle the buttons used to be.
- */
-@Composable
-private fun HomeTopBarGlassButton(
-    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop?,
-    spec: com.bugenzhao.mnga.ui.root.GlassSpec,
-    scheme: com.bugenzhao.mnga.ui.root.DockScheme,
-    debugShowSample: Boolean,
-    onClick: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    Box(
-        Modifier
-            .size(40.dp)
-            .then(
-                if (backdrop != null) {
-                    Modifier.liquidGlass(
-                        backdrop = backdrop,
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        spec = spec,
-                        scheme = scheme,
-                        shadowRadius = 8.dp,
-                        debugShowSample = debugShowSample,
-                        debugColor = Color.Cyan,
-                    )
-                } else {
-                    Modifier.background(
-                        MiuixTheme.colorScheme.surfaceContainer,
-                        androidx.compose.foundation.shape.CircleShape,
-                    )
-                },
-            )
-            .clip(androidx.compose.foundation.shape.CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        content()
     }
 }
 

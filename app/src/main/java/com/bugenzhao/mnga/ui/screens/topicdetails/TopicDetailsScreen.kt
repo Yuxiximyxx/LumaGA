@@ -23,9 +23,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Reply
@@ -45,6 +42,7 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
@@ -92,12 +90,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -128,6 +120,7 @@ import com.bugenzhao.mnga.protos.service.TopicDetailsResponse
 import com.bugenzhao.mnga.protos.service.UpdateTopicProgressRequest
 import com.bugenzhao.mnga.storage.TopicResumeFrom
 import com.bugenzhao.mnga.ui.components.DateTimeText
+import com.bugenzhao.mnga.ui.components.GlassButton
 import com.bugenzhao.mnga.ui.components.MiuixDropdownMenu
 import com.bugenzhao.mnga.ui.components.liquidGlass
 import com.bugenzhao.mnga.ui.components.MiuixMenuDivider
@@ -623,64 +616,14 @@ private fun TopicDetailsScreenContent(
     val childLocateFloor: ((Post) -> Unit)? =
         if (forceLocalMode || onlyPostId != null) null else { post -> locatePostInCurrentTopic(post) }
 
-    // Floating reply bar (v1.8.0, per the confirmed mock): offered
-    // under exactly the conditions of the More menu's Reply entry.
-    val showReplyBar = onlyPostId == null && !mock && first != null && editor != null
-
-    // Inline reply state (v1.8.3): the bar is a REAL text field in
-    // this window now, not a tap target that opens the editor sheet —
-    // two rounds of sheet focus/IME fixes never made the sheet's field
-    // accept input on device ("tap animates, nothing can be typed").
-    // [inlineReplyTarget] is the post the next send replies to; null
-    // means the OP, the bar's historic target. A floor's Reply action
-    // is routed here (focus the field, show the target chip); every
-    // other post action (quote / comment / modify / report) keeps the
-    // editor-sheet path via [onPostAction].
-    var inlineReplyTarget by remember(route) { mutableStateOf<Post?>(null) }
-    var inlineReplyText by remember(route) { mutableStateOf(TextFieldValue("")) }
-    var inlineReplySending by remember(route) { mutableStateOf(false) }
-    val inlineReplyFocus = remember { FocusRequester() }
-    val keyboardController = LocalSoftwareKeyboardController.current
-    var inlineFocusEpoch by remember(route) { mutableStateOf(0) }
-    LaunchedEffect(inlineFocusEpoch) {
-        if (inlineFocusEpoch > 0) {
-            runCatching { inlineReplyFocus.requestFocus() }
-            keyboardController?.show()
-        }
-    }
-    val focusInlineReply: (Post) -> Unit = { post ->
-        inlineReplyTarget = post.takeIf { it.id != first?.id }
-        inlineFocusEpoch++
-    }
-    val effectiveOnPostAction: ((action: String, post: Post) -> Unit)? =
-        if (onPostAction == null) {
-            null
-        } else {
-            { postAction, post ->
-                if (postAction == PostRowAction.REPLY) {
-                    focusInlineReply(post)
-                } else {
-                    onPostAction(postAction, post)
-                }
-            }
-        }
-
-    /** Send the bar's text as a reply to the current target. */
-    fun sendInlineReply() {
-        val ctrl = editor ?: return
-        val targetPost = inlineReplyTarget ?: first ?: return
-        val content = inlineReplyText.text
-        if (content.isBlank() || inlineReplySending) return
-        inlineReplySending = true
-        ctrl.sendReplyInline(ctrl.replyTask(targetPost), content) { ok ->
-            inlineReplySending = false
-            if (ok) {
-                inlineReplyText = TextFieldValue("")
-                inlineReplyTarget = null
-                keyboardController?.hide()
-            }
-        }
-    }
+    // Floating reply button (v1.8.6): offered under exactly the
+    // conditions of the More menu's Reply entry. Up to v1.8.5 this
+    // slot held the inline reply bar (a real in-window text field,
+    // v1.8.3); the user retired the input-bar form — the round glass
+    // button below only opens the full editor, and floor Reply
+    // actions go through [onPostAction] again (the pre-v1.8.3
+    // routing: editor opens with the tapped floor as its target).
+    val showReplyButton = onlyPostId == null && !mock && first != null && editor != null
 
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
@@ -1141,13 +1084,11 @@ private fun TopicDetailsScreenContent(
                         start = 16.dp,
                         end = 16.dp,
                         top = 8.dp,
-                        // Reply bar slot: 100.dp for the single-row bar;
-                        // the target chip row adds its height on top.
-                        bottom = if (showReplyBar) {
-                            if (inlineReplyTarget != null) 136.dp else 100.dp
-                        } else {
-                            8.dp
-                        },
+                        // v1.8.6: the reply bar is gone (a round
+                        // button floats over the bottom-end instead),
+                        // so the list tail keeps only the plain
+                        // no-bar padding.
+                        bottom = 8.dp,
                     ),
                 ) {
                     // 自动加载上一页时，顶部居中显示加载提示。
@@ -1224,7 +1165,7 @@ private fun TopicDetailsScreenContent(
                                 locateFloor = childLocateFloor,
                                 dataSource = dataSource,
                                 currentViewingFloor = currentViewingFloor,
-                                onPostAction = effectiveOnPostAction,
+                                onPostAction = onPostAction,
                                 onLoadNewReplies = {
                                     dataSource.reloadLastPage(evenIfNotLoaded = true) {
                                         Haptics.vibrate(context, Haptics.NotificationType.SUCCESS)
@@ -1260,46 +1201,40 @@ private fun TopicDetailsScreenContent(
             // v1.8.4: the page-indicator capsule that floated here is
             // deleted (component, stacking offsets and its settings
             // toggle all gone). Nothing floats at the bottom of this
-            // screen except the inline reply bar below.
+            // screen except the reply button below (v1.8.6).
             }
         }
         }
-        if (showReplyBar) {
-            // v1.8.4 IME follow: up to v1.8.3 the bar only carried
-            // navigationBarsPadding, so when the keyboard opened the
-            // bar stayed sunk at the very bottom, hidden behind the
-            // IME it had just summoned. The bottom inset is now
-            // max(ime, navigationBars): with the keyboard up the bar
-            // parks on the keyboard's top edge, with it down it falls
-            // back to exactly the old slot (nav inset + 12.dp). The
-            // ime inset is read in composition, so it tracks the
-            // system's IME animation frame by frame instead of
-            // jumping. (The list's bottom content padding is sized
-            // for the keyboard-down slot and deliberately unchanged:
-            // while typing, the bar floats over the list tail like
-            // every other messenger's input bar.)
-            val imeDensity = LocalDensity.current
-            val imeBottomPx = WindowInsets.ime.getBottom(imeDensity)
-            val navBottomPx = WindowInsets.navigationBars.getBottom(imeDensity)
-            val replyBarBottom = with(imeDensity) {
-                maxOf(imeBottomPx, navBottomPx).toDp()
-            } + 12.dp
-            InlineReplyBar(
+        if (showReplyButton) {
+            // v1.8.6: the round glass reply button — the shared
+            // GlassButton over this screen's own backdrop (the flat,
+            // crash-isolated recording; the same source and recipe
+            // as the header star / more circles above). It carries no
+            // input of its own: a tap opens the full editor replying
+            // to the OP via the standard post-action path
+            // (EditorController.reply), whose post-send reload is the
+            // sentContext effect at the top of this screen.
+            GlassButton(
                 backdrop = indicatorBackdrop,
                 spec = glass.spec,
                 scheme = glass.scheme,
+                onClick = {
+                    first?.let { onPostAction?.invoke(PostRowAction.REPLY, it) }
+                },
+                size = 56.dp,
                 debugShowSample = glass.debugShowSample,
-                target = inlineReplyTarget,
-                text = inlineReplyText,
-                onTextChange = { inlineReplyText = it },
-                focusRequester = inlineReplyFocus,
-                sending = inlineReplySending,
-                onSend = { sendInlineReply() },
-                onClearTarget = { inlineReplyTarget = null },
+                debugColor = Color.Cyan,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = replyBarBottom),
-            )
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 16.dp, bottom = 16.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.ChatBubbleOutline,
+                    contentDescription = L.str(context, "Reply"),
+                    tint = glassContentColor(glass.scheme),
+                )
+            }
         }
         }
     }
@@ -1342,153 +1277,6 @@ private fun TopicDetailsScreenContent(
         )
     }
     ImageViewerDialog(model = viewingImage)
-}
-
-/**
- * The floating reply bar of the topic screen (v1.8.0, per the confirmed
- * mock): a liquid-glass capsule in the shared glass recipe (same
- * resolution and three-material setting as the dock), sampling the
- * screen's own backdrop from OUTSIDE the recorded subtree.
- *
- * v1.8.3: the bar is a real input now. Up to v1.8.2 the whole bar was
- * a tap target opening the editor sheet (a SuperBottomSheet in its
- * own Dialog window), and on device the tap animated but text could
- * never be entered — two rounds of focus/IME hardening inside that
- * sheet did not change it. The field below lives in THIS window:
- * tapping it focuses and raises the IME directly, and the 发送 pill
- * posts through PostReplyModel.sendDirect (the editor's own
- * requests). When a floor's Reply action targeted another post, a
- * chip row names that target and can clear it back to the OP.
- *
- * v1.8.5: the bar's expand button (hand the draft to the full
- * editor) is deleted at the user's call — the bar is input + send +
- * target chip only. The full editor stays reachable from the floor
- * menus (quote / edit / …) as before.
- */
-@Composable
-private fun InlineReplyBar(
-    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
-    spec: GlassSpec,
-    scheme: DockScheme,
-    debugShowSample: Boolean,
-    target: Post?,
-    text: TextFieldValue,
-    onTextChange: (TextFieldValue) -> Unit,
-    focusRequester: FocusRequester,
-    sending: Boolean,
-    onSend: () -> Unit,
-    onClearTarget: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val context = LocalContext.current
-    val shape = if (target != null) {
-        RoundedCornerShape(26.dp)
-    } else {
-        RoundedCornerShape(percent = 50)
-    }
-    Column(
-        modifier
-            .fillMaxWidth()
-            .liquidGlass(
-                backdrop = backdrop,
-                shape = shape,
-                spec = spec,
-                scheme = scheme,
-                shadowRadius = 12.dp,
-                debugShowSample = debugShowSample,
-                debugColor = Color.Cyan,
-            )
-            .clip(shape)
-            .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
-    ) {
-        if (target != null) {
-            val authorName = App.users.cachedUser(target.authorId)
-                ?.name?.display()?.takeIf { it.isNotEmpty() }
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(start = 4.dp, bottom = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    if (authorName != null) {
-                        "回复 #${target.floor} 楼 · $authorName"
-                    } else {
-                        "回复 #${target.floor} 楼"
-                    },
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = glassContentColor(scheme),
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    Icons.Outlined.Close,
-                    contentDescription = "取消回复目标",
-                    tint = glassContentColor(scheme),
-                    modifier = Modifier
-                        .size(26.dp)
-                        .clip(RoundedCornerShape(percent = 50))
-                        .clickable(onClick = onClearTarget)
-                        .padding(5.dp),
-                )
-            }
-        }
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                Modifier.weight(1f).padding(start = 4.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                if (text.text.isEmpty()) {
-                    Text(
-                        if (target != null) "回复这一楼…" else "回复楼主…",
-                        style = MiuixTheme.textStyles.body1,
-                        color = glassContentColor(scheme).copy(alpha = 0.6f),
-                        maxLines = 1,
-                    )
-                }
-                BasicTextField(
-                    value = text,
-                    onValueChange = onTextChange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester),
-                    textStyle = MiuixTheme.textStyles.body1.copy(
-                        color = glassContentColor(scheme),
-                    ),
-                    cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { onSend() }),
-                    maxLines = 4,
-                )
-            }
-            val canSend = text.text.isNotBlank() && !sending
-            Box(
-                Modifier
-                    .clip(RoundedCornerShape(percent = 50))
-                    .background(
-                        if (canSend) {
-                            MiuixTheme.colorScheme.primary
-                        } else {
-                            MiuixTheme.colorScheme.primary.copy(alpha = 0.45f)
-                        }
-                    )
-                    .clickable(enabled = canSend, onClick = onSend)
-                    .padding(horizontal = 22.dp, vertical = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    if (sending) "发送中…" else "发送",
-                    style = MiuixTheme.textStyles.body1,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MiuixTheme.colorScheme.onPrimary,
-                )
-            }
-        }
-    }
 }
 
 // region Supporting models

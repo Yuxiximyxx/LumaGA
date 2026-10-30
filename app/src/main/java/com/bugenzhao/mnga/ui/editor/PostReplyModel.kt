@@ -155,60 +155,6 @@ class PostReplyModel(private val modelScope: CoroutineScope) : GenericPostModel(
         )
     }
 
-    /**
-     * Headless send for the topic screen's inline reply bar (v1.8.3):
-     * the same two requests the editor makes — fetch the verbatim for
-     * [task], then post — without ever opening the editor sheet. On
-     * success the shared [GenericPostModel.sent] flow fires via
-     * [onSendSuccess], so the details screen's post-send page reload
-     * works exactly as it does for an editor send. The sheet's focus /
-     * IME state machine is not involved at all.
-     */
-    fun sendDirect(
-        task: PostReplyTask,
-        content: String,
-        onResult: (Boolean) -> Unit,
-    ) {
-        modelScope.launch {
-            val fetch =
-                logicCallAsync(
-                    AsyncRequest.newBuilder()
-                        .setPostReplyFetchContent(
-                            PostReplyFetchContentRequest.newBuilder()
-                                .setAction(task.action)
-                                .build(),
-                        )
-                        .build(),
-                    PostReplyFetchContentResponse.parser(),
-                )
-            fetch.fold(
-                onSuccess = { resp ->
-                    val newTask =
-                        task.copy(
-                            action = task.action.toBuilder()
-                                .setVerbatim(resp.verbatim)
-                                .build()
-                        )
-                    val context =
-                        GenericPostModel.Context(
-                            task = newTask,
-                            content = content,
-                            anonymous = false,
-                        )
-                    val ok = performSend(context)
-                    if (ok) onSendSuccess(context)
-                    onResult(ok)
-                },
-                onFailure = { e ->
-                    ToastModel.editorAlert.show(
-                        ToastModel.Message.Error(e.message ?: "error")
-                    )
-                    onResult(false)
-                },
-            )
-        }
-    }
-
     /** Push an edited field back into the live context (and its draft slot). */
     fun update(transform: (GenericPostModel.Context) -> GenericPostModel.Context) {
         val current = context.value ?: return

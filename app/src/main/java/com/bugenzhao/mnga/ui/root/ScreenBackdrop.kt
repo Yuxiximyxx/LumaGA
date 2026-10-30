@@ -87,19 +87,38 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * window (see ImageViewer.kt), which works because the sampled
  * content lives in the same window.
  *
- * Second sweep (v1.8.4) — the header control layer joins:
+ * Second sweep (v1.8.4) — the header control layer joins, with
+ * two of its three conversions REVERTED in v1.8.6 after device
+ * evidence falsified the geometry assumption behind them:
  * - The topic list's header round buttons (home-forum picker, range,
- *   more, search) and its unselected filter chips are glass now: the
- *   header and chip row sit in the Column ABOVE that screen's
- *   recorded list box — consumers outside the recorded subtree,
- *   sampling the texture's top edge (page background), the same
- *   frosted read as the topic screen's consumers. The selected chip
- *   stays solid primary (a state indicator, not a floating surface).
+ *   more, search) and its unselected filter chips were made glass
+ *   in v1.8.4 on the assumption that a consumer in the Column ABOVE
+ *   the recorded list box samples "the texture's top edge (page
+ *   background)". It does not: the consumer's position maps outside
+ *   the recorded texture, and the v1.8.5 device screenshots (light
+ *   theme) show the buttons filled with magnified glyph fragments
+ *   of the first topic titles, washed-out and dirty. Kyant's
+ *   drawBackdrop exposes no sample-offset/clamp control to correct
+ *   the mapping, so v1.8.6 reverts buttons and chips to the v1.8.3
+ *   plain forms. The refresh FAB keeps its glass: it floats OVER
+ *   the recorded list (inside the texture's bounds), the geometry
+ *   proven since v1.7.1.
  * - The home tab's TopAppBar icon buttons (picker, bell, search,
- *   more) are glass circles sampling this screen's published
- *   backdrop; the bar is a Scaffold slot, sibling of the recorded
- *   content. The topic screen's header star / more circles joined
- *   the same way (over its flat, crash-isolated backdrop).
+ *   more) were made glass circles in v1.8.4 with the same
+ *   above-the-recording sampling of the dock backdrop — reverted
+ *   to plain IconButtons in v1.8.6 for the same reason. The topic
+ *   screen's header star / more circles stay glass: their backdrop
+ *   is the flat, crash-isolated recording (a uniform texture, so
+ *   the offset error is invisible there).
+ * - v1.8.5's GlassTopBarBackground (a full-width glass layer under
+ *   the transparent TopAppBar of the home / favorites /
+ *   personal-center tab roots, sampling the same backdrops from
+ *   the bar slot) crashed Favorites and Personal Center on open
+ *   on device. Removed in v1.8.6 (component and all three usages);
+ *   those bars stay plain transparent. The forum directory got no
+ *   such layer in v1.8.5 and never crashed — the three converted
+ *   roots are the whole blast radius. Do not re-add bar-slot
+ *   consumers over a tab root's dock backdrop.
  * - NOT converted, by geometry: the forum directory's title-row
  *   buttons and the favorites / personal-center headers live INSIDE
  *   their screens' recorded scrolling content (the tab roots record
