@@ -145,6 +145,15 @@ fun Modifier.liquidGlass(
  * sample clamp/offset control to correct the mapping. Over the
  * details page's near-uniform background the frosted read is visually
  * the same material minus the artifacts.
+ *
+ * v1.8.8 dense-veil rule, decoupled from the sampled spec: the old
+ * alpha (spec × 1.5 = 0.48 under the liquid preset) has NO blur
+ * behind it, so whatever sits under the disc — post card edges and
+ * text, even the disc's own cast shadow seen back through the fill —
+ * read through sharply and pooled into a bright polygonal patch on
+ * device (v1.8.7 still showed it). The veil now has a per-scheme
+ * opacity floor of ~0.9, so the disc reads as one uniform milky
+ * circle and nothing beneath it can show a shape through it.
  */
 fun Modifier.frostedGlass(
     shape: Shape,
@@ -153,7 +162,15 @@ fun Modifier.frostedGlass(
     shadowRadius: Dp = 12.dp,
 ): Modifier {
     val tint = glassTintColor(spec, scheme)
-    val frost = tint.copy(alpha = (tint.alpha * 1.5f).coerceAtMost(0.95f))
+    val frostAlpha = maxOf(
+        tint.alpha * 1.5f,
+        when (scheme) {
+            DockScheme.Dark -> 0.90f
+            DockScheme.Light -> 0.92f
+            DockScheme.Classic -> 0.92f
+        },
+    ).coerceAtMost(0.97f)
+    val frost = tint.copy(alpha = frostAlpha)
     val rim = when (scheme) {
         DockScheme.Dark -> Color.White.copy(alpha = 0.28f)
         DockScheme.Light -> Color.White.copy(alpha = 0.55f)

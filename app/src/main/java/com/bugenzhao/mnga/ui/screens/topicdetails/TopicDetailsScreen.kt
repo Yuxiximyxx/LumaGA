@@ -880,6 +880,16 @@ private fun TopicDetailsScreenContent(
                     // outside the recording's bounds, and Kyant exposes
                     // no sample clamp). See frostedGlass in
                     // GlassSurface.kt.
+                    // v1.8.8: the circle itself owns the click and the
+                    // content is a bare Icon — no Miuix IconButton
+                    // inside. The bright polygonal patch survived the
+                    // v1.8.7 material swap pixel-for-pixel, which
+                    // acquits the outer material; the one inner layer
+                    // both builds shared here was the Miuix IconButton
+                    // (its own Box + miuixShape clip + hold-down
+                    // machinery, min size exactly the 40.dp of this
+                    // circle). With it gone the render stack is just
+                    // the dense frosted disc plus the icon.
                     Box(
                         Modifier.size(40.dp)
                             .frostedGlass(
@@ -888,11 +898,8 @@ private fun TopicDetailsScreenContent(
                                 scheme = glass.scheme,
                                 shadowRadius = 8.dp,
                             )
-                            .clip(androidx.compose.foundation.shape.CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        IconButton(
-                            onClick = {
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .clickable {
                                 toggleTopicFavor(
                                     scope = scope,
                                     view = view,
@@ -901,20 +908,28 @@ private fun TopicDetailsScreenContent(
                                     onResult = { favored -> favoredOverride = favored },
                                 )
                             },
-                        ) {
-                            Icon(
-                                if (favoredOverride ?: topic.isFavored) {
-                                    Icons.Filled.Star
-                                } else {
-                                    Icons.Outlined.StarBorder
-                                },
-                                contentDescription = null,
-                                tint = MiuixTheme.colorScheme.onSurface,
-                            )
-                        }
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            if (favoredOverride ?: topic.isFavored) {
+                                Icons.Filled.Star
+                            } else {
+                                Icons.Outlined.StarBorder
+                            },
+                            contentDescription = null,
+                            tint = MiuixTheme.colorScheme.onSurface,
+                        )
                     }
                     Spacer(Modifier.size(10.dp))
                 }
+                // v1.8.8: the menu's open state is hoisted to this
+                // header so the frosted circle itself can own the
+                // click — the menu's internal trigger is no longer a
+                // Miuix IconButton (see the star button's note and
+                // TopicDetailsMoreMenu). The dropdown stays anchored
+                // inside the menu composable, whose trigger box keeps
+                // the same 40.dp footprint.
+                var moreMenuOpen by remember { mutableStateOf(false) }
                 Box(
                     Modifier.size(40.dp)
                         .frostedGlass(
@@ -923,10 +938,13 @@ private fun TopicDetailsScreenContent(
                             scheme = glass.scheme,
                             shadowRadius = 8.dp,
                         )
-                        .clip(androidx.compose.foundation.shape.CircleShape),
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .clickable { moreMenuOpen = true },
                     contentAlignment = Alignment.Center,
                 ) {
                     TopicDetailsMoreMenu(
+                        open = moreMenuOpen,
+                        onOpenChange = { moreMenuOpen = it },
                         topic = topic,
                         enableAuthorOnly = enableAuthorOnly,
                         localMode = localMode,
@@ -1227,6 +1245,10 @@ private fun TopicDetailsScreenContent(
             // screen's flat, crash-isolated recording, under the
             // liquid preset's lens + dispersion) rendered a faceted
             // ghost and an orange dispersion wedge inside the circle.
+            // v1.8.8: its frostedGlass veil is now the dense ~0.9
+            // rule (see GlassSurface.kt) — at the old 0.48 alpha the
+            // unblurred fill let the content beneath (and the disc's
+            // own shadow) show shapes through it.
             // Same size, position and tap path as v1.8.6: no input of
             // its own, a tap opens the full editor replying to the OP
             // via the standard post-action path (EditorController
@@ -1876,6 +1898,8 @@ private fun TopicSubjectHeader(topic: Topic) {
 
 @Composable
 private fun TopicDetailsMoreMenu(
+    open: Boolean,
+    onOpenChange: (Boolean) -> Unit,
     topic: Topic,
     enableAuthorOnly: Boolean,
     localMode: Boolean,
@@ -1891,15 +1915,22 @@ private fun TopicDetailsMoreMenu(
     onGotoTopic: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    var open by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { open = true }) {
+        // v1.8.8: plain anchor box + bare Icon, no Miuix IconButton
+        // (see the header note). The outer frosted circle owns the
+        // click and lifts `open` via onOpenChange; this box only
+        // anchors the dropdown and keeps the exact 40.dp footprint
+        // the IconButton min size used to give the anchor.
+        Box(
+            Modifier.size(40.dp),
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(Icons.Filled.MoreVert, contentDescription = null)
         }
         // Miuix menu (phase 3) replacing the Material DropdownMenu; the
         // grouped layout (id header, action groups, link group) is kept,
         // rendered with Miuix menu rows inside the Miuix popup panel.
-        MiuixDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        MiuixDropdownMenu(expanded = open, onDismissRequest = { onOpenChange(false) }) {
             // Debug id header.
             MiuixMenuHeader(
                 "#" + topic.id + (topic.fav.takeIf { it.isNotEmpty() }?.let { " @$it" } ?: ""),
@@ -1909,28 +1940,28 @@ private fun TopicDetailsMoreMenu(
                 MiuixMenuItem(
                     text = L.str(context, "Jump to..."),
                     icon = Icons.Filled.SwapVert,
-                    onClick = { open = false; onJump() },
+                    onClick = { onOpenChange(false); onJump() },
                 )
             }
             if (onLoadFirstPage != null) {
                 MiuixMenuItem(
                     text = L.str(context, "Load First Page"),
                     icon = Icons.Filled.ArrowUpward,
-                    onClick = { open = false; onLoadFirstPage() },
+                    onClick = { onOpenChange(false); onLoadFirstPage() },
                 )
             }
             if (onReply != null) {
                 MiuixMenuItem(
                     text = L.str(context, "Reply"),
                     icon = Icons.AutoMirrored.Filled.Reply,
-                    onClick = { open = false; onReply() },
+                    onClick = { onOpenChange(false); onReply() },
                 )
             }
             if (onGotoTopic != null) {
                 MiuixMenuItem(
                     text = L.str(context, "Goto Topic"),
                     icon = Icons.Filled.SubdirectoryArrowRight,
-                    onClick = { open = false; onGotoTopic() },
+                    onClick = { onOpenChange(false); onGotoTopic() },
                 )
             }
             if (onJump != null || onLoadFirstPage != null || onReply != null || onGotoTopic != null) {
@@ -1940,14 +1971,14 @@ private fun TopicDetailsMoreMenu(
                 MiuixMenuItem(
                     text = L.str(context, "Author Only"),
                     icon = Icons.Filled.Person,
-                    onClick = { open = false; onAuthorOnly() },
+                    onClick = { onOpenChange(false); onAuthorOnly() },
                 )
             }
             if (!localMode) {
                 MiuixMenuItem(
                     text = L.str(context, "View Cached Topic"),
                     icon = Icons.Filled.Bookmark,
-                    onClick = { open = false; onViewCached() },
+                    onClick = { onOpenChange(false); onViewCached() },
                 )
             }
             if (onToggleFavorite != null) {
@@ -1957,7 +1988,7 @@ private fun TopicDetailsMoreMenu(
                         if (isFavorite) "Remove from Favorites" else "Mark as Favorite",
                     ),
                     icon = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
-                    onClick = { open = false; onToggleFavorite() },
+                    onClick = { onOpenChange(false); onToggleFavorite() },
                 )
             }
             MiuixMenuDivider()
@@ -1973,19 +2004,19 @@ private fun TopicDetailsMoreMenu(
                             android.content.ClipData.newPlainText("泥坛", it)
                         )
                     }
-                    open = false
+                    onOpenChange(false)
                 },
             )
             MiuixMenuItem(
                 text = L.str(context, "Open in Browser"),
                 icon = Icons.Filled.OpenInBrowser,
-                onClick = { open = false; openInBrowser(context, topic) },
+                onClick = { onOpenChange(false); openInBrowser(context, topic) },
             )
             if (atForum != null) {
                 MiuixMenuItem(
                     text = L.str(context, "Goto Forum") + " " + atForum.name,
                     icon = Icons.Filled.SwapVert,
-                    onClick = { open = false; onGotoForum(atForum) },
+                    onClick = { onOpenChange(false); onGotoForum(atForum) },
                 )
             }
         }

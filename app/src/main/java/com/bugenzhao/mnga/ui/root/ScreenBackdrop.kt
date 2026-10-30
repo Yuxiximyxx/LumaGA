@@ -123,6 +123,20 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  *   consumer safe — the lens/dispersion chain and out-of-bounds
  *   sampling can still fabricate structure, and Kyant exposes no
  *   clamp to rule it out.
+ *   v1.8.8 follow-up: the device patch survived v1.8.7's material
+ *   swap essentially pixel-for-pixel, so it never came from the
+ *   outer material at all. Two residual layers were removed: the
+ *   header pair's INNER Miuix IconButton (its own Box + miuixShape
+ *   clip layer; its source-verified defaults paint no background —
+ *   backgroundColor is Color.Unspecified and its min size is
+ *   exactly the circle's 40.dp — but it was the one inner layer
+ *   both builds shared) is gone, the circles own their clicks and
+ *   hold bare Icons; and the frosted veil itself was too thin
+ *   (0.48 alpha, no blur), letting shapes beneath the disc show
+ *   through — frostedGlass now enforces a ~0.9 per-scheme opacity
+ *   floor, decoupled from the sampled spec. Remaining stack for
+ *   all three buttons: dense uniform veil + rim + icon, nothing
+ *   else drawable.
  * - v1.8.5's GlassTopBarBackground (a full-width glass layer under
  *   the transparent TopAppBar of the home / favorites /
  *   personal-center tab roots, sampling the same backdrops from
